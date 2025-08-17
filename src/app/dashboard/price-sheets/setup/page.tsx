@@ -1,53 +1,45 @@
 import Link from 'next/link'
 import { 
-  CheckCircleIcon, 
   MapPinIcon, 
   SparklesIcon, 
   ShieldCheckIcon,
-  ArrowRightIcon,
-  Cog6ToothIcon
+  ArrowRightIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 
-// Mock setup data - in real app this would come from API
-const mockSetupData = {
-  currentStep: 2, // 0-indexed - now all steps complete
-  steps: [
-    {
-      id: 'regions',
-      name: 'Growing Regions',
-      description: 'Define where you grow your crops and your delivery zones',
-      status: 'complete',
-      href: '/dashboard/price-sheets/setup/regions',
-      icon: MapPinIcon,
-      completedAt: '2024-03-10',
-      regionsCount: 3
-    },
-    {
-      id: 'crops',
-      name: 'Crop Management',
-      description: 'Set up your crop catalog, varieties, and growing seasons',
-      status: 'complete',
-      href: '/dashboard/price-sheets/setup/crops',
-      icon: SparklesIcon,
-      completedAt: '2024-03-15',
-      cropsCount: 8
-    },
-    {
-      id: 'capabilities',
-      name: 'Capabilities & Certifications',
-      description: 'Configure your processing capabilities, certifications, and quality metrics',
-      status: 'complete',
-      href: '/dashboard/price-sheets/setup/capabilities',
-      icon: ShieldCheckIcon,
-      completedAt: '2024-03-18',
-      capabilitiesCount: 4
-    }
-  ]
+// Mock setup metrics - in real app this would come from API
+const mockSetupMetrics = {
+  regions: {
+    count: 3,
+    name: 'Growing Regions',
+    description: 'Active growing regions and delivery zones',
+    href: '/dashboard/price-sheets/setup/regions',
+    icon: MapPinIcon,
+    details: ['Central Valley - Fresno', 'Salinas Valley', 'Imperial Valley'],
+    lastUpdated: '2024-03-10'
+  },
+  crops: {
+    count: 8,
+    name: 'Commodities',
+    description: 'Configured crop varieties and seasons',
+    href: '/dashboard/price-sheets/setup/crops',
+    icon: SparklesIcon,
+    details: ['3 Organic varieties', '5 Conventional varieties', '12 total variations'],
+    lastUpdated: '2024-03-15'
+  },
+  capabilities: {
+    count: 4,
+    name: 'Capabilities & Certs',
+    description: 'Processing capabilities and certifications',
+    href: '/dashboard/price-sheets/setup/capabilities',
+    icon: ShieldCheckIcon,
+    details: ['USDA Organic', 'Food Safety Certified', 'Cold Storage', 'Custom Packaging'],
+    lastUpdated: '2024-03-18'
+  }
 }
 
 export default function Setup() {
-  const progressPercentage = ((mockSetupData.currentStep + 1) / mockSetupData.steps.length) * 100
+  const totalMetrics = Object.values(mockSetupMetrics).reduce((sum, metric) => sum + metric.count, 0)
 
   return (
     <>
@@ -61,157 +53,122 @@ export default function Setup() {
           className="mb-4"
         />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Setup Your Data</h1>
-          <p className="mt-2 text-gray-600">Complete these steps to start generating professional price sheets.</p>
+          <h1 className="text-3xl font-bold text-gray-900">Your Data Overview</h1>
+          <p className="mt-2 text-gray-600">Manage your growing regions, crop catalog, and capabilities that power your price sheets.</p>
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Quick Stats */}
       <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900">Setup Progress</h3>
-          <span className="text-sm text-gray-500">
-            {mockSetupData.currentStep + 1} of {mockSetupData.steps.length} steps completed
-          </span>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-medium text-gray-900">Ready to Generate Price Sheets</h3>
+            <p className="text-sm text-gray-600 mt-1">
+              You have <span className="font-medium text-blue-600">{totalMetrics} items</span> configured across your growing regions, commodities, and capabilities.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/price-sheets/new"
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            Create Price Sheet
+            <ArrowRightIcon className="h-5 w-5 ml-2" />
+          </Link>
         </div>
-        
-        <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
-          <div 
-            className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
-        </div>
-        
-        <p className="text-sm text-gray-600">
-          {progressPercentage === 100 
-            ? "🎉 All setup complete! You're ready to create price sheets."
-            : `Complete the remaining steps to unlock price sheet generation.`
-          }
-        </p>
       </div>
 
-      {/* Setup Steps */}
-      <div className="space-y-6">
-        {mockSetupData.steps.map((step, index) => {
-          const Icon = step.icon
-          const isCurrent = step.status === 'in_progress'
-          const isCompleted = step.status === 'complete'
-          const isPending = step.status === 'pending'
+      {/* Metrics Cards - Horizontal Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {Object.values(mockSetupMetrics).map((metric) => {
+          const Icon = metric.icon
           
           return (
-            <div 
-              key={step.id}
-              className={`bg-white shadow rounded-lg border-2 transition-all duration-200 ${
-                isCurrent ? 'border-blue-200 ring-2 ring-primary-100' :
-                isCompleted ? 'border-green-200' :
-                'border-gray-200'
-              }`}
-            >
+            <div key={metric.name} className="bg-white shadow rounded-lg hover:shadow-md transition-shadow duration-200">
               <div className="p-6">
-                <div className="flex items-start space-x-4">
-                  {/* Icon */}
-                  <div className={`flex-shrink-0 p-3 rounded-lg ${
-                    isCompleted ? 'bg-green-100 text-green-600' :
-                    isCurrent ? 'bg-green-100 text-blue-600' :
-                    'bg-gray-100 text-gray-400'
-                  }`}>
-                    <Icon className="h-6 w-6" />
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <h3 className={`text-lg font-medium ${
-                        isCompleted ? 'text-green-900' :
-                        isCurrent ? 'text-blue-900' :
-                        'text-gray-900'
-                      }`}>
-                        {step.name}
-                      </h3>
-                      
-                      {isCompleted && (
-                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
-                      )}
-                      
-                      {isCurrent && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-blue-800">
-                          Current Step
-                        </span>
-                      )}
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0 p-2 bg-blue-100 rounded-lg">
+                      <Icon className="h-6 w-6 text-blue-600" />
                     </div>
-                    
-                    <p className="text-gray-600 mb-4">{step.description}</p>
-                    
-                    {/* Status Info */}
-                    {isCompleted && step.completedAt && (
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>Completed {new Date(step.completedAt).toLocaleDateString()}</span>
-                        {step.regionsCount && <span>{step.regionsCount} regions added</span>}
-                        {step.cropsCount && <span>{step.cropsCount} crops configured</span>}
-                        {step.capabilitiesCount && <span>{step.capabilitiesCount} capabilities set</span>}
-                      </div>
-                    )}
-                    
-                    {isCurrent && (
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
-                        <span>Ready to configure</span>
-                        {step.cropsCount && step.cropsCount > 0 && <span>{step.cropsCount} crops already added</span>}
-                      </div>
-                    )}
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">{metric.name}</h3>
+                      <p className="text-sm text-gray-500">{metric.description}</p>
+                    </div>
                   </div>
-                  
-                  {/* Action Button */}
-                  <div className="flex-shrink-0">
-                    {isCompleted ? (
-                      <Link
-                        href={step.href}
-                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                      >
-                        <Cog6ToothIcon className="h-4 w-4 mr-2" />
-                        Manage
-                      </Link>
-                    ) : isCurrent ? (
-                      <Link
-                        href={step.href}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                      >
-                        Get Started
-                        <ArrowRightIcon className="h-4 w-4 ml-2" />
-                      </Link>
-                    ) : (
-                      <span className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-gray-400 bg-gray-100 cursor-not-allowed">
-                        Complete Previous Steps First
-                      </span>
-                    )}
+                </div>
+                
+                {/* Big Number */}
+                <div className="mb-4">
+                  <div className="text-3xl font-bold text-blue-600">{metric.count}</div>
+                  <div className="text-sm text-gray-500">
+                    {metric.name === 'Growing Regions' ? 'active regions' :
+                     metric.name === 'Commodities' ? 'configured commodities' :
+                     'capabilities & certifications'}
                   </div>
+                </div>
+                
+                {/* Details */}
+                <div className="space-y-1 mb-4">
+                  {metric.details.slice(0, 3).map((detail, index) => (
+                    <div key={index} className="flex items-center text-sm text-gray-600">
+                      <div className="w-2 h-2 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
+                      {detail}
+                    </div>
+                  ))}
+                  {metric.details.length > 3 && (
+                    <div className="text-sm text-gray-500 mt-2">
+                      +{metric.details.length - 3} more...
+                    </div>
+                  )}
+                </div>
+                
+                {/* Action */}
+                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">
+                    Updated {new Date(metric.lastUpdated).toLocaleDateString()}
+                  </span>
+                  <Link
+                    href={metric.href}
+                    className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-800"
+                  >
+                    Manage
+                    <ArrowRightIcon className="h-4 w-4 ml-1" />
+                  </Link>
                 </div>
               </div>
             </div>
           )
         })}
       </div>
-
-      {/* Next Steps */}
-      {progressPercentage === 100 && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-6 mt-8">
-          <div className="text-center">
-            <CheckCircleIcon className="h-12 w-12 text-green-600 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-green-900 mb-2">
-              Setup Complete! 🎉
-            </h3>
-            <p className="text-green-700 mb-4">
-              You&apos;re all set to create professional price sheets with accurate pricing and capabilities.
-            </p>
-            <Link
-              href="/dashboard/price-sheets/new"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-            >
-              Create Your First Price Sheet
-              <ArrowRightIcon className="h-5 w-5 ml-2" />
-            </Link>
-          </div>
+      
+      {/* Quick Actions */}
+      <div className="bg-gray-50 rounded-lg p-6 mt-8">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Quick Actions</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Link
+            href="/dashboard/price-sheets/setup/regions"
+            className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <MapPinIcon className="h-4 w-4 mr-2" />
+            Add Growing Region
+          </Link>
+          <Link
+            href="/dashboard/price-sheets/setup/crops"
+            className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <SparklesIcon className="h-4 w-4 mr-2" />
+            Add Commodity
+          </Link>
+          <Link
+            href="/dashboard/price-sheets/setup/capabilities"
+            className="flex items-center justify-center px-4 py-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <ShieldCheckIcon className="h-4 w-4 mr-2" />
+            Add Capability
+          </Link>
         </div>
-      )}
+      </div>
     </>
   )
 }

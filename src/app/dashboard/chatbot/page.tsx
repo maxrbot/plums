@@ -174,7 +174,7 @@ export default function Chatbot() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">"What's your organic strawberry pricing?"</p>
+                  <p className="text-sm font-medium text-gray-900">&ldquo;What&apos;s your organic strawberry pricing?&rdquo;</p>
                   <p className="text-sm text-gray-500">2 hours ago</p>
                 </div>
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -184,7 +184,7 @@ export default function Chatbot() {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">"Do you deliver to downtown?"</p>
+                  <p className="text-sm font-medium text-gray-900">&ldquo;Do you deliver to downtown?&rdquo;</p>
                   <p className="text-sm text-gray-500">4 hours ago</p>
                 </div>
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -194,7 +194,7 @@ export default function Chatbot() {
               
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-900">"Minimum order requirements?"</p>
+                  <p className="text-sm font-medium text-gray-900">&ldquo;Minimum order requirements?&rdquo;</p>
                   <p className="text-sm text-gray-500">6 hours ago</p>
                 </div>
                 <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">

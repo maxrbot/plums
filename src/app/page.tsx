@@ -99,7 +99,7 @@ export default function Home() {
                   Price Sheet Generator
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">"HubSpot for price sheets" - create, send, and track engagement with your customers. AI-powered insights help you optimize pricing and availability.</p>
+                  <p className="flex-auto">&ldquo;HubSpot for price sheets&rdquo; - create, send, and track engagement with your customers. AI-powered insights help you optimize pricing and availability.</p>
                   <p className="mt-6">
                     <Link href="/dashboard" className="text-sm font-semibold leading-6 text-purple-600">
                       Learn more <span aria-hidden="true">→</span>
@@ -127,7 +127,7 @@ export default function Home() {
                   Analytics & Insights
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">Track who's opening your price sheets, monitor customer engagement, and get insights to optimize your sales strategy.</p>
+                  <p className="flex-auto">Track who&apos;s opening your price sheets, monitor customer engagement, and get insights to optimize your sales strategy.</p>
                   <p className="mt-6">
                     <Link href="/dashboard" className="text-sm font-semibold leading-6 text-purple-600">
                       Learn more <span aria-hidden="true">→</span>
@@ -149,7 +149,7 @@ export default function Home() {
               More tools to help you grow
             </p>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              We're building more features to help agricultural suppliers succeed. 
+              We&apos;re building more features to help agricultural suppliers succeed. 
               Stay tuned for advanced analytics, customer management, and more.
             </p>
           </div>

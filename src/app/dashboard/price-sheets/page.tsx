@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { PlusIcon, EyeIcon, DocumentTextIcon, CalendarIcon } from '@heroicons/react/24/outline'
+import { PlusIcon, EyeIcon, DocumentTextIcon, CalendarIcon, Cog6ToothIcon, CheckCircleIcon } from '@heroicons/react/24/outline'
 
 // Mock price sheet data
 const mockPriceSheets = [
@@ -32,6 +32,16 @@ const mockPriceSheets = [
   }
 ]
 
+// Mock setup status - in real app this would come from API
+const mockSetupStatus = {
+  isComplete: true,
+  steps: [
+    { name: 'Growing Regions', status: 'complete', href: '/dashboard/price-sheets/setup/regions' },
+    { name: 'Crop Management', status: 'complete', href: '/dashboard/price-sheets/setup/crops' },
+    { name: 'Capabilities', status: 'complete', href: '/dashboard/price-sheets/setup/capabilities' }
+  ]
+}
+
 export default function PriceSheets() {
   return (
     <>
@@ -42,15 +52,77 @@ export default function PriceSheets() {
             <h1 className="text-3xl font-bold text-gray-900">Price Sheets</h1>
             <p className="mt-2 text-gray-600">Create and manage your price sheets for buyers.</p>
           </div>
-          <Link
-            href="/dashboard/price-sheets/new"
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            New Price Sheet
-          </Link>
+          <div className="flex items-center space-x-3">
+            <Link
+              href="/dashboard/price-sheets/setup"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <Cog6ToothIcon className="h-4 w-4 mr-2" />
+              Manage Your Data
+            </Link>
+            <Link
+              href="/dashboard/price-sheets/new"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              New Price Sheet
+            </Link>
+          </div>
         </div>
       </div>
+
+      {/* Setup Status Card */}
+      {!mockSetupStatus.isComplete && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <h3 className="text-lg font-medium text-blue-800">
+                Setup Required to Create Price Sheets
+              </h3>
+              <p className="text-blue-700 mt-1">
+                Complete your data setup to start generating professional price sheets with accurate pricing and capabilities.
+              </p>
+              
+              {/* Setup Steps */}
+              <div className="mt-4 space-y-3">
+                {mockSetupStatus.steps.map((step, index) => (
+                  <div key={step.name} className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      {step.status === 'complete' ? (
+                        <CheckCircleIcon className="h-5 w-5 text-green-500" />
+                      ) : step.status === 'in_progress' ? (
+                        <div className="h-5 w-5 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+                      ) : (
+                        <div className="h-5 w-5 rounded-full border-2 border-gray-300" />
+                      )}
+                    </div>
+                    <span className={`text-sm font-medium ${
+                      step.status === 'complete' ? 'text-green-700' :
+                      step.status === 'in_progress' ? 'text-blue-700' :
+                      'text-gray-500'
+                    }`}>
+                      {step.name}
+                    </span>
+                    {step.status === 'in_progress' && (
+                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                        Current Step
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="ml-6">
+              <Link
+                href="/dashboard/price-sheets/setup"
+                className="inline-flex items-center px-4 py-2 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+              >
+                Complete Setup
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">

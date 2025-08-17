@@ -14,59 +14,81 @@ interface AddRegionModalProps {
 export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionModalProps) {
   const [formData, setFormData] = useState({
     name: '',
-    city: '',
-    state: '',
+    location: '',
+    farmingTypes: [] as string[],
+    acreage: '',
     climate: '',
     soilType: '',
-    deliveryZones: [''],
     notes: '',
     status: 'active' as const
   })
+  
+  const [showNotesInput, setShowNotesInput] = useState(false)
+
+  // Farming type options
+  const farmingTypeOptions = [
+    'Orchard',
+    'Row Crops', 
+    'Vineyard',
+    'Greenhouse',
+    'Hydroponic',
+    'Pasture',
+    'Mixed Farming',
+    'Specialty Crops',
+    'Regenerative',
+    'Berry Farm'
+  ]
+
+  // Acreage options
+  const acreageOptions = [
+    { value: 'under-50', label: 'Under 50 acres' },
+    { value: '50-200', label: '50-200 acres' },
+    { value: '200-500', label: '200-500 acres' },
+    { value: '500+', label: '500+ acres' }
+  ]
+
+  const toggleFarmingType = (type: string) => {
+    setFormData(prev => ({
+      ...prev,
+      farmingTypes: prev.farmingTypes.includes(type)
+        ? prev.farmingTypes.filter(t => t !== type)
+        : [...prev.farmingTypes, type]
+    }))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSave({
-      ...formData,
-      status: 'active',
-      createdAt: new Date().toISOString()
-    })
+    // Transform the data to match the existing GrowingRegion interface
+    const regionData = {
+      name: formData.name,
+      city: formData.location, // Store location in city field for now
+      state: '', // Will be populated from Google Maps API later
+      climate: formData.climate,
+      soilType: formData.soilType,
+      deliveryZones: [], // Remove delivery zones for now
+      status: 'active' as const,
+      createdAt: new Date().toISOString().split('T')[0]
+    }
+    onSave(regionData)
     handleClose()
   }
 
   const handleClose = () => {
     setFormData({
       name: '',
-      city: '',
-      state: '',
+      location: '',
+      farmingTypes: [],
+      acreage: '',
       climate: '',
       soilType: '',
-      deliveryZones: [''],
       notes: '',
       status: 'active' as const
     })
+    setShowNotesInput(false)
     onClose()
   }
 
-  const addDeliveryZone = () => {
-    setFormData(prev => ({
-      ...prev,
-      deliveryZones: [...prev.deliveryZones, '']
-    }))
-  }
 
-  const removeDeliveryZone = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      deliveryZones: prev.deliveryZones.filter((_, i) => i !== index)
-    }))
-  }
-
-  const updateDeliveryZone = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      deliveryZones: prev.deliveryZones.map((zone, i) => i === index ? value : zone)
-    }))
-  }
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -116,7 +138,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
-                        Define a new growing region with location details, climate information, and delivery zones.
+                        Add a new growing region with location, farming types, and agricultural details.
                       </p>
                     </div>
                   </div>
@@ -124,7 +146,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
 
                 <form onSubmit={handleSubmit} className="mt-6 space-y-6">
                   {/* Basic Information */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                         Region Name *
@@ -141,35 +163,89 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                     </div>
 
                     <div>
-                      <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-                        City *
+                      <label htmlFor="location" className="block text-sm font-medium text-gray-700">
+                        Location *
                       </label>
                       <input
                         type="text"
-                        id="city"
+                        id="location"
                         required
-                        value={formData.city}
-                        onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value }))}
+                        value={formData.location}
+                        onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                         className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                        placeholder="e.g., Fresno"
+                        placeholder="Start typing city, state..."
                       />
+                      <p className="mt-1 text-xs text-gray-500">
+                        Google Maps integration coming soon
+                      </p>
                     </div>
+                  </div>
 
-                    <div>
-                      <label htmlFor="state" className="block text-sm font-medium text-gray-700">
-                        State *
-                      </label>
-                      <input
-                        type="text"
-                        id="state"
-                        required
-                        value={formData.state}
-                        onChange={(e) => setFormData(prev => ({ ...prev, state: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                        placeholder="e.g., California"
-                      />
+                  {/* Farming Types */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Farming Types
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {farmingTypeOptions.map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => toggleFarmingType(type)}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                            formData.farmingTypes.includes(type)
+                              ? 'bg-blue-100 border-blue-300 text-blue-800'
+                              : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {type}
+                        </button>
+                      ))}
                     </div>
+                  </div>
 
+                  {/* Approximate Acreage */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                      Approximate Acreage
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {acreageOptions.map((option) => (
+                        <label
+                          key={option.value}
+                          className={`relative flex cursor-pointer rounded-lg border p-3 focus:outline-none ${
+                            formData.acreage === option.value
+                              ? 'border-blue-600 ring-2 ring-blue-600 bg-blue-50'
+                              : 'border-gray-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="acreage"
+                            value={option.value}
+                            checked={formData.acreage === option.value}
+                            onChange={(e) => setFormData(prev => ({ ...prev, acreage: e.target.value }))}
+                            className="sr-only"
+                          />
+                          <span className="flex flex-1 justify-center">
+                            <span className={`block text-sm font-medium text-center ${
+                              formData.acreage === option.value ? 'text-blue-900' : 'text-gray-900'
+                            }`}>
+                              {option.label}
+                            </span>
+                          </span>
+                          {formData.acreage === option.value && (
+                            <div className="absolute top-2 right-2">
+                              <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+                            </div>
+                          )}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Climate and Soil Type */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="climate" className="block text-sm font-medium text-gray-700">
                         Climate
@@ -209,56 +285,40 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                     </div>
                   </div>
 
-                  {/* Delivery Zones */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Delivery Zones
-                    </label>
-                    <div className="space-y-2">
-                      {formData.deliveryZones.map((zone, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            value={zone}
-                            onChange={(e) => updateDeliveryZone(index, e.target.value)}
-                            className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            placeholder="e.g., Downtown, North Side, Industrial District"
-                          />
-                          {formData.deliveryZones.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeDeliveryZone(index)}
-                              className="inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                  {/* Notes Section */}
+                  {!showNotesInput ? (
+                    <div>
                       <button
                         type="button"
-                        onClick={addDeliveryZone}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        onClick={() => setShowNotesInput(true)}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                       >
-                        Add Delivery Zone
+                        + Add a note
                       </button>
                     </div>
-                  </div>
-
-                  {/* Notes */}
-                  <div>
-                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                      Notes
-                    </label>
-                    <textarea
-                      id="notes"
-                      rows={3}
-                      value={formData.notes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="Additional information about this region..."
-                    />
-                  </div>
+                  ) : (
+                    <div>
+                      <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+                        Notes
+                      </label>
+                      <textarea
+                        id="notes"
+                        rows={3}
+                        value={formData.notes}
+                        onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Additional information about this region..."
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNotesInput(false)}
+                        className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Hide notes
+                      </button>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="mt-6 flex justify-end space-x-3">

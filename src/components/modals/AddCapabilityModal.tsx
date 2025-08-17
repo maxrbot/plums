@@ -20,6 +20,8 @@ export default function AddCapabilityModal({
   availableCrops, 
   availableRegions 
 }: AddCapabilityModalProps) {
+  const [selectedType, setSelectedType] = useState<Capability['type'] | ''>('')
+  const [showNotesInput, setShowNotesInput] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     type: 'certification' as Capability['type'],
@@ -29,19 +31,75 @@ export default function AddCapabilityModal({
     appliesTo: [] as string[],
     growingRegions: [] as string[],
     documents: [''],
-    notes: ''
+    notes: '',
+    // Packaging specific
+    packageType: '',
+    packageMeasurement: '',
+    packageUnit: '',
+    isCustomCert: false
   })
+
+  // Common certifications
+  const commonCertifications = [
+    'USDA Organic',
+    'SQF (Safe Quality Food)',
+    'BRC (British Retail Consortium)',
+    'GlobalGAP',
+    'HACCP',
+    'Non-GMO Project Verified',
+    'Fair Trade Certified',
+    'Rainforest Alliance',
+    'CCOF Certified',
+    'Biodynamic Certified',
+    'Other/Custom'
+  ]
+
+  // Package types
+  const packageTypes = [
+    'Clamshell',
+    'Bag',
+    'Carton',
+    'Box',
+    'Tray',
+    'Punnet',
+    'Bulk Bin',
+    'Pouch',
+    'Net Bag',
+    'Wrapped'
+  ]
+
+  // Units for packaging
+  const packageUnits = [
+    { value: 'lb', label: 'pounds (lb)' },
+    { value: 'oz', label: 'ounces (oz)' },
+    { value: 'kg', label: 'kilograms (kg)' },
+    { value: 'g', label: 'grams (g)' },
+    { value: 'ct', label: 'count (ct)' },
+    { value: 'each', label: 'each' },
+    { value: 'dozen', label: 'dozen' }
+  ]
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Build the capability name based on type
+    let capabilityName = formData.name
+    if (selectedType === 'packaging') {
+      capabilityName = `${formData.packageMeasurement} ${formData.packageUnit} ${formData.packageType}`.trim()
+    }
+    
     onSave({
       ...formData,
+      name: capabilityName,
+      type: selectedType as Capability['type'],
       createdAt: new Date().toISOString()
     })
     handleClose()
   }
 
   const handleClose = () => {
+    setSelectedType('')
+    setShowNotesInput(false)
     setFormData({
       name: '',
       type: 'certification' as Capability['type'],
@@ -51,7 +109,11 @@ export default function AddCapabilityModal({
       appliesTo: [],
       growingRegions: [],
       documents: [''],
-      notes: ''
+      notes: '',
+      packageType: '',
+      packageMeasurement: '',
+      packageUnit: '',
+      isCustomCert: false
     })
     onClose()
   }
@@ -65,51 +127,14 @@ export default function AddCapabilityModal({
     }))
   }
 
-  const toggleRegion = (region: string) => {
-    setFormData(prev => ({
-      ...prev,
-      growingRegions: prev.growingRegions.includes(region)
-        ? prev.growingRegions.filter(r => r !== region)
-        : [...prev.growingRegions, region]
-    }))
-  }
-
-  const addDocument = () => {
-    setFormData(prev => ({
-      ...prev,
-      documents: [...prev.documents, '']
-    }))
-  }
-
-  const removeDocument = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      documents: prev.documents.filter((_, i) => i !== index)
-    }))
-  }
-
-  const updateDocument = (index: number, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      documents: prev.documents.map((doc, i) => i === index ? value : doc)
-    }))
-  }
-
   const capabilityTypes = [
-    { value: 'certification', label: 'Certification' },
-    { value: 'food_safety', label: 'Food Safety' },
-    { value: 'sustainability', label: 'Sustainability' },
-    { value: 'quality', label: 'Quality Standard' },
-    { value: 'processing', label: 'Processing' },
-    { value: 'packaging', label: 'Packaging' }
+    { value: 'certification', label: 'Certification', available: true },
+    { value: 'packaging', label: 'Packaging', available: true },
+    { value: 'processing', label: 'Processing - Coming Soon', available: false }
   ]
 
-  const statusOptions = [
-    { value: 'active', label: 'Active' },
-    { value: 'pending', label: 'Pending' },
-    { value: 'expired', label: 'Expired' },
-    { value: 'suspended', label: 'Suspended' }
-  ]
+  // Check if crops exist
+  const noCropsAvailable = !availableCrops || availableCrops.length === 0
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -165,207 +190,319 @@ export default function AddCapabilityModal({
                   </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="mt-6 space-y-6">
-                  {/* Basic Information */}
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                    <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                        Name *
-                      </label>
-                      <input
-                        type="text"
-                        id="name"
-                        required
-                        value={formData.name}
-                        onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                        placeholder="e.g., USDA Organic Certification"
-                      />
-                    </div>
-
-                    <div>
-                      <label htmlFor="type" className="block text-sm font-medium text-gray-700">
-                        Type *
-                      </label>
-                      <select
-                        id="type"
-                        required
-                        value={formData.type}
-                        onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Capability['type'] }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      >
-                        <option value="">Select type</option>
-                        {capabilityTypes.map(type => (
-                          <option key={type.value} value={type.value}>{type.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="status" className="block text-sm font-medium text-gray-700">
-                        Status *
-                      </label>
-                      <select
-                        id="status"
-                        required
-                        value={formData.status}
-                        onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Capability['status'] }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      >
-                        {statusOptions.map(status => (
-                          <option key={status.value} value={status.value}>{status.label}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label htmlFor="validUntil" className="block text-sm font-medium text-gray-700">
-                        Valid Until
-                      </label>
-                      <input
-                        type="date"
-                        id="validUntil"
-                        value={formData.validUntil}
-                        onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      />
-                      <p className="mt-1 text-xs text-gray-500">Leave empty if no expiration</p>
-                    </div>
-                  </div>
-
-                  {/* Description */}
-                  <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                      Description *
-                    </label>
-                    <textarea
-                      id="description"
-                      rows={3}
-                      required
-                      value={formData.description}
-                      onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="Describe what this capability or certification covers..."
-                    />
-                  </div>
-
-                  {/* Applicable Crops */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Applies To
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <label className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={formData.appliesTo.includes('All Crops')}
-                          onChange={() => toggleCrop('All Crops')}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <span className="ml-2 text-sm text-gray-700">All Crops</span>
-                      </label>
-                      {availableCrops.map(crop => (
-                        <label key={crop} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={formData.appliesTo.includes(crop)}
-                            onChange={() => toggleCrop(crop)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">{crop}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Growing Regions */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Growing Regions
-                    </label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {availableRegions.map(region => (
-                        <label key={region} className="flex items-center">
-                          <input
-                            type="checkbox"
-                            checked={formData.growingRegions.includes(region)}
-                            onChange={() => toggleRegion(region)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <span className="ml-2 text-sm text-gray-700">{region}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Documents */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Related Documents
-                    </label>
-                    <div className="space-y-2">
-                      {formData.documents.map((doc, index) => (
-                        <div key={index} className="flex items-center space-x-2">
-                          <input
-                            type="text"
-                            value={doc}
-                            onChange={(e) => updateDocument(index, e.target.value)}
-                            className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                            placeholder="e.g., USDA_Organic_Cert_2024.pdf"
-                          />
-                          {formData.documents.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeDocument(index)}
-                              className="inline-flex items-center p-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                            >
-                              Remove
-                            </button>
-                          )}
-                        </div>
-                      ))}
+                {/* No Crops Warning */}
+                {noCropsAvailable ? (
+                  <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6 text-center">
+                    <div className="text-yellow-600">
+                      <ShieldCheckIcon className="h-12 w-12 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-yellow-900 mb-2">
+                        Add Crops First
+                      </h3>
+                      <p className="text-sm text-yellow-700 mb-4">
+                        You need to add crops to your catalog before setting up capabilities and certifications.
+                        Capabilities are applied to specific crops in your price sheets.
+                      </p>
                       <button
                         type="button"
-                        onClick={addDocument}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        onClick={() => {
+                          handleClose()
+                          window.location.href = '/dashboard/price-sheets/setup/crops'
+                        }}
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                       >
-                        Add Document
+                        Go to Crop Management
                       </button>
                     </div>
                   </div>
+                ) : (
+                  <form onSubmit={handleSubmit} className="mt-6 space-y-6">
+                    {/* Type Selection */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-3">
+                        What type of capability are you adding? *
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        {capabilityTypes.map((type) => (
+                          <button
+                            key={type.value}
+                            type="button"
+                            disabled={!type.available}
+                            onClick={() => {
+                              if (type.available) {
+                                setSelectedType(type.value as Capability['type'])
+                              }
+                            }}
+                            className={`relative flex cursor-pointer rounded-lg border p-4 focus:outline-none ${
+                              selectedType === type.value
+                                ? 'border-blue-600 ring-2 ring-blue-600 bg-blue-50'
+                                : type.available
+                                ? 'border-gray-300 hover:border-gray-400'
+                                : 'border-gray-200 bg-gray-50 cursor-not-allowed opacity-60'
+                            }`}
+                          >
+                            <span className="flex flex-1">
+                              <span className="flex flex-col">
+                                <span className={`block text-sm font-medium ${
+                                  selectedType === type.value ? 'text-blue-900' : 
+                                  type.available ? 'text-gray-900' : 'text-gray-500'
+                                }`}>
+                                  {type.label}
+                                </span>
+                              </span>
+                            </span>
+                            {selectedType === type.value && (
+                              <div className="absolute top-4 right-4">
+                                <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  {/* Notes */}
-                  <div>
-                    <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                      Additional Notes
-                    </label>
-                    <textarea
-                      id="notes"
-                      rows={3}
-                      value={formData.notes}
-                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                      placeholder="Additional information, requirements, or notes..."
-                    />
-                  </div>
+                    {/* Conditional Forms Based on Type */}
+                    {selectedType === 'certification' && (
+                      <div className="space-y-6">
+                        {/* Certification Selection */}
+                        <div>
+                          <label htmlFor="certification" className="block text-sm font-medium text-gray-700">
+                            Certification Type *
+                          </label>
+                          <select
+                            id="certification"
+                            required
+                            value={formData.isCustomCert ? 'Other/Custom' : formData.name}
+                            onChange={(e) => {
+                              const isCustom = e.target.value === 'Other/Custom'
+                              setFormData(prev => ({ 
+                                ...prev, 
+                                name: isCustom ? '' : e.target.value,
+                                isCustomCert: isCustom
+                              }))
+                            }}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          >
+                            <option value="">Select certification</option>
+                            {commonCertifications.map(cert => (
+                              <option key={cert} value={cert}>{cert}</option>
+                            ))}
+                          </select>
+                        </div>
 
-                  {/* Actions */}
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                    >
-                      Add Capability
-                    </button>
-                  </div>
-                </form>
+                        {/* Custom Certification Input */}
+                        {formData.isCustomCert && (
+                          <div>
+                            <label htmlFor="customCert" className="block text-sm font-medium text-gray-700">
+                              Custom Certification Name *
+                            </label>
+                            <input
+                              type="text"
+                              id="customCert"
+                              required
+                              value={formData.name}
+                              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              placeholder="Enter certification name"
+                            />
+                          </div>
+                        )}
+
+                        {/* Valid Until */}
+                        <div>
+                          <label htmlFor="validUntil" className="block text-sm font-medium text-gray-700">
+                            Valid Until
+                          </label>
+                          <input
+                            type="date"
+                            id="validUntil"
+                            value={formData.validUntil}
+                            onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">Leave empty if no expiration</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedType === 'packaging' && (
+                      <div className="space-y-6">
+                        {/* Package Type */}
+                        <div>
+                          <label htmlFor="packageType" className="block text-sm font-medium text-gray-700">
+                            Package Type *
+                          </label>
+                          <select
+                            id="packageType"
+                            required
+                            value={formData.packageType}
+                            onChange={(e) => setFormData(prev => ({ ...prev, packageType: e.target.value }))}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          >
+                            <option value="">Select package type</option>
+                            {packageTypes.map(type => (
+                              <option key={type} value={type}>{type}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Size/Measurement */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Size/Measurement *
+                          </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label htmlFor="packageMeasurement" className="block text-sm text-gray-600">
+                                Measurement
+                              </label>
+                              <input
+                                type="number"
+                                id="packageMeasurement"
+                                required
+                                step="0.1"
+                                value={formData.packageMeasurement}
+                                onChange={(e) => setFormData(prev => ({ ...prev, packageMeasurement: e.target.value }))}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                placeholder="e.g., 1, 2.5, 10"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="packageUnit" className="block text-sm text-gray-600">
+                                Unit
+                              </label>
+                              <select
+                                id="packageUnit"
+                                required
+                                value={formData.packageUnit}
+                                onChange={(e) => setFormData(prev => ({ ...prev, packageUnit: e.target.value }))}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              >
+                                <option value="">Select unit</option>
+                                {packageUnits.map(unit => (
+                                  <option key={unit.value} value={unit.value}>{unit.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                          <p className="mt-1 text-xs text-gray-500">
+                            Example: 1 lb, 2.5 kg, 10 ct, 1 dozen
+                          </p>
+                        </div>
+
+                        {/* Package Description */}
+                        <div>
+                          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
+                          <input
+                            type="text"
+                            id="description"
+                            value={formData.description}
+                            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            placeholder="e.g., Clear plastic clamshell with ventilation holes"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Applies To Section (for both types) */}
+                    {selectedType && (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Applies To *
+                        </label>
+                        <p className="text-xs text-gray-500 mb-3">
+                          Select which crops this {selectedType} applies to
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          <label className="flex items-center">
+                            <input
+                              type="checkbox"
+                              checked={formData.appliesTo.includes('All Crops')}
+                              onChange={() => toggleCrop('All Crops')}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                            <span className="ml-2 text-sm text-gray-700">All Current & Future Crops</span>
+                          </label>
+                          {availableCrops.map(crop => (
+                            <label key={crop} className="flex items-center">
+                              <input
+                                type="checkbox"
+                                checked={formData.appliesTo.includes(crop)}
+                                onChange={() => toggleCrop(crop)}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <span className="ml-2 text-sm text-gray-700">{crop}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Notes Section */}
+                    {selectedType && (
+                      <>
+                        {!showNotesInput ? (
+                          <div>
+                            <button
+                              type="button"
+                              onClick={() => setShowNotesInput(true)}
+                              className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                            >
+                              + Add a note
+                            </button>
+                          </div>
+                        ) : (
+                          <div>
+                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+                              Notes
+                            </label>
+                            <textarea
+                              id="notes"
+                              rows={3}
+                              value={formData.notes}
+                              onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                              placeholder="Additional information, requirements, or notes..."
+                              autoFocus
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowNotesInput(false)}
+                              className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                            >
+                              Hide notes
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+
+                    {/* Actions */}
+                    <div className="mt-6 flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={handleClose}
+                        className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!selectedType}
+                        className={`rounded-md px-3 py-2 text-sm font-semibold shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 ${
+                          selectedType
+                            ? 'bg-blue-600 text-white hover:bg-blue-500 focus-visible:outline-blue-600'
+                            : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        }`}
+                      >
+                        Add {selectedType === 'certification' ? 'Certification' : selectedType === 'packaging' ? 'Package Option' : 'Capability'}
+                      </button>
+                    </div>
+                  </form>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>

@@ -120,7 +120,7 @@ export default function Capabilities() {
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Add Capability
@@ -134,7 +134,7 @@ export default function Capabilities() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <ShieldCheckIcon className="h-6 w-6 text-purple-600" />
+                <ShieldCheckIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -215,7 +215,7 @@ export default function Capabilities() {
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       capability.type === 'certification' ? 'bg-blue-100 text-blue-800' :
                       capability.type === 'food_safety' ? 'bg-green-100 text-green-800' :
-                      capability.type === 'sustainability' ? 'bg-purple-100 text-purple-800' :
+                      capability.type === 'sustainability' ? 'bg-green-100 text-blue-800' :
                       'bg-orange-100 text-orange-800'
                     }`}>
                       {capability.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
@@ -265,7 +265,7 @@ export default function Capabilities() {
                 </div>
                 
                 <div className="flex items-center space-x-2 ml-4">
-                  <button className="text-sm font-medium text-purple-600 hover:text-purple-500">
+                  <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
                     <PencilIcon className="h-4 w-4" />
                   </button>
                   <button 

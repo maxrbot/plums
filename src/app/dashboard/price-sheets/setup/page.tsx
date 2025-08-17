@@ -77,7 +77,7 @@ export default function Setup() {
         
         <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
           <div 
-            className="bg-purple-600 h-3 rounded-full transition-all duration-500 ease-out"
+            className="bg-blue-600 h-3 rounded-full transition-all duration-500 ease-out"
             style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
@@ -102,7 +102,7 @@ export default function Setup() {
             <div 
               key={step.id}
               className={`bg-white shadow rounded-lg border-2 transition-all duration-200 ${
-                isCurrent ? 'border-purple-200 ring-2 ring-purple-100' :
+                isCurrent ? 'border-blue-200 ring-2 ring-primary-100' :
                 isCompleted ? 'border-green-200' :
                 'border-gray-200'
               }`}
@@ -112,7 +112,7 @@ export default function Setup() {
                   {/* Icon */}
                   <div className={`flex-shrink-0 p-3 rounded-lg ${
                     isCompleted ? 'bg-green-100 text-green-600' :
-                    isCurrent ? 'bg-purple-100 text-purple-600' :
+                    isCurrent ? 'bg-green-100 text-blue-600' :
                     'bg-gray-100 text-gray-400'
                   }`}>
                     <Icon className="h-6 w-6" />
@@ -123,7 +123,7 @@ export default function Setup() {
                     <div className="flex items-center space-x-3 mb-2">
                       <h3 className={`text-lg font-medium ${
                         isCompleted ? 'text-green-900' :
-                        isCurrent ? 'text-purple-900' :
+                        isCurrent ? 'text-blue-900' :
                         'text-gray-900'
                       }`}>
                         {step.name}
@@ -134,7 +134,7 @@ export default function Setup() {
                       )}
                       
                       {isCurrent && (
-                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-blue-800">
                           Current Step
                         </span>
                       )}
@@ -173,7 +173,7 @@ export default function Setup() {
                     ) : isCurrent ? (
                       <Link
                         href={step.href}
-                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                        className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                       >
                         Get Started
                         <ArrowRightIcon className="h-4 w-4 ml-2" />

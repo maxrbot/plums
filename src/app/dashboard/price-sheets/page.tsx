@@ -62,7 +62,7 @@ export default function PriceSheets() {
             </Link>
             <Link
               href="/dashboard/price-sheets/new"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
               <PlusIcon className="h-4 w-4 mr-2" />
               New Price Sheet
@@ -130,7 +130,7 @@ export default function PriceSheets() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <DocumentTextIcon className="h-6 w-6 text-purple-600" />
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -208,7 +208,7 @@ export default function PriceSheets() {
                 <div className="flex items-center space-x-2">
                   <Link
                     href={`/dashboard/price-sheets/${sheet.id}`}
-                    className="text-sm font-medium text-purple-600 hover:text-purple-500"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
                   >
                     View
                   </Link>

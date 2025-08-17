@@ -32,7 +32,7 @@ export default function Analytics() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <EyeIcon className="h-6 w-6 text-purple-600" />
+                <EyeIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -124,7 +124,7 @@ export default function Analytics() {
               {mockAnalytics.recentActivity.map((day, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="h-2 w-2 bg-purple-600 rounded-full"></div>
+                    <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
                     <span className="text-sm text-gray-900">{new Date(day.date).toLocaleDateString()}</span>
                   </div>
                   <div className="text-sm text-gray-500">

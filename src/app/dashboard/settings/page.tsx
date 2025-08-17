@@ -143,7 +143,7 @@ export default function Settings() {
                       <p className="text-sm text-gray-500">{item.description}</p>
                     </div>
                     <div className="ml-4">
-                      <button className="text-sm font-medium text-purple-600 hover:text-purple-500">
+                      <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
                         Manage
                       </button>
                     </div>

@@ -141,7 +141,7 @@ export default function AddCapabilityModal({
                 <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                     onClick={handleClose}
                   >
                     <span className="sr-only">Close</span>
@@ -150,8 +150,8 @@ export default function AddCapabilityModal({
                 </div>
 
                 <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <ShieldCheckIcon className="h-6 w-6 text-purple-600" />
+                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <ShieldCheckIcon className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                     <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
@@ -178,7 +178,7 @@ export default function AddCapabilityModal({
                         required
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         placeholder="e.g., USDA Organic Certification"
                       />
                     </div>
@@ -192,7 +192,7 @@ export default function AddCapabilityModal({
                         required
                         value={formData.type}
                         onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as Capability['type'] }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       >
                         <option value="">Select type</option>
                         {capabilityTypes.map(type => (
@@ -210,7 +210,7 @@ export default function AddCapabilityModal({
                         required
                         value={formData.status}
                         onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Capability['status'] }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       >
                         {statusOptions.map(status => (
                           <option key={status.value} value={status.value}>{status.label}</option>
@@ -227,7 +227,7 @@ export default function AddCapabilityModal({
                         id="validUntil"
                         value={formData.validUntil}
                         onChange={(e) => setFormData(prev => ({ ...prev, validUntil: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       />
                       <p className="mt-1 text-xs text-gray-500">Leave empty if no expiration</p>
                     </div>
@@ -244,7 +244,7 @@ export default function AddCapabilityModal({
                       required
                       value={formData.description}
                       onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       placeholder="Describe what this capability or certification covers..."
                     />
                   </div>
@@ -260,7 +260,7 @@ export default function AddCapabilityModal({
                           type="checkbox"
                           checked={formData.appliesTo.includes('All Crops')}
                           onChange={() => toggleCrop('All Crops')}
-                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         />
                         <span className="ml-2 text-sm text-gray-700">All Crops</span>
                       </label>
@@ -270,7 +270,7 @@ export default function AddCapabilityModal({
                             type="checkbox"
                             checked={formData.appliesTo.includes(crop)}
                             onChange={() => toggleCrop(crop)}
-                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                           <span className="ml-2 text-sm text-gray-700">{crop}</span>
                         </label>
@@ -290,7 +290,7 @@ export default function AddCapabilityModal({
                             type="checkbox"
                             checked={formData.growingRegions.includes(region)}
                             onChange={() => toggleRegion(region)}
-                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
                           <span className="ml-2 text-sm text-gray-700">{region}</span>
                         </label>
@@ -310,7 +310,7 @@ export default function AddCapabilityModal({
                             type="text"
                             value={doc}
                             onChange={(e) => updateDocument(index, e.target.value)}
-                            className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                            className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                             placeholder="e.g., USDA_Organic_Cert_2024.pdf"
                           />
                           {formData.documents.length > 1 && (
@@ -327,7 +327,7 @@ export default function AddCapabilityModal({
                       <button
                         type="button"
                         onClick={addDocument}
-                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                        className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                       >
                         Add Document
                       </button>
@@ -344,7 +344,7 @@ export default function AddCapabilityModal({
                       rows={3}
                       value={formData.notes}
                       onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       placeholder="Additional information, requirements, or notes..."
                     />
                   </div>
@@ -360,7 +360,7 @@ export default function AddCapabilityModal({
                     </button>
                     <button
                       type="submit"
-                      className="rounded-md bg-purple-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+                      className="rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                     >
                       Add Capability
                     </button>

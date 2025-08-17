@@ -44,7 +44,7 @@ const mockCrops: CropManagement[] = [
         },
         growingPractices: ['USDA Organic', 'Sustainable', 'Regenerative Agriculture'],
         minOrder: 50,
-        maxOrder: 1000,
+        orderUnit: 'case',
         notes: 'Premium organic strawberries with extended growing season'
       },
       {
@@ -66,7 +66,7 @@ const mockCrops: CropManagement[] = [
         },
         growingPractices: ['Non-GMO Verified', 'Cover Cropping', 'Water Conservation'],
         minOrder: 100,
-        maxOrder: 2000,
+        orderUnit: 'case',
         notes: 'High-yield conventional variety'
       }
     ],
@@ -96,8 +96,8 @@ const mockCrops: CropManagement[] = [
           notes: 'Hydroponic premium quality'
         },
         growingPractices: ['USDA Organic', 'Hydroponic', 'Biodynamic Certified'],
-        minOrder: 24,
-        maxOrder: 500,
+                  minOrder: 2,
+          orderUnit: 'pallet',
         notes: 'Premium hydroponic lettuce mix'
       }
     ],
@@ -127,8 +127,8 @@ const mockCrops: CropManagement[] = [
           notes: 'Heirloom variety, limited availability'
         },
         growingPractices: ['USDA Organic', 'Heirloom', 'Regenerative Agriculture'],
-        minOrder: 25,
-        maxOrder: 200,
+                  minOrder: 500,
+          orderUnit: 'dollar',
         notes: 'Heirloom variety with premium pricing'
       }
     ],
@@ -209,7 +209,7 @@ export default function CropManagement() {
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
             Add Crop
@@ -223,7 +223,7 @@ export default function CropManagement() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <SparklesIcon className="h-6 w-6 text-purple-600" />
+                <SparklesIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -351,7 +351,7 @@ export default function CropManagement() {
                 <div className="flex items-center ml-4">
                   <button 
                     onClick={() => handleEditCrop(crop)}
-                    className="text-sm font-medium text-purple-600 hover:text-purple-500 flex items-center space-x-1"
+                    className="text-sm font-medium text-blue-600 hover:text-blue-500 flex items-center space-x-1"
                     title="Edit variations for this commodity"
                   >
                     <PencilIcon className="h-4 w-4" />

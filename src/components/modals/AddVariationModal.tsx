@@ -62,6 +62,7 @@ export default function AddVariationModal({
 
   const [showAdditionalInputs, setShowAdditionalInputs] = useState(false)
   const [showAddVariationForm, setShowAddVariationForm] = useState(false)
+  const [showNotesInput, setShowNotesInput] = useState(false)
   const [currentVariation, setCurrentVariation] = useState<Omit<CropVariation, 'id'>>({
     variety: '',
     isOrganic: false,
@@ -69,7 +70,7 @@ export default function AddVariationModal({
     targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
     growingPractices: [],
     minOrder: 0,
-    maxOrder: 0,
+    orderUnit: 'case',
     notes: ''
   })
 
@@ -91,7 +92,7 @@ export default function AddVariationModal({
           targetPricing: v.targetPricing,
           growingPractices: v.growingPractices,
           minOrder: v.minOrder,
-          maxOrder: v.maxOrder,
+          orderUnit: v.orderUnit,
           notes: v.notes
         }))
       })
@@ -149,7 +150,7 @@ export default function AddVariationModal({
       targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
       growingPractices: [],
       minOrder: 0,
-      maxOrder: 0,
+      orderUnit: 'case',
       notes: ''
     })
     setShowAdditionalInputs(false)
@@ -180,7 +181,7 @@ export default function AddVariationModal({
       targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
       growingPractices: [],
       minOrder: 0,
-      maxOrder: 0,
+      orderUnit: 'case',
       notes: ''
     })
     setShowAdditionalInputs(false)
@@ -272,8 +273,8 @@ export default function AddVariationModal({
                 </div>
 
                 <div className="sm:flex sm:items-start">
-                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 sm:mx-0 sm:h-10 sm:w-10">
-                    <SparklesIcon className="h-6 w-6 text-purple-600" />
+                  <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <SparklesIcon className="h-6 w-6 text-blue-600" />
                   </div>
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                     <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
@@ -303,7 +304,7 @@ export default function AddVariationModal({
                           required
                           value={formData.category}
                           onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                         >
                           <option value="">Select category</option>
                           {categories.map(category => (
@@ -322,7 +323,7 @@ export default function AddVariationModal({
                           disabled={!formData.category}
                           value={formData.commodity}
                           onChange={(e) => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
                         >
                           <option value="">{formData.category ? 'Select commodity' : 'Select category first'}</option>
                           {commodities.map(commodity => (
@@ -361,12 +362,14 @@ export default function AddVariationModal({
                     </div>
                   )}
 
-                  {/* Add New Variation Section - Show when no variations exist OR when in edit mode */}
-                  {formData.commodity && (
+                  {/* Variation Form - Conditional rendering based on state */}
+                  {formData.commodity && (formData.variations.length === 0 || showAddVariationForm || isEditMode) && (
                     <div className="border border-gray-200 rounded-lg p-4">
-                      {formData.variations.length === 0 && !isEditMode ? (
-                        <>
-                          <h4 className="text-sm font-medium text-gray-900 mb-4">Add First Variation</h4>
+                      <h4 className="text-sm font-medium text-gray-900 mb-4">
+                        {formData.variations.length === 0 ? 'Add First Variation' : 
+                         isEditMode ? `Add New Variation to ${formData.commodity.replace('-', ' ')}` : 
+                         'Add Another Variation'}
+                      </h4>
                       
                       {/* Basic Variation Details */}
                       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-4">
@@ -379,7 +382,7 @@ export default function AddVariationModal({
                             required
                             value={currentVariation.variety}
                             onChange={(e) => setCurrentVariation(prev => ({ ...prev, variety: e.target.value }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                           >
                             <option value="">Select variety</option>
                             {varieties.map(variety => (
@@ -399,7 +402,7 @@ export default function AddVariationModal({
                                 name="growingMethod"
                                 checked={currentVariation.isOrganic}
                                 onChange={() => setCurrentVariation(prev => ({ ...prev, isOrganic: true }))}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                               />
                               <span className="ml-2 text-sm text-gray-700">Organic</span>
                             </label>
@@ -409,7 +412,7 @@ export default function AddVariationModal({
                                 name="growingMethod"
                                 checked={!currentVariation.isOrganic}
                                 onChange={() => setCurrentVariation(prev => ({ ...prev, isOrganic: false }))}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
                               />
                               <span className="ml-2 text-sm text-gray-700">Conventional</span>
                             </label>
@@ -431,7 +434,7 @@ export default function AddVariationModal({
                               <div key={region.id} className="relative">
                                 <label className={`block p-3 border-2 rounded-lg cursor-pointer transition-all ${
                                   isSelected 
-                                    ? 'border-purple-500 bg-purple-50' 
+                                    ? 'border-blue-500 bg-green-50' 
                                     : 'border-gray-200 hover:border-gray-300'
                                 }`}>
                                   <div className="flex items-center">
@@ -439,7 +442,7 @@ export default function AddVariationModal({
                                       type="checkbox"
                                       checked={isSelected}
                                       onChange={() => toggleGrowingRegion(region)}
-                                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                     />
                                     <span className="ml-2 text-sm font-medium text-gray-900">{region.name}</span>
                                   </div>
@@ -452,7 +455,7 @@ export default function AddVariationModal({
                                         <button
                                           type="button"
                                           onClick={() => updateRegionSeasonality(regionConfig.regionId, 'isYearRound', true)}
-                                          className="text-xs text-purple-600 hover:text-purple-800 font-medium"
+                                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
                                         >
                                           Select All (Year-round)
                                         </button>
@@ -492,7 +495,7 @@ export default function AddVariationModal({
                                               }}
                                               className={`px-2 py-1 text-xs rounded border transition-colors ${
                                                 regionConfig.seasonality.startMonth === month.value || regionConfig.seasonality.endMonth === month.value
-                                                  ? 'bg-purple-100 border-purple-300 text-purple-800'
+                                                  ? 'bg-green-100 border-blue-300 text-blue-800'
                                                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                                               }`}
                                             >
@@ -503,7 +506,7 @@ export default function AddVariationModal({
                                       )}
                                       
                                       {regionConfig.seasonality.isYearRound && (
-                                        <div className="text-xs text-purple-600 font-medium">
+                                        <div className="text-xs text-blue-600 font-medium">
                                           ✓ Year-round growing
                                         </div>
                                       )}
@@ -528,7 +531,7 @@ export default function AddVariationModal({
                       <button
                         type="button"
                         onClick={() => setShowAdditionalInputs(!showAdditionalInputs)}
-                        className="flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium"
+                        className="flex items-center text-sm text-blue-600 hover:text-blue-800 font-medium"
                       >
                         {showAdditionalInputs ? (
                           <>
@@ -545,12 +548,129 @@ export default function AddVariationModal({
 
                       {/* Additional Inputs */}
                       {showAdditionalInputs && (
-                        <div className="mt-4 space-y-4 border-t border-gray-200 pt-4">
-                          {/* Optional Certifications & Practices */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Optional {currentVariation.isOrganic ? 'Certifications' : 'Practices & Certifications'}
-                            </label>
+                        <div className="mt-4 space-y-6 border-t border-gray-200 pt-4">
+                          {/* 1. Target Pricing Section */}
+                          <div className="bg-blue-50 p-4 rounded-lg">
+                            <div className="mb-3">
+                              <h5 className="text-sm font-medium text-gray-900">Target Pricing</h5>
+                              <p className="text-xs text-gray-600 mt-1">These prices will flow through to the price sheet generator as suggested values.</p>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Min Price
+                                </label>
+                                <div className="relative">
+                                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 sm:text-sm">$</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={currentVariation.targetPricing.minPrice === 0 ? '' : currentVariation.targetPricing.minPrice}
+                                    onChange={(e) => setCurrentVariation(prev => ({
+                                      ...prev,
+                                      targetPricing: { ...prev.targetPricing, minPrice: parseFloat(e.target.value) || 0 }
+                                    }))}
+                                    className="pl-7 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Max Price
+                                </label>
+                                <div className="relative">
+                                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 sm:text-sm">$</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={currentVariation.targetPricing.maxPrice === 0 ? '' : currentVariation.targetPricing.maxPrice}
+                                    onChange={(e) => setCurrentVariation(prev => ({
+                                      ...prev,
+                                      targetPricing: { ...prev.targetPricing, maxPrice: parseFloat(e.target.value) || 0 }
+                                    }))}
+                                    className="pl-7 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Unit
+                                </label>
+                                <select
+                                  value={currentVariation.targetPricing.unit}
+                                  onChange={(e) => setCurrentVariation(prev => ({
+                                    ...prev,
+                                    targetPricing: { ...prev.targetPricing, unit: e.target.value }
+                                  }))}
+                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                >
+                                  <option value="lb">lb</option>
+                                  <option value="kg">kg</option>
+                                  <option value="piece">piece</option>
+                                  <option value="bunch">bunch</option>
+                                  <option value="head">head</option>
+                                  <option value="box">box</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 2. Order Requirements Section */}
+                          <div className="bg-green-50 p-4 rounded-lg">
+                            <div className="mb-3">
+                              <h5 className="text-sm font-medium text-gray-900">Order Requirements</h5>
+                            </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Min Order
+                                </label>
+                                <input
+                                  type="number"
+                                  value={currentVariation.minOrder === 0 ? '' : currentVariation.minOrder}
+                                  onChange={(e) => setCurrentVariation(prev => ({ ...prev, minOrder: parseInt(e.target.value) || 0 }))}
+                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                  placeholder="e.g. 3, 500, 50"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700">
+                                  Order Unit
+                                </label>
+                                <select
+                                  value={currentVariation.orderUnit || 'case'}
+                                  onChange={(e) => setCurrentVariation(prev => ({ ...prev, orderUnit: e.target.value }))}
+                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                >
+                                  <option value="case">Cases</option>
+                                  <option value="pallet">Pallets</option>
+                                  <option value="box">Boxes</option>
+                                  <option value="piece">Pieces</option>
+                                  <option value="bunch">Bunches</option>
+                                  <option value="head">Heads</option>
+                                  <option value="bushel">Bushels</option>
+                                  <option value="lb">Pounds</option>
+                                  <option value="kg">Kilograms</option>
+                                  <option value="ton">Tons</option>
+                                  <option value="dollar">Dollars</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* 3. Additional Certifications Section */}
+                          <div className="bg-gray-50 p-4 rounded-lg">
+                            <div className="mb-3">
+                              <h5 className="text-sm font-medium text-gray-900">
+                                Optional {currentVariation.isOrganic ? 'Certifications' : 'Practices & Certifications'}
+                              </h5>
+                            </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               {getAvailableCertifications().map(cert => (
                                 <label key={cert} className="flex items-center">
@@ -558,7 +678,7 @@ export default function AddVariationModal({
                                     type="checkbox"
                                     checked={currentVariation.growingPractices.includes(cert)}
                                     onChange={() => toggleGrowingPractice(cert)}
-                                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                                   />
                                   <span className="ml-2 text-sm text-gray-700">{cert}</span>
                                 </label>
@@ -566,116 +686,57 @@ export default function AddVariationModal({
                             </div>
                           </div>
 
-                          {/* Target Pricing */}
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                          {/* 4. Notes Section */}
+                          {!showNotesInput ? (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Min Price
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={currentVariation.targetPricing.minPrice}
-                                onChange={(e) => setCurrentVariation(prev => ({
-                                  ...prev,
-                                  targetPricing: { ...prev.targetPricing, minPrice: parseFloat(e.target.value) || 0 }
-                                }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Max Price
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={currentVariation.targetPricing.maxPrice}
-                                onChange={(e) => setCurrentVariation(prev => ({
-                                  ...prev,
-                                  targetPricing: { ...prev.targetPricing, maxPrice: parseFloat(e.target.value) || 0 }
-                                }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Unit
-                              </label>
-                              <select
-                                value={currentVariation.targetPricing.unit}
-                                onChange={(e) => setCurrentVariation(prev => ({
-                                  ...prev,
-                                  targetPricing: { ...prev.targetPricing, unit: e.target.value }
-                                }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                              <button
+                                type="button"
+                                onClick={() => setShowNotesInput(true)}
+                                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
                               >
-                                <option value="lb">lb</option>
-                                <option value="kg">kg</option>
-                                <option value="piece">piece</option>
-                                <option value="bunch">bunch</option>
-                                <option value="head">head</option>
-                                <option value="box">box</option>
-                              </select>
+                                + Add a note
+                              </button>
                             </div>
-                          </div>
-
-                          {/* Order Quantities */}
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          ) : (
                             <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Min Order
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Notes
                               </label>
-                              <input
-                                type="number"
-                                value={currentVariation.minOrder}
-                                onChange={(e) => setCurrentVariation(prev => ({ ...prev, minOrder: parseInt(e.target.value) || 0 }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
+                              <textarea
+                                rows={3}
+                                value={currentVariation.notes}
+                                onChange={(e) => setCurrentVariation(prev => ({ ...prev, notes: e.target.value }))}
+                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                placeholder="Additional notes about this variation..."
+                                autoFocus
                               />
+                              <button
+                                type="button"
+                                onClick={() => setShowNotesInput(false)}
+                                className="mt-2 text-xs text-gray-500 hover:text-gray-700"
+                              >
+                                Hide notes
+                              </button>
                             </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Max Order
-                              </label>
-                              <input
-                                type="number"
-                                value={currentVariation.maxOrder}
-                                onChange={(e) => setCurrentVariation(prev => ({ ...prev, maxOrder: parseInt(e.target.value) || 0 }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Notes
-                            </label>
-                            <textarea
-                              rows={3}
-                              value={currentVariation.notes}
-                              onChange={(e) => setCurrentVariation(prev => ({ ...prev, notes: e.target.value }))}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              placeholder="Additional notes about this variation..."
-                            />
-                          </div>
+                          )}
                         </div>
                       )}
 
-                          {/* Add First Variation Button */}
-                          <div className="mt-4">
-                            <button
-                              type="button"
-                              onClick={addVariation}
-                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
-                            >
-                              Add First Variation
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        /* Show Add Another Variation button when variations exist and NOT in edit mode */
-                        !isEditMode ? (
+                      {/* Add Variation Button */}
+                      <div className="mt-4">
+                        <button
+                          type="button"
+                          onClick={addVariation}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                        >
+                          {formData.variations.length === 0 ? 'Add First Variation' : 'Add This Variation'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Show Add Another Variation button when variations exist and form is hidden */}
+                  {formData.commodity && formData.variations.length > 0 && !showAddVariationForm && !isEditMode && (
                           <div className="text-center py-6">
                             <button
                               type="button"
@@ -688,641 +749,19 @@ export default function AddVariationModal({
                                   targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
                                   growingPractices: [],
                                   minOrder: 0,
-                                  maxOrder: 0,
+                                  orderUnit: 'case',
                                   notes: ''
                                 })
                                 setShowAdditionalInputs(false)
                                 // Show the form by setting a flag or state
                                 setShowAddVariationForm(true)
                               }}
-                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
                             >
                               Add Another Variation
                             </button>
                           </div>
-                        ) : (
-                          /* In edit mode, show the form for adding new variations */
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900 mb-4">Add New Variation to {formData.commodity.replace('-', ' ')}</h4>
-                            
-                            {/* Basic Variation Details */}
-                            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-4">
-                              <div>
-                                <label htmlFor="variety-edit" className="block text-sm font-medium text-gray-700">
-                                  Variety *
-                                </label>
-                                <select
-                                  id="variety-edit"
-                                  required
-                                  value={currentVariation.variety}
-                                  onChange={(e) => setCurrentVariation(prev => ({ ...prev, variety: e.target.value }))}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                >
-                                  <option value="">Select variety</option>
-                                  {varieties.map(variety => (
-                                    <option key={variety} value={variety}>{variety}</option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                  Growing Method *
-                                </label>
-                                <div className="space-y-2">
-                                  <label className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      name="growingMethod-edit"
-                                      checked={currentVariation.isOrganic}
-                                      onChange={() => setCurrentVariation(prev => ({ ...prev, isOrganic: true }))}
-                                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">Organic</span>
-                                  </label>
-                                  <label className="flex items-center">
-                                    <input
-                                      type="radio"
-                                      name="growingMethod-edit"
-                                      checked={!currentVariation.isOrganic}
-                                      onChange={() => setCurrentVariation(prev => ({ ...prev, isOrganic: false }))}
-                                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
-                                    />
-                                    <span className="ml-2 text-sm text-gray-700">Conventional</span>
-                                  </label>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Growing Regions */}
-                            <div className="mb-4">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Growing Regions *
-                              </label>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                {availableRegions.map(region => {
-                                  const isSelected = currentVariation.growingRegions.some(r => r.regionId === region.id.toString())
-                                  const regionConfig = currentVariation.growingRegions.find(r => r.regionId === region.id.toString())
-                                  
-                                  return (
-                                    <div key={region.id} className="relative">
-                                      <label className={`block p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                                        isSelected 
-                                          ? 'border-purple-500 bg-purple-50' 
-                                          : 'border-gray-200 hover:border-gray-300'
-                                      }`}>
-                                        <div className="flex items-center">
-                                          <input
-                                            type="checkbox"
-                                            checked={isSelected}
-                                            onChange={() => toggleGrowingRegion(region)}
-                                            className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                          />
-                                          <span className="ml-2 text-sm font-medium text-gray-900">{region.name}</span>
-                                        </div>
-                                        
-                                        {/* Month Selection for Selected Regions */}
-                                        {isSelected && regionConfig && (
-                                          <div className="mt-3 ml-6">
-                                            <div className="flex items-center justify-between mb-2">
-                                              <span className="text-xs font-medium text-gray-700">Growing Season:</span>
-                                              <button
-                                                type="button"
-                                                onClick={() => updateRegionSeasonality(regionConfig.regionId, 'isYearRound', true)}
-                                                className="text-xs text-purple-600 hover:text-purple-800 font-medium"
-                                              >
-                                                Select All (Year-round)
-                                              </button>
-                                            </div>
-                                            
-                                            {!regionConfig.seasonality.isYearRound && (
-                                              <div className="grid grid-cols-6 gap-1">
-                                                {months.map(month => (
-                                                  <button
-                                                    key={month.value}
-                                                    type="button"
-                                                    onClick={() => {
-                                                      const currentStart = regionConfig.seasonality.startMonth
-                                                      const currentEnd = regionConfig.seasonality.endMonth
-                                                      
-                                                      if (currentStart === 0) {
-                                                        // First month selected
-                                                        updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
-                                                      } else if (currentEnd === 0 && month.value > currentStart) {
-                                                        // Second month selected
-                                                        updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                      } else if (month.value === currentStart) {
-                                                        // Deselect start month
-                                                        updateRegionSeasonality(regionConfig.regionId, 'startMonth', 0)
-                                                      } else if (month.value === currentEnd) {
-                                                        // Deselect end month
-                                                        updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
-                                                      } else if (month.value > currentStart && month.value < currentEnd) {
-                                                        // Month in range, do nothing
-                                                      } else if (month.value < currentStart) {
-                                                        // New start month
-                                                        updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
-                                                      } else {
-                                                        // New end month
-                                                        updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                      }
-                                                    }}
-                                                    className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                                      regionConfig.seasonality.startMonth === month.value || regionConfig.seasonality.endMonth === month.value
-                                                        ? 'bg-purple-100 border-purple-300 text-purple-800'
-                                                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                                                    }`}
-                                                  >
-                                                    {month.label.slice(0, 3)}
-                                                  </button>
-                                                ))}
-                                              </div>
-                                            )}
-                                            
-                                            {regionConfig.seasonality.isYearRound && (
-                                              <div className="text-xs text-purple-600 font-medium">
-                                                ✓ Year-round growing
-                                              </div>
-                                            )}
-                                            
-                                            {!regionConfig.seasonality.isYearRound && regionConfig.seasonality.startMonth > 0 && regionConfig.seasonality.endMonth > 0 && (
-                                              <div className="text-xs text-gray-600 mt-1">
-                                                {months[regionConfig.seasonality.startMonth - 1].label} - {months[regionConfig.seasonality.endMonth - 1].label}
-                                              </div>
-                                            )}
-                                          </div>
-                                        )}
-                                      </label>
-                                    </div>
-                                  )
-                                })}
-                              </div>
-                            </div>
-
-                            {/* Additional Inputs Toggle */}
-                            <button
-                              type="button"
-                              onClick={() => setShowAdditionalInputs(!showAdditionalInputs)}
-                              className="flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium"
-                            >
-                              {showAdditionalInputs ? (
-                                <>
-                                  <ChevronUpIcon className="h-4 w-4 mr-1" />
-                                  Hide Additional Inputs
-                                </>
-                              ) : (
-                                <>
-                                  <ChevronDownIcon className="h-4 w-4 mr-1" />
-                                  Show Additional Inputs
-                                </>
-                              )}
-                            </button>
-
-                            {/* Additional Inputs */}
-                            {showAdditionalInputs && (
-                              <div className="mt-4 space-y-4 border-t border-gray-200 pt-4">
-                                {/* Optional Certifications & Practices */}
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Optional {currentVariation.isOrganic ? 'Certifications' : 'Practices & Certifications'}
-                                  </label>
-                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {getAvailableCertifications().map(cert => (
-                                      <label key={cert} className="flex items-center">
-                                        <input
-                                          type="checkbox"
-                                          checked={currentVariation.growingPractices.includes(cert)}
-                                          onChange={() => toggleGrowingPractice(cert)}
-                                          className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                        />
-                                        <span className="ml-2 text-sm text-gray-700">{cert}</span>
-                                      </label>
-                                    ))}
-                                  </div>
-                                </div>
-
-                                {/* Target Pricing */}
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Min Price
-                                    </label>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={currentVariation.targetPricing.minPrice}
-                                      onChange={(e) => setCurrentVariation(prev => ({
-                                        ...prev,
-                                        targetPricing: { ...prev.targetPricing, minPrice: parseFloat(e.target.value) || 0 }
-                                      }))}
-                                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Max Price
-                                    </label>
-                                    <input
-                                      type="number"
-                                      step="0.01"
-                                      value={currentVariation.targetPricing.maxPrice}
-                                      onChange={(e) => setCurrentVariation(prev => ({
-                                        ...prev,
-                                        targetPricing: { ...prev.targetPricing, maxPrice: parseFloat(e.target.value) || 0 }
-                                      }))}
-                                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Unit
-                                    </label>
-                                    <select
-                                      value={currentVariation.targetPricing.unit}
-                                      onChange={(e) => setCurrentVariation(prev => ({
-                                        ...prev,
-                                        targetPricing: { ...prev.targetPricing, unit: e.target.value }
-                                      }))}
-                                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                    >
-                                      <option value="lb">lb</option>
-                                      <option value="kg">kg</option>
-                                      <option value="piece">piece</option>
-                                      <option value="bunch">bunch</option>
-                                      <option value="head">head</option>
-                                      <option value="box">box</option>
-                                    </select>
-                                  </div>
-                                </div>
-
-                                {/* Order Quantities */}
-                                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Min Order
-                                    </label>
-                                    <input
-                                      type="number"
-                                      value={currentVariation.minOrder}
-                                      onChange={(e) => setCurrentVariation(prev => ({ ...prev, minOrder: parseInt(e.target.value) || 0 }))}
-                                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-sm font-medium text-gray-700">
-                                      Max Order
-                                    </label>
-                                    <input
-                                      type="number"
-                                      value={currentVariation.maxOrder}
-                                      onChange={(e) => setCurrentVariation(prev => ({ ...prev, maxOrder: parseInt(e.target.value) || 0 }))}
-                                      className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                    />
-                                  </div>
-                                </div>
-
-                                {/* Notes */}
-                                <div>
-                                  <label className="block text-sm font-medium text-gray-700">
-                                    Notes
-                                  </label>
-                                  <textarea
-                                    rows={3}
-                                    value={currentVariation.notes}
-                                    onChange={(e) => setCurrentVariation(prev => ({ ...prev, notes: e.target.value }))}
-                                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                                    placeholder="Additional notes about this variation..."
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Add Variation Button */}
-                            <div className="mt-4">
-                              <button
-                                type="button"
-                                onClick={addVariation}
-                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
-                              >
-                                Add This Variation
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      )}
-                    </div>
                   )}
-
-                  {/* Show Add Variation Form when explicitly adding another variation */}
-                  {formData.commodity && formData.variations.length > 0 && showAddVariationForm && (
-                    <div className="border border-gray-200 rounded-lg p-4 mt-4">
-                      <h4 className="text-sm font-medium text-gray-900 mb-4">Add Another Variation</h4>
-                      
-                      {/* Basic Variation Details */}
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-4">
-                        <div>
-                          <label htmlFor="variety2" className="block text-sm font-medium text-gray-700">
-                            Variety *
-                          </label>
-                          <select
-                            id="variety2"
-                            required
-                            value={currentVariation.variety}
-                            onChange={(e) => setCurrentVariation(prev => ({ ...prev, variety: e.target.value }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                          >
-                            <option value="">Select variety</option>
-                            {varieties.map(variety => (
-                              <option key={variety} value={variety}>{variety}</option>
-                            ))}
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Growing Method *
-                          </label>
-                          <div className="space-y-2">
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name="growingMethod2"
-                                checked={currentVariation.isOrganic}
-                                onChange={() => setCurrentVariation(prev => ({ ...prev, isOrganic: true }))}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Organic</span>
-                            </label>
-                            <label className="flex items-center">
-                              <input
-                                type="radio"
-                                name="growingMethod2"
-                                checked={!currentVariation.isOrganic}
-                                onChange={() => setCurrentVariation(prev => ({ ...prev, isOrganic: false }))}
-                                className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300"
-                              />
-                              <span className="ml-2 text-sm text-gray-700">Conventional</span>
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Growing Regions */}
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Growing Regions *
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {availableRegions.map(region => {
-                            const isSelected = currentVariation.growingRegions.some(r => r.regionId === region.id.toString())
-                            const regionConfig = currentVariation.growingRegions.find(r => r.regionId === region.id.toString())
-                            
-                            return (
-                              <div key={region.id} className="relative">
-                                <label className={`block p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                                  isSelected 
-                                    ? 'border-purple-500 bg-purple-50' 
-                                    : 'border-gray-200 hover:border-gray-300'
-                                }`}>
-                                  <div className="flex items-center">
-                                    <input
-                                      type="checkbox"
-                                      checked={isSelected}
-                                      onChange={() => toggleGrowingRegion(region)}
-                                      className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                    />
-                                    <span className="ml-2 text-sm font-medium text-gray-900">{region.name}</span>
-                                  </div>
-                                  
-                                  {/* Month Selection for Selected Regions */}
-                                  {isSelected && regionConfig && (
-                                    <div className="mt-3 ml-6">
-                                      <div className="flex items-center justify-between mb-2">
-                                        <span className="text-xs font-medium text-gray-700">Growing Season:</span>
-                                        <button
-                                          type="button"
-                                          onClick={() => updateRegionSeasonality(regionConfig.regionId, 'isYearRound', true)}
-                                          className="text-xs text-purple-600 hover:text-purple-800 font-medium"
-                                        >
-                                          Select All (Year-round)
-                                        </button>
-                                      </div>
-                                      
-                                      {!regionConfig.seasonality.isYearRound && (
-                                        <div className="grid grid-cols-6 gap-1">
-                                          {months.map(month => (
-                                            <button
-                                              key={month.value}
-                                              type="button"
-                                              onClick={() => {
-                                                const currentStart = regionConfig.seasonality.startMonth
-                                                const currentEnd = regionConfig.seasonality.endMonth
-                                                
-                                                if (currentStart === 0) {
-                                                  // First month selected
-                                                  updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
-                                                } else if (currentEnd === 0 && month.value > currentStart) {
-                                                  // Second month selected
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                } else if (month.value === currentStart) {
-                                                  // Deselect start month
-                                                  updateRegionSeasonality(regionConfig.regionId, 'startMonth', 0)
-                                                } else if (month.value === currentEnd) {
-                                                  // Deselect end month
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
-                                                } else if (month.value > currentStart && month.value < currentEnd) {
-                                                  // Month in range, do nothing
-                                                } else if (month.value < currentStart) {
-                                                  // New start month
-                                                  updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
-                                                } else {
-                                                  // New end month
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                }
-                                              }}
-                                              className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                                regionConfig.seasonality.startMonth === month.value || regionConfig.seasonality.endMonth === month.value
-                                                  ? 'bg-purple-100 border-purple-300 text-purple-800'
-                                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
-                                              }`}
-                                            >
-                                              {month.label.slice(0, 3)}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      )}
-                                      
-                                      {regionConfig.seasonality.isYearRound && (
-                                        <div className="text-xs text-purple-600 font-medium">
-                                          ✓ Year-round growing
-                                        </div>
-                                      )}
-                                      
-                                      {!regionConfig.seasonality.isYearRound && regionConfig.seasonality.startMonth > 0 && regionConfig.seasonality.endMonth > 0 && (
-                                        <div className="text-xs text-gray-600 mt-1">
-                                          {months[regionConfig.seasonality.startMonth - 1].label} - {months[regionConfig.seasonality.endMonth - 1].label}
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </label>
-                              </div>
-                            )
-                          })}
-                        </div>
-                      </div>
-
-                      {/* Additional Inputs Toggle */}
-                      <button
-                        type="button"
-                        onClick={() => setShowAdditionalInputs(!showAdditionalInputs)}
-                        className="flex items-center text-sm text-purple-600 hover:text-purple-800 font-medium"
-                      >
-                        {showAdditionalInputs ? (
-                          <>
-                            <ChevronUpIcon className="h-4 w-4 mr-1" />
-                            Hide Additional Inputs
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDownIcon className="h-4 w-4 mr-1" />
-                            Show Additional Inputs
-                          </>
-                        )}
-                      </button>
-
-                      {/* Additional Inputs */}
-                      {showAdditionalInputs && (
-                        <div className="mt-4 space-y-4 border-t border-gray-200 pt-4">
-                          {/* Optional Certifications & Practices */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                              Optional {currentVariation.isOrganic ? 'Certifications' : 'Practices & Certifications'}
-                            </label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {getAvailableCertifications().map(cert => (
-                                <label key={cert} className="flex items-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={currentVariation.growingPractices.includes(cert)}
-                                    onChange={() => toggleGrowingPractice(cert)}
-                                    className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                                  />
-                                  <span className="ml-2 text-sm text-gray-700">{cert}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Target Pricing */}
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Min Price
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={currentVariation.targetPricing.minPrice}
-                                onChange={(e) => setCurrentVariation(prev => ({
-                                  ...prev,
-                                  targetPricing: { ...prev.targetPricing, minPrice: parseFloat(e.target.value) || 0 }
-                                }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Max Price
-                              </label>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={currentVariation.targetPricing.maxPrice}
-                                onChange={(e) => setCurrentVariation(prev => ({
-                                  ...prev,
-                                  targetPricing: { ...prev.targetPricing, maxPrice: parseFloat(e.target.value) || 0 }
-                                }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Unit
-                              </label>
-                              <select
-                                value={currentVariation.targetPricing.unit}
-                                onChange={(e) => setCurrentVariation(prev => ({
-                                  ...prev,
-                                  targetPricing: { ...prev.targetPricing, unit: e.target.value }
-                                }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              >
-                                <option value="lb">lb</option>
-                                <option value="kg">kg</option>
-                                <option value="piece">piece</option>
-                                <option value="bunch">bunch</option>
-                                <option value="head">head</option>
-                                <option value="box">box</option>
-                              </select>
-                            </div>
-                          </div>
-
-                          {/* Order Quantities */}
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Min Order
-                              </label>
-                              <input
-                                type="number"
-                                value={currentVariation.minOrder}
-                                onChange={(e) => setCurrentVariation(prev => ({ ...prev, minOrder: parseInt(e.target.value) || 0 }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-sm font-medium text-gray-700">
-                                Max Order
-                              </label>
-                              <input
-                                type="number"
-                                value={currentVariation.maxOrder}
-                                onChange={(e) => setCurrentVariation(prev => ({ ...prev, maxOrder: parseInt(e.target.value) || 0 }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              />
-                            </div>
-                          </div>
-
-                          {/* Notes */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700">
-                              Notes
-                            </label>
-                            <textarea
-                              rows={3}
-                              value={currentVariation.notes}
-                              onChange={(e) => setCurrentVariation(prev => ({ ...prev, notes: e.target.value }))}
-                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 sm:text-sm"
-                              placeholder="Additional notes about this variation..."
-                            />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Add Another Variation Button */}
-                      <div className="mt-4">
-                        <button
-                          type="button"
-                          onClick={addVariation}
-                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
-                        >
-                          Add This Variation
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Form Actions */}
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
@@ -1335,7 +774,7 @@ export default function AddVariationModal({
                     <button
                       type="submit"
                       disabled={formData.variations.length === 0}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
                     >
                       {isEditMode ? 'Save Changes' : 'Save Variations'}
                     </button>

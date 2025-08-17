@@ -9,22 +9,22 @@ export default function Home() {
         <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-2xl font-bold text-purple-600">Plums.ag</span>
+              <span className="text-2xl font-bold text-blue-600">Plums.ag</span>
             </Link>
           </div>
           <div className="flex gap-x-12">
-            <Link href="#features" className="text-sm font-semibold leading-6 text-gray-900 hover:text-purple-600">
+            <Link href="#features" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
               Features
             </Link>
-            <Link href="#pricing" className="text-sm font-semibold leading-6 text-gray-900 hover:text-purple-600">
+            <Link href="#pricing" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
               Pricing
             </Link>
-            <Link href="#about" className="text-sm font-semibold leading-6 text-gray-900 hover:text-purple-600">
+            <Link href="#about" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
               About
             </Link>
           </div>
           <div className="flex lg:flex-1 lg:justify-end">
-            <Link href="/dashboard" className="text-sm font-semibold leading-6 text-gray-900 hover:text-purple-600">
+            <Link href="/dashboard" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
               Dashboard <span aria-hidden="true">→</span>
             </Link>
           </div>
@@ -35,7 +35,7 @@ export default function Home() {
       <div className="relative isolate pt-14">
         <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
           <div
-            className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-purple-600 to-pink-600 opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
+                            className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-blue-600 to-green-600 opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
             style={{
               clipPath:
                 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
@@ -48,7 +48,7 @@ export default function Home() {
             <div className="mx-auto max-w-2xl text-center">
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
                 From Price Sheet to{' '}
-                <span className="text-purple-600">Sale</span>
+                <span className="text-blue-600">Sale</span>
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600">
                 Create better price sheets, track engagement with smart analytics, and provide instant customer support with AI. 
@@ -57,7 +57,7 @@ export default function Home() {
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 <Link
                   href="/dashboard"
-                  className="rounded-md bg-purple-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-purple-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-purple-600"
+                  className="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
                 >
                   Get started
                 </Link>
@@ -70,7 +70,7 @@ export default function Home() {
         </div>
         <div className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]" aria-hidden="true">
           <div
-            className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-purple-600 to-pink-600 opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+                            className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-blue-600 to-green-600 opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
             style={{
               clipPath:
                 'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
@@ -95,13 +95,13 @@ export default function Home() {
             <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
               <div className="flex flex-col">
                 <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <DocumentTextIcon className="h-5 w-5 flex-none text-purple-600" aria-hidden="true" />
+                  <DocumentTextIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
                   Price Sheet Generator
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                   <p className="flex-auto">&ldquo;HubSpot for price sheets&rdquo; - create, send, and track engagement with your customers. AI-powered insights help you optimize pricing and availability.</p>
                   <p className="mt-6">
-                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-purple-600">
+                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
                       Learn more <span aria-hidden="true">→</span>
                     </Link>
                   </p>
@@ -109,13 +109,13 @@ export default function Home() {
               </div>
               <div className="flex flex-col">
                 <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <ChatBubbleLeftRightIcon className="h-5 w-5 flex-none text-purple-600" aria-hidden="true" />
+                  <ChatBubbleLeftRightIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
                   AI Chatbot
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                   <p className="flex-auto">AI handles customer inquiries using all your supplier data. Deploy as a chatbot on your website for instant, intelligent customer support that scales with your business.</p>
                   <p className="mt-6">
-                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-purple-600">
+                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
                       Learn more <span aria-hidden="true">→</span>
                     </Link>
                   </p>
@@ -123,13 +123,13 @@ export default function Home() {
               </div>
               <div className="flex flex-col">
                 <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <ChartBarIcon className="h-5 w-5 flex-none text-purple-600" aria-hidden="true" />
+                  <ChartBarIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
                   Analytics & Insights
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
                   <p className="flex-auto">Track who&apos;s opening your price sheets, monitor customer engagement, and get insights to optimize your sales strategy.</p>
                   <p className="mt-6">
-                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-purple-600">
+                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
                       Learn more <span aria-hidden="true">→</span>
                     </Link>
                   </p>
@@ -144,7 +144,7 @@ export default function Home() {
       <div className="bg-gray-50 py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl lg:text-center">
-            <h2 className="text-base font-semibold leading-7 text-purple-600">Coming Soon</h2>
+            <h2 className="text-base font-semibold leading-7 text-blue-600">Coming Soon</h2>
             <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               More tools to help you grow
             </p>
@@ -157,7 +157,7 @@ export default function Home() {
             <div className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-2">
               <div className="flex flex-col">
                 <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <GlobeAltIcon className="h-5 w-5 flex-none text-purple-600" aria-hidden="true" />
+                  <GlobeAltIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
                   Advanced Analytics
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
@@ -166,7 +166,7 @@ export default function Home() {
               </div>
               <div className="flex flex-col">
                 <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <ShieldCheckIcon className="h-5 w-5 flex-none text-purple-600" aria-hidden="true" />
+                  <ShieldCheckIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
                   Customer Management
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
@@ -179,19 +179,19 @@ export default function Home() {
       </div>
 
       {/* CTA section */}
-      <div className="bg-purple-600">
+      <div className="bg-blue-600">
         <div className="px-6 py-16 sm:px-6 sm:py-20 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
               Ready to grow your agricultural business?
             </h2>
-            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-purple-200">
+                            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-200">
               Start with professional supplier tools today. Create better price sheets and provide instant customer support.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
               <Link
                 href="/dashboard"
-                className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-purple-600 shadow-sm hover:bg-purple-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm hover:bg-green-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               >
                 Get started
               </Link>

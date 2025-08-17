@@ -92,7 +92,7 @@ export default function NewPriceSheet() {
               </Link>
               <Link
                 href="/dashboard/price-sheets/setup"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
               >
                 Manage Your Data
               </Link>

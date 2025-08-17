@@ -148,7 +148,7 @@ export interface CropVariation {
   };
   growingPractices: string[];
   minOrder: number;
-  maxOrder: number;
+  orderUnit: string;
   notes: string;
 }
 

@@ -24,7 +24,7 @@ export default function Dashboard() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <DocumentTextIcon className="h-6 w-6 text-purple-600" />
+                <DocumentTextIcon className="h-6 w-6 text-blue-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
@@ -92,7 +92,7 @@ export default function Dashboard() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Price Sheet Generator</h3>
-              <DocumentTextIcon className="h-6 w-6 text-purple-600" />
+              <DocumentTextIcon className="h-6 w-6 text-blue-600" />
             </div>
             <p className="text-gray-600 mb-4">
               Create, send, and track engagement with your price sheets. AI-powered insights help optimize your pricing strategy.
@@ -100,7 +100,7 @@ export default function Dashboard() {
             <div className="flex space-x-3">
               <Link
                 href="/dashboard/price-sheets/new"
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
                 Create New
@@ -152,8 +152,8 @@ export default function Dashboard() {
           <div className="space-y-4">
             <div className="flex items-center space-x-3">
               <div className="flex-shrink-0">
-                <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-                  <DocumentTextIcon className="h-4 w-4 text-purple-600" />
+                <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <DocumentTextIcon className="h-4 w-4 text-blue-600" />
                 </div>
               </div>
               <div className="flex-1 min-w-0">

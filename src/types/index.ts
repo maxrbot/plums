@@ -184,3 +184,93 @@ export interface Capability {
   notes: string;
   createdAt: string;
 }
+
+// Contact Management System
+export interface ContactTag {
+  id: string;
+  name: string;
+  type: 'tier' | 'priority' | 'region' | 'crop_interest' | 'custom';
+  color: string;
+  description?: string;
+}
+
+export interface ContactInteraction {
+  id: string;
+  type: 'email_sent' | 'phone_call' | 'meeting' | 'order_placed' | 'quote_requested';
+  date: string;
+  description: string;
+  outcome?: string;
+  priceSheetId?: string;
+}
+
+export interface Contact {
+  id: string;
+  // Basic Info
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  title?: string;
+  
+  // Company Info
+  company: string;
+  companySize?: 'small' | 'medium' | 'large' | 'enterprise';
+  industry?: string;
+  website?: string;
+  
+  // Address
+  address?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  
+  // Business Details
+  tags: string[]; // Array of tag IDs
+  primaryCrops: string[]; // Crops they're most interested in
+  orderFrequency?: 'weekly' | 'monthly' | 'seasonal' | 'sporadic';
+  averageOrderValue?: number;
+  preferredContactMethod?: 'email' | 'phone' | 'text';
+  
+  // Relationship Status
+  status: 'prospect' | 'active' | 'inactive' | 'do_not_contact';
+  relationshipStage: 'cold' | 'warm' | 'hot' | 'customer';
+  
+  // History & Tracking
+  interactions: ContactInteraction[];
+  lastContactDate?: string;
+  firstOrderDate?: string;
+  lastOrderDate?: string;
+  totalOrders: number;
+  lifetimeValue: number;
+  
+  // Pricing & Preferences
+  pricingTier: 'premium' | 'standard' | 'volume' | 'new_prospect';
+  pricingAdjustment: number; // Percentage adjustment (+/- from base pricing)
+  specialTerms?: string;
+  
+  // System Fields
+  source: 'manual' | 'csv_import' | 'lead_form' | 'referral';
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+  notes?: string;
+}
+
+export interface ContactList {
+  id: string;
+  name: string;
+  description?: string;
+  contactIds: string[];
+  tags: string[]; // Auto-include contacts with these tags
+  filters: {
+    pricingTier?: string[];
+    relationshipStage?: string[];
+    status?: string[];
+    primaryCrops?: string[];
+    companySize?: string[];
+  };
+  isSmartList: boolean; // Auto-updates based on filters
+  createdAt: string;
+  updatedAt: string;
+}

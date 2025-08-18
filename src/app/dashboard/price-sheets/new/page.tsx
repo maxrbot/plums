@@ -10,6 +10,7 @@ import {
   BuildingOfficeIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
+import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 
 // Mock data based on our setup
 const mockProducts = [
@@ -55,6 +56,8 @@ const availabilityOptions = [
   'Contact for Availability'
 ]
 
+
+
 interface ProductRow {
   id: string
   productId: number
@@ -66,8 +69,20 @@ interface ProductRow {
   parentProductId?: number
 }
 
+interface PreviewProduct {
+  id: string
+  productName: string
+  region: string
+  packageType: string
+  basePrice: number
+  adjustedPrice: number
+  availability: string
+}
+
 export default function NewPriceSheet() {
   const [priceSheetTitle, setPriceSheetTitle] = useState(`Plums AG Price Sheet - ${new Date().toLocaleDateString()}`)
+  const [additionalNotes, setAdditionalNotes] = useState('')
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [productRows, setProductRows] = useState<ProductRow[]>(() => 
     mockProducts.map(product => ({
       id: `${product.id}-main`,
@@ -116,6 +131,32 @@ export default function NewPriceSheet() {
 
   const removePackStyle = (rowId: string) => {
     setProductRows(prev => prev.filter(row => row.id !== rowId))
+  }
+
+  // Generate preview data for base price sheet
+  const generatePreviewData = (): PreviewProduct[] => {
+    const selectedRows = productRows.filter(row => row.isSelected && row.price)
+    
+    return selectedRows.map(row => {
+      const product = mockProducts.find(p => p.id === row.productId)
+      if (!product) return null
+
+      const basePrice = parseFloat(row.price)
+
+      return {
+        id: row.id,
+        productName: product.name,
+        region: product.region,
+        packageType: row.packageType,
+        basePrice,
+        adjustedPrice: basePrice, // No adjustment in base sheet
+        availability: row.availability
+      }
+    }).filter((product): product is PreviewProduct => product !== null)
+  }
+
+  const handlePreview = () => {
+    setIsPreviewModalOpen(true)
   }
 
   return (
@@ -319,11 +360,15 @@ export default function NewPriceSheet() {
           </div>
         </div>
 
+
+
         {/* Additional Notes */}
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900 mb-4">Additional Notes</h2>
           <textarea
             rows={4}
+            value={additionalNotes}
+            onChange={(e) => setAdditionalNotes(e.target.value)}
             className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
             placeholder="Add any additional notes, terms, or special information for this price sheet..."
           />
@@ -339,13 +384,24 @@ export default function NewPriceSheet() {
           </Link>
           <button
             type="button"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            onClick={handlePreview}
+            disabled={productRows.filter(row => row.isSelected && row.price).length === 0}
+            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <EyeIcon className="h-5 w-5 mr-2" />
             Preview Price Sheet
           </button>
         </div>
       </div>
+
+      {/* Preview Modal */}
+      <PriceSheetPreviewModal
+        isOpen={isPreviewModalOpen}
+        onClose={() => setIsPreviewModalOpen(false)}
+        title={priceSheetTitle}
+        products={generatePreviewData()}
+        additionalNotes={additionalNotes}
+      />
     </>
   )
 }

@@ -1,0 +1,234 @@
+"use client"
+
+import { Fragment } from 'react'
+import { Dialog, Transition } from '@headlessui/react'
+import { XMarkIcon, BookmarkIcon } from '@heroicons/react/24/outline'
+
+interface PriceSheetProduct {
+  id: string
+  productName: string
+  region: string
+  packageType: string
+  basePrice: number
+  adjustedPrice: number
+  availability: string
+}
+
+interface PriceSheetPreviewModalProps {
+  isOpen: boolean
+  onClose: () => void
+  title: string
+  products: PriceSheetProduct[]
+  contactInfo?: {
+    name: string
+    pricingTier: string
+    pricingAdjustment: number
+  }
+  additionalNotes?: string
+}
+
+export default function PriceSheetPreviewModal({
+  isOpen,
+  onClose,
+  title,
+  products,
+  contactInfo,
+  additionalNotes
+}: PriceSheetPreviewModalProps) {
+  // Group products by region
+  const productsByRegion = products.reduce((groups, product) => {
+    if (!groups[product.region]) {
+      groups[product.region] = []
+    }
+    groups[product.region].push(product)
+    return groups
+  }, {} as Record<string, PriceSheetProduct[]>)
+
+  const formatPrice = (price: number) => `$${price.toFixed(2)}`
+
+  return (
+    <Transition.Root show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
+        >
+          <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 z-10 overflow-y-auto">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+              enterTo="opacity-100 translate-y-0 sm:scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+              leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+            >
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
+                {/* Header */}
+                <div className="bg-white px-6 py-4 border-b border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
+                        Price Sheet Preview
+                      </Dialog.Title>
+                      {contactInfo && (
+                        <p className="text-sm text-gray-600 mt-1">
+                          Customized for {contactInfo.name} ({contactInfo.pricingTier} tier, {contactInfo.pricingAdjustment >= 0 ? '+' : ''}{contactInfo.pricingAdjustment}% pricing)
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                      <XMarkIcon className="h-6 w-6" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preview Content */}
+                <div className="bg-white px-6 py-6 max-h-96 overflow-y-auto">
+                  {/* Price Sheet Header */}
+                  <div className="text-center mb-8 pb-6 border-b border-gray-200">
+                    <h1 className="text-2xl font-bold text-gray-900 mb-2">{title}</h1>
+                    <p className="text-gray-600">Generated on {new Date().toLocaleDateString()}</p>
+                  </div>
+
+                  {/* Contact Information Section */}
+                  <div className="mb-8 p-4 bg-gray-50 rounded-lg">
+                    <h2 className="text-lg font-semibold text-gray-900 mb-3">Contact Information</h2>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p><strong>Company:</strong> Plums AG</p>
+                        <p><strong>Email:</strong> sales@plums.ag</p>
+                      </div>
+                      <div>
+                        <p><strong>Phone:</strong> (555) 123-4567</p>
+                        <p><strong>Website:</strong> www.plums.ag</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Products by Region */}
+                  {Object.entries(productsByRegion).map(([region, regionProducts]) => (
+                    <div key={region} className="mb-8">
+                      <h2 className="text-xl font-semibold text-gray-900 mb-4 pb-2 border-b border-gray-200">
+                        {region} Products
+                      </h2>
+                      
+                      <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Product
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Package
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Price
+                              </th>
+                              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Availability
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {regionProducts.map((product) => (
+                              <tr key={product.id}>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                  {product.productName}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-600">
+                                  {product.packageType}
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap text-sm text-gray-900">
+                                  <div className="flex items-center space-x-2">
+                                    <span className="font-semibold">{formatPrice(product.adjustedPrice)}</span>
+                                    {product.adjustedPrice !== product.basePrice && (
+                                      <span className="text-xs text-gray-500 line-through">
+                                        {formatPrice(product.basePrice)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </td>
+                                <td className="px-4 py-4 whitespace-nowrap">
+                                  <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                                    product.availability === 'Available' ? 'bg-green-100 text-green-800' :
+                                    product.availability === 'Limited' ? 'bg-yellow-100 text-yellow-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {product.availability}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Additional Notes */}
+                  {additionalNotes && (
+                    <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Additional Notes</h3>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{additionalNotes}</p>
+                    </div>
+                  )}
+
+                  {/* Terms Footer */}
+                  <div className="mt-8 pt-6 border-t border-gray-200 text-xs text-gray-500">
+                    <p>Prices are subject to change based on availability and market conditions. Please contact us to confirm pricing and place orders.</p>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
+                  <div className="text-sm text-gray-600">
+                    {products.length} product{products.length !== 1 ? 's' : ''} • {Object.keys(productsByRegion).length} region{Object.keys(productsByRegion).length !== 1 ? 's' : ''}
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <button
+                      type="button"
+                      onClick={onClose}
+                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                    >
+                      <BookmarkIcon className="h-4 w-4 mr-2" />
+                      Save Price Sheet
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Save Notice */}
+                <div className="bg-blue-50 border-t border-blue-200 px-6 py-3">
+                  <p className="text-sm text-blue-800">
+                    💡 <strong>Next Step:</strong> After saving, send this price sheet to contacts with automatic pricing optimization at{' '}
+                    <span className="font-mono text-xs bg-blue-100 px-2 py-0.5 rounded">/dashboard/price-sheets/send</span>
+                  </p>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition.Root>
+  )
+}

@@ -43,11 +43,11 @@ export default function Chatbot() {
               )}
             </button>
             <Link
-              href="/dashboard/chatbot/settings"
+              href="/dashboard/chatbot/setup"
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
             >
               <Cog6ToothIcon className="h-4 w-4 mr-2" />
-              Settings
+              Setup Knowledge Base
             </Link>
           </div>
         </div>
@@ -218,13 +218,62 @@ export default function Chatbot() {
       {/* Knowledge Base */}
       <div className="bg-white shadow rounded-lg">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Knowledge Base</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">Knowledge Base Setup</h3>
+            <Link
+              href="/dashboard/chatbot/setup"
+              className="text-sm font-medium text-blue-600 hover:text-blue-500"
+            >
+              Configure →
+            </Link>
+          </div>
         </div>
         <div className="p-6">
-          <div className="text-center">
-            <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Knowledge base management coming soon</p>
-            <p className="text-sm text-gray-400">Train your AI with product information, pricing, and FAQs</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="text-center">
+              <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg mx-auto w-fit mb-3">
+                <ChatBubbleLeftRightIcon className="h-6 w-6 text-green-600" />
+              </div>
+              <h4 className="text-sm font-medium text-gray-900 mb-1">Farm Knowledge</h4>
+              <p className="text-xs text-gray-500 mb-2">Auto-populated from your setup</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+              </div>
+              <p className="text-xs text-green-600 mt-1 font-medium">85% Complete</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex-shrink-0 p-3 bg-gray-100 rounded-lg mx-auto w-fit mb-3">
+                <Cog6ToothIcon className="h-6 w-6 text-gray-600" />
+              </div>
+              <h4 className="text-sm font-medium text-gray-900 mb-1">Chat Configuration</h4>
+              <p className="text-xs text-gray-500 mb-2">Bot personality & integration</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-gray-300 h-2 rounded-full" style={{ width: '0%' }}></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Not started</p>
+            </div>
+            
+            <div className="text-center">
+              <div className="flex-shrink-0 p-3 bg-gray-100 rounded-lg mx-auto w-fit mb-3">
+                <GlobeAltIcon className="h-6 w-6 text-gray-600" />
+              </div>
+              <h4 className="text-sm font-medium text-gray-900 mb-1">Deploy & Test</h4>
+              <p className="text-xs text-gray-500 mb-2">Go live on your website</p>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-gray-300 h-2 rounded-full" style={{ width: '0%' }}></div>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Not started</p>
+            </div>
+          </div>
+          
+          <div className="mt-6 text-center">
+            <Link
+              href="/dashboard/chatbot/setup"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+              Continue Setup
+            </Link>
           </div>
         </div>
       </div>

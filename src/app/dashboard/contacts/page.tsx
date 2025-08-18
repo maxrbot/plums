@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { 
   PlusIcon, 
   UserGroupIcon, 
@@ -11,13 +10,13 @@ import {
   MagnifyingGlassIcon,
   TagIcon,
   DocumentArrowUpIcon,
-  EllipsisVerticalIcon,
   StarIcon,
   BuildingOfficeIcon,
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 import { Contact, ContactTag } from '../../../types'
 import AddContactModal from '../../../components/modals/AddContactModal'
+import ContactDetailsModal from '../../../components/modals/ContactDetailsModal'
 
 // Mock tags
 const mockTags: ContactTag[] = [
@@ -115,6 +114,8 @@ export default function Contacts() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [showFilters, setShowFilters] = useState(false)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
   const [contacts, setContacts] = useState<Contact[]>(mockContacts)
 
   // Filter contacts based on search and tags
@@ -145,6 +146,12 @@ export default function Contacts() {
     setContacts(prev => [newContact, ...prev])
   }
 
+  // Handle opening contact details
+  const handleViewContact = (contact: Contact) => {
+    setSelectedContact(contact)
+    setIsDetailsModalOpen(true)
+  }
+
   const toggleTag = (tagId: string) => {
     setSelectedTags(prev => 
       prev.includes(tagId) 
@@ -153,7 +160,7 @@ export default function Contacts() {
     )
   }
 
-  const getTagInfo = (tagId: string) => mockTags.find(tag => tag.id === tagId)
+
 
   // Calculate stats
   const totalContacts = mockContacts.length
@@ -327,23 +334,32 @@ export default function Contacts() {
                     <h4 className="text-sm font-medium text-gray-900">
                       {contact.firstName} {contact.lastName}
                     </h4>
-                    <span className="text-sm text-gray-500">•</span>
-                    <span className="text-sm text-gray-600">{contact.title}</span>
+                    {contact.title && (
+                      <>
+                        <span className="text-sm text-gray-400">•</span>
+                        <span className="text-sm text-gray-600">{contact.title}</span>
+                      </>
+                    )}
                     
-                    {/* Tags */}
-                    <div className="flex items-center space-x-1">
-                      {contact.tags.slice(0, 2).map(tagId => {
-                        const tag = getTagInfo(tagId)
-                        return tag ? (
-                          <span key={tagId} className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${tag.color}`}>
-                            {tag.name}
-                          </span>
-                        ) : null
-                      })}
-                      {contact.tags.length > 2 && (
-                        <span className="text-xs text-gray-500">+{contact.tags.length - 2}</span>
-                      )}
-                    </div>
+                    {/* Primary pricing tier badge */}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      contact.pricingTier === 'premium' ? 'bg-purple-100 text-purple-800' :
+                      contact.pricingTier === 'volume' ? 'bg-orange-100 text-orange-800' :
+                      contact.pricingTier === 'standard' ? 'bg-blue-100 text-blue-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {contact.pricingTier.replace('_', ' ')}
+                    </span>
+                    
+                    {/* Relationship stage indicator */}
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                      contact.relationshipStage === 'customer' ? 'bg-green-100 text-green-800' :
+                      contact.relationshipStage === 'hot' ? 'bg-red-100 text-red-800' :
+                      contact.relationshipStage === 'warm' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-gray-100 text-gray-800'
+                    }`}>
+                      {contact.relationshipStage}
+                    </span>
                   </div>
                   
                   <div className="flex items-center space-x-6 text-sm text-gray-500">
@@ -355,35 +371,27 @@ export default function Contacts() {
                       <EnvelopeIcon className="h-4 w-4 mr-1" />
                       {contact.email}
                     </div>
-                    <div className="flex items-center">
-                      <PhoneIcon className="h-4 w-4 mr-1" />
-                      {contact.phone}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center space-x-6 mt-2 text-sm text-gray-500">
-                    <span>Pricing: {contact.pricingTier} ({contact.pricingAdjustment >= 0 ? '+' : ''}{contact.pricingAdjustment}%)</span>
-                    <span>LTV: ${(contact.lifetimeValue / 1000).toFixed(0)}K</span>
-                    <span>Orders: {contact.totalOrders}</span>
-                    <span>Last: {contact.lastContactDate ? new Date(contact.lastContactDate).toLocaleDateString() : 'Never'}</span>
+                    {contact.phone && (
+                      <div className="flex items-center">
+                        <PhoneIcon className="h-4 w-4 mr-1" />
+                        {contact.phone}
+                      </div>
+                    )}
+                    {contact.primaryCrops.length > 0 && (
+                      <div className="flex items-center">
+                        <span className="text-gray-400 mr-1">Crops:</span>
+                        <span>{contact.primaryCrops.slice(0, 2).join(', ')}{contact.primaryCrops.length > 2 ? ` +${contact.primaryCrops.length - 2}` : ''}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
                 <div className="flex items-center space-x-2">
-                  <Link
-                    href={`/dashboard/contacts/${contact.id}`}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                  <button
+                    onClick={() => handleViewContact(contact)}
+                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
-                    View
-                  </Link>
-                  <Link
-                    href={`/dashboard/contacts/${contact.id}/edit`}
-                    className="text-sm font-medium text-gray-600 hover:text-gray-500"
-                  >
-                    Edit
-                  </Link>
-                  <button className="p-2 text-gray-400 hover:text-gray-600">
-                    <EllipsisVerticalIcon className="h-4 w-4" />
+                    View Details
                   </button>
                 </div>
               </div>
@@ -397,6 +405,16 @@ export default function Contacts() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleSaveContact}
+      />
+
+      {/* Contact Details Modal */}
+      <ContactDetailsModal
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false)
+          setSelectedContact(null)
+        }}
+        contact={selectedContact}
       />
     </>
   )

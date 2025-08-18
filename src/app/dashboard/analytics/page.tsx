@@ -1,18 +1,81 @@
-import { ChartBarIcon, EyeIcon, UserGroupIcon, ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, EyeIcon, UserGroupIcon, ArrowTrendingUpIcon, PaperAirplaneIcon, ClockIcon } from '@heroicons/react/24/outline'
 
 // Mock analytics data
 const mockAnalytics = {
   totalViews: 1247,
   totalContacts: 89,
   engagementRate: 78,
-  topPerformingSheet: 'Organic Strawberries - Spring 2024',
-  recentActivity: [
-    { date: '2024-03-15', views: 45, contacts: 8 },
-    { date: '2024-03-14', views: 32, contacts: 5 },
-    { date: '2024-03-13', views: 67, contacts: 12 },
-    { date: '2024-03-12', views: 28, contacts: 4 },
-    { date: '2024-03-11', views: 53, contacts: 9 },
-  ]
+  avgViewsPerDay: 45
+}
+
+// Mock recent price sheet sends (most recent first)
+const mockRecentSends = [
+  {
+    id: '1',
+    title: 'Spring Strawberries & Lettuce - March 2024',
+    sentDate: '2024-03-15T09:30:00Z',
+    sentTo: 12,
+    opens: 8,
+    openRate: 67,
+    status: 'sent',
+    regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas']
+  },
+  {
+    id: '2',
+    title: 'Organic Tomato Collection',
+    sentDate: '2024-03-14T14:15:00Z',
+    sentTo: 8,
+    opens: 6,
+    openRate: 75,
+    status: 'sent',
+    regions: ['Central Valley - Fresno']
+  },
+  {
+    id: '3',
+    title: 'Weekly Mixed Vegetables',
+    sentDate: '2024-03-13T08:45:00Z',
+    sentTo: 15,
+    opens: 11,
+    openRate: 73,
+    status: 'sent',
+    regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas']
+  },
+  {
+    id: '4',
+    title: 'Premium Bell Peppers & Cucumbers',
+    sentDate: '2024-03-12T16:20:00Z',
+    sentTo: 6,
+    opens: 4,
+    openRate: 67,
+    status: 'sent',
+    regions: ['Central Valley - Fresno']
+  },
+  {
+    id: '5',
+    title: 'End of Season Citrus Special',
+    sentDate: '2024-03-11T11:00:00Z',
+    sentTo: 9,
+    opens: 5,
+    openRate: 56,
+    status: 'sent',
+    regions: ['Central Valley - Fresno']
+  }
+]
+
+// Helper function to get relative time
+const getTimeAgo = (date: Date) => {
+  const now = new Date()
+  const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60))
+  
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`
+  
+  const diffInHours = Math.floor(diffInMinutes / 60)
+  if (diffInHours < 24) return `${diffInHours}h ago`
+  
+  const diffInDays = Math.floor(diffInHours / 24)
+  if (diffInDays < 7) return `${diffInDays}d ago`
+  
+  return date.toLocaleDateString()
 }
 
 export default function Analytics() {
@@ -85,7 +148,7 @@ export default function Analytics() {
               <div className="ml-5 w-0 flex-1">
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Avg. Views/Day</dt>
-                  <dd className="text-lg font-medium text-gray-900">45</dd>
+                  <dd className="text-lg font-medium text-gray-900">{mockAnalytics.avgViewsPerDay}</dd>
                 </dl>
               </div>
             </div>
@@ -93,47 +156,70 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* Performance Overview */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
-        {/* Top Performing Price Sheet */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Top Performing Price Sheet</h3>
-          </div>
-          <div className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="text-sm font-medium text-gray-900">{mockAnalytics.topPerformingSheet}</h4>
-                <p className="text-sm text-gray-500 mt-1">156 views • 23 contacts</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">+23%</p>
-                <p className="text-sm text-gray-500">vs last week</p>
-              </div>
-            </div>
+      {/* Recent Price Sheet Activity */}
+      <div className="bg-white shadow rounded-lg mb-8">
+        <div className="px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium text-gray-900">Recent Price Sheet Activity</h3>
+            <p className="text-sm text-gray-500">Most recent sends first</p>
           </div>
         </div>
-
-        {/* Recent Activity */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Recent Activity (5 days)</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              {mockAnalytics.recentActivity.map((day, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-2 w-2 bg-blue-600 rounded-full"></div>
-                    <span className="text-sm text-gray-900">{new Date(day.date).toLocaleDateString()}</span>
+        <div className="divide-y divide-gray-200">
+          {mockRecentSends.map((send) => {
+            const sentDate = new Date(send.sentDate)
+            const timeAgo = getTimeAgo(sentDate)
+            
+            return (
+              <div key={send.id} className="px-6 py-4 hover:bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center space-x-3 mb-2">
+                      <div className="flex-shrink-0 p-2 bg-green-100 rounded-lg">
+                        <PaperAirplaneIcon className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-sm font-medium text-gray-900 truncate">{send.title}</h4>
+                        <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
+                          <div className="flex items-center space-x-1">
+                            <ClockIcon className="h-3 w-3" />
+                            <span>{timeAgo}</span>
+                          </div>
+                          <span>•</span>
+                          <span>{send.regions.join(', ')}</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    {day.views} views • {day.contacts} contacts
+                  
+                  <div className="flex items-center space-x-6 text-sm">
+                    {/* Sent To */}
+                    <div className="text-center">
+                      <div className="font-medium text-gray-900">{send.sentTo}</div>
+                      <div className="text-xs text-gray-500">Sent To</div>
+                    </div>
+                    
+                    {/* Opens */}
+                    <div className="text-center">
+                      <div className="font-medium text-blue-600">{send.opens}</div>
+                      <div className="text-xs text-gray-500">Opens</div>
+                    </div>
+                    
+                    {/* Open Rate */}
+                    <div className="text-center">
+                      <div className={`font-medium ${
+                        send.openRate >= 70 ? 'text-green-600' :
+                        send.openRate >= 50 ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {send.openRate}%
+                      </div>
+                      <div className="text-xs text-gray-500">Open Rate</div>
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )
+          })}
         </div>
       </div>
 

@@ -9,7 +9,7 @@ import {
   ChartBarIcon, 
   ChatBubbleLeftRightIcon, 
   Cog6ToothIcon,
-  PlusIcon
+  ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
 
 // Mock subscription data - in real app this would come from auth/API
@@ -28,7 +28,6 @@ const navigation = [
   { name: 'Contacts', href: '/dashboard/contacts', icon: UserGroupIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
   { name: 'AI Chatbot', href: '/dashboard/chatbot', icon: ChatBubbleLeftRightIcon },
-  { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
 ]
 
 const featureAccess = {
@@ -49,7 +48,7 @@ export default function DashboardLayout({
     if (item.name === 'AI Chatbot') return userFeatures.includes('ai_chatbot')
     if (item.name === 'Analytics') return userFeatures.includes('analytics')
     if (item.name === 'Contacts') return userFeatures.includes('contacts')
-    return true // Dashboard, Price Sheets, Settings always available
+    return true // Dashboard, Price Sheets always available
   })
 
   return (
@@ -64,32 +63,8 @@ export default function DashboardLayout({
             </Link>
           </div>
 
-          {/* User info */}
-          <div className="border-b border-gray-200 p-4">
-            <div className="flex items-center space-x-3">
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-600">
-                  {mockUser.name.split(' ').map(n => n[0]).join('')}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{mockUser.name}</p>
-                <p className="text-xs text-gray-500 truncate">{mockUser.email}</p>
-              </div>
-            </div>
-            <div className="mt-2">
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                mockUser.subscription.tier === 'enterprise' ? 'bg-green-100 text-blue-800' :
-                mockUser.subscription.tier === 'premium' ? 'bg-blue-100 text-blue-800' :
-                'bg-gray-100 text-gray-800'
-              }`}>
-                {mockUser.subscription.tier.charAt(0).toUpperCase() + mockUser.subscription.tier.slice(1)}
-              </span>
-            </div>
-          </div>
-
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4">
+          <nav className="flex-1 space-y-1 p-4 pt-6">
             {filteredNavigation.map((item) => {
               const isCurrent = pathname === item.href
               const isDisabled = !userFeatures.includes(
@@ -128,15 +103,42 @@ export default function DashboardLayout({
             })}
           </nav>
 
-          {/* Quick Actions */}
+          {/* User Section */}
           <div className="border-t border-gray-200 p-4">
-            <Link
-              href="/dashboard/price-sheets/new"
-              className="flex w-full items-center justify-center rounded-md bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-            >
-              <PlusIcon className="mr-2 h-4 w-4" />
-              New Price Sheet
-            </Link>
+            <div className="flex items-center space-x-3 mb-3">
+              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
+                <span className="text-sm font-medium text-blue-600">
+                  {mockUser.name.split(' ').map(n => n[0]).join('')}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{mockUser.name}</p>
+                <p className="text-xs text-gray-500 truncate">{mockUser.email}</p>
+              </div>
+              <Link
+                href="/dashboard/settings"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                title="Settings"
+              >
+                <Cog6ToothIcon className="h-5 w-5" />
+              </Link>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-gray-500">
+                {mockUser.subscription.tier.charAt(0).toUpperCase() + mockUser.subscription.tier.slice(1)} Plan
+              </span>
+              <button
+                onClick={() => {
+                  // TODO: Implement logout functionality when auth is setup
+                  console.log('Logout clicked')
+                }}
+                className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                title="Sign out"
+              >
+                <ArrowRightOnRectangleIcon className="h-3 w-3 mr-1" />
+                Sign out
+              </button>
+            </div>
           </div>
         </div>
       </div>

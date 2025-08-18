@@ -114,6 +114,9 @@ export default function SendPriceSheets() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
+  const [contactNotes, setContactNotes] = useState<Record<string, string>>({})
+  const [emailContent, setEmailContent] = useState('')
+  const [isEmailGenerated, setIsEmailGenerated] = useState(false)
 
   // Filter contacts
   const filteredContacts = mockContacts.filter(contact => {
@@ -148,6 +151,48 @@ export default function SendPriceSheets() {
 
   const clearAllContacts = () => {
     setSelectedContacts([])
+  }
+
+  const handleAddNote = (contactId: string) => {
+    const note = prompt('Add a custom note for this contact:')
+    if (note !== null) {
+      setContactNotes(prev => ({
+        ...prev,
+        [contactId]: note
+      }))
+    }
+  }
+
+  const generateAIEmail = () => {
+    const selectedSheet = mockSavedPriceSheets.find(s => s.id === selectedPriceSheet)
+    const contactCount = selectedContacts.length
+    
+    // Mock AI-generated email
+    const aiEmail = `Subject: Fresh ${selectedSheet?.title || 'Price Sheet'} - Premium Quality Produce Available
+
+Dear Valued Customer,
+
+I hope this message finds you well! I'm excited to share our latest price sheet featuring the freshest, highest-quality produce from our farms.
+
+🌱 What's New This Week:
+• ${selectedSheet?.products || 5} premium products across ${selectedSheet?.regions?.length || 2} growing regions
+• Competitive pricing with volume discounts available
+• Peak season availability on select items
+
+Our team has carefully curated this selection based on current market conditions and seasonal availability. Each product meets our strict quality standards and is harvested at optimal freshness.
+
+${contactCount > 1 ? 'Please note that pricing may be customized based on your established tier and order history.' : ''}
+
+I'm here to answer any questions about availability, minimum orders, or special requirements. Don't hesitate to reach out if you'd like to discuss any items in detail.
+
+Looking forward to serving you with the best produce available!
+
+Best regards,
+The Plums AG Team
+sales@plums.ag | (555) 123-4567`
+
+    setEmailContent(aiEmail)
+    setIsEmailGenerated(true)
   }
 
   const getPricingDisplay = (contact: Contact, basePrice: number = 100) => {
@@ -286,28 +331,34 @@ export default function SendPriceSheets() {
             {/* Contacts List */}
             <div className="border border-gray-200 rounded-lg">
               <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-900">
                     Contacts ({selectedContacts.length} of {filteredContacts.length} selected)
                   </span>
                   <span className="text-xs text-gray-500">Dynamic pricing will be applied automatically</span>
                 </div>
+                
+                {/* Column Headers */}
+                <div className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <div className="flex-1">Contact Information</div>
+                  <div className="text-center w-20">Pricing</div>
+                  <div className="w-32 ml-4 text-center">Custom Note</div>
+                </div>
               </div>
               
               <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
                 {filteredContacts.map((contact) => {
-                  const pricing = getPricingDisplay(contact)
                   return (
                     <div key={contact.id} className="px-4 py-4 hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
+                      <div className="flex items-center">
+                        <div className="flex items-center space-x-3 flex-1">
                           <input
                             type="checkbox"
                             checked={selectedContacts.includes(contact.id)}
                             onChange={() => toggleContact(contact.id)}
                             className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <div>
+                          <div className="flex-1">
                             <div className="flex items-center space-x-2">
                               <p className="text-sm font-medium text-gray-900">
                                 {contact.firstName} {contact.lastName}
@@ -322,27 +373,43 @@ export default function SendPriceSheets() {
                               </span>
                             </div>
                             <p className="text-sm text-gray-500">{contact.company}</p>
+                            {contactNotes[contact.id] && (
+                              <p className="text-xs text-blue-600 mt-1 italic">Note: {contactNotes[contact.id]}</p>
+                            )}
                           </div>
                         </div>
                         
-                        <div className="text-right">
-                          <div className="text-sm font-medium text-gray-900">
-                            {contact.pricingAdjustment !== 0 ? (
-                              <>
-                                <span className="text-green-600">${pricing.adjusted.toFixed(2)}</span>
-                                <span className="text-xs text-gray-500 ml-1 line-through">${pricing.base.toFixed(2)}</span>
-                              </>
-                            ) : (
-                              <span>${pricing.base.toFixed(2)}</span>
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-500">
+                        {/* Discount Column */}
+                        <div className="text-center w-20">
+                          <div className={`text-sm font-medium ${
+                            contact.pricingAdjustment < 0 ? 'text-green-600' :
+                            contact.pricingAdjustment > 0 ? 'text-red-600' :
+                            'text-gray-500'
+                          }`}>
                             {contact.pricingAdjustment !== 0 ? (
                               `${contact.pricingAdjustment > 0 ? '+' : ''}${contact.pricingAdjustment}%`
                             ) : (
-                              'Base pricing'
+                              'Base'
                             )}
                           </div>
+                          <div className="text-xs text-gray-400">
+                            {contact.pricingAdjustment < 0 ? 'Discount' : 
+                             contact.pricingAdjustment > 0 ? 'Premium' : 'Standard'}
+                          </div>
+                        </div>
+                        
+                        {/* Custom Note Column */}
+                        <div className="w-32 ml-4">
+                          <button
+                            onClick={() => handleAddNote(contact.id)}
+                            className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
+                              contactNotes[contact.id] 
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                            }`}
+                          >
+                            {contactNotes[contact.id] ? 'Edit Note' : 'Add Note'}
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -370,15 +437,67 @@ export default function SendPriceSheets() {
                 <p className="mb-1">
                   <strong>Recipients:</strong> {selectedContacts.length} contacts
                 </p>
+                <p className="mb-1">
+                  <strong>Custom Notes:</strong> {Object.keys(contactNotes).length} contacts have personalized notes
+                </p>
                 <p>
                   <strong>Dynamic Pricing:</strong> Prices will be automatically adjusted based on each contact&apos;s tier
                 </p>
               </div>
             </div>
 
+            {/* AI Email Generation */}
+            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Email Message</h3>
+                {!isEmailGenerated && (
+                  <button
+                    onClick={generateAIEmail}
+                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+                  >
+                    ✨ Generate AI Email
+                  </button>
+                )}
+              </div>
+              
+              {isEmailGenerated ? (
+                <div>
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email Content (Editable)
+                    </label>
+                    <p className="text-xs text-gray-500 mb-2">
+                      AI-generated email ready to send. Edit as needed before sending.
+                    </p>
+                  </div>
+                  <textarea
+                    value={emailContent}
+                    onChange={(e) => setEmailContent(e.target.value)}
+                    rows={12}
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm font-mono"
+                  />
+                  <div className="mt-3 flex items-center justify-between">
+                    <p className="text-xs text-gray-500">
+                      Custom notes will be automatically added to each recipient&apos;s email.
+                    </p>
+                    <button
+                      onClick={generateAIEmail}
+                      className="text-sm text-blue-600 hover:text-blue-500"
+                    >
+                      🔄 Regenerate
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-sm">Click &quot;Generate AI Email&quot; to create a personalized message for your recipients.</p>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Each contact will receive a personalized version with their optimized pricing.
+                Each contact will receive a personalized email with their optimized pricing and custom notes.
               </div>
               <div className="flex items-center space-x-3">
                 <button
@@ -390,7 +509,12 @@ export default function SendPriceSheets() {
                 </button>
                 <button
                   type="button"
-                  className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                  disabled={!isEmailGenerated}
+                  className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${
+                    isEmailGenerated 
+                      ? 'text-white bg-green-600 hover:bg-green-700' 
+                      : 'text-gray-400 bg-gray-200 cursor-not-allowed'
+                  }`}
                 >
                   <PaperAirplaneIcon className="h-4 w-4 mr-2" />
                   Send to {selectedContacts.length} Contact{selectedContacts.length !== 1 ? 's' : ''}

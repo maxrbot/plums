@@ -102,7 +102,6 @@ export default function Capabilities() {
         <Breadcrumbs 
           items={[
             { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Setup Your Data', href: '/dashboard/price-sheets/setup' },
             { label: 'Capabilities & Certifications', current: true }
           ]} 
           className="mb-4"

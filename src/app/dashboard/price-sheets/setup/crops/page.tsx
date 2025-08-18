@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { 
   SparklesIcon, 
   PlusIcon, 
@@ -197,7 +196,6 @@ export default function CropManagement() {
         <Breadcrumbs 
           items={[
             { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Setup Your Data', href: '/dashboard/price-sheets/setup' },
             { label: 'Crop Management', current: true }
           ]} 
           className="mb-4"
@@ -364,24 +362,7 @@ export default function CropManagement() {
         </div>
       </div>
 
-      {/* Next Steps */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
-        <div className="text-center">
-          <SparklesIcon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-blue-900 mb-2">
-            Crop Management Complete! ✅
-          </h3>
-          <p className="text-blue-700 mb-4">
-            You&apos;ve configured {crops.length} crops across {mockRegions.length} growing regions. Next, let&apos;s set up your capabilities and certifications.
-          </p>
-          <Link
-            href="/dashboard/price-sheets/setup/capabilities"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Continue to Capabilities
-          </Link>
-        </div>
-      </div>
+
 
       {/* Add/Edit Variation Modal */}
       <AddVariationModal

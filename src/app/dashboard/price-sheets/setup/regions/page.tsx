@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { MapPinIcon, PlusIcon, PencilIcon, TrashIcon, CheckCircleIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
 import AddRegionModal from '../../../../../components/modals/AddRegionModal'
 import { GrowingRegion } from '../../../../../types'
@@ -63,7 +62,6 @@ export default function GrowingRegions() {
         <Breadcrumbs 
           items={[
             { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Setup Your Data', href: '/dashboard/price-sheets/setup' },
             { label: 'Growing Regions', current: true }
           ]} 
           className="mb-4"
@@ -213,24 +211,7 @@ export default function GrowingRegions() {
         </div>
       </div>
 
-      {/* Next Steps */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
-        <div className="text-center">
-          <MapPinIcon className="h-12 w-12 text-blue-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-blue-900 mb-2">
-            Growing Regions Complete! ✅
-          </h3>
-          <p className="text-blue-700 mb-4">
-            You&apos;ve set up {regions.length} growing regions. Next, let&apos;s configure your crop management.
-          </p>
-          <Link
-            href="/dashboard/price-sheets/setup/crops"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Continue to Crop Management
-          </Link>
-        </div>
-      </div>
+
 
       {/* Add Region Modal */}
       <AddRegionModal

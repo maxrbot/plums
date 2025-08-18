@@ -1,92 +1,74 @@
 "use client"
 
 import { useState } from 'react'
-import Link from 'next/link'
 import { 
-  ShieldCheckIcon, 
   PlusIcon, 
-  PencilIcon, 
-  TrashIcon,
-  CheckBadgeIcon,
-  StarIcon,
-  GlobeAltIcon
+  ShieldCheckIcon, 
+  TrashIcon
 } from '@heroicons/react/24/outline'
-import AddCapabilityModal from '../../../../../components/modals/AddCapabilityModal'
-import type { Capability } from '../../../../../types'
 import { Breadcrumbs } from '../../../../../components/ui'
+import AddCapabilityModal from '../../../../../components/modals/AddCapabilityModal'
+import { Capability } from '../../../../../types'
 
 // Mock capabilities data
 const mockCapabilities: Capability[] = [
   {
     id: 1,
-    name: 'USDA Organic Certification',
+    name: 'USDA Organic',
     type: 'certification',
     status: 'active',
-    validUntil: '2025-12-31',
-    description: 'Full USDA organic certification for all crops',
-    appliesTo: ['All Crops'],
-    growingRegions: ['Central Valley - Fresno', 'Salinas Valley - Salinas'],
+    validUntil: '2025-03-15',
+    description: 'Certified organic by USDA standards',
+    appliesTo: ['Strawberries', 'Lettuce'],
+    growingRegions: ['Central Valley - Fresno'],
     documents: ['USDA_Organic_Cert_2024.pdf'],
-    notes: 'Full USDA organic certification covering all organic crops',
+    notes: '',
     createdAt: '2024-03-10'
   },
   {
     id: 2,
-    name: 'Global GAP Food Safety',
-    type: 'food_safety',
+    name: '1 lb Clamshell',
+    type: 'packaging',
     status: 'active',
-    validUntil: '2025-06-30',
-    description: 'International food safety standard certification',
-    appliesTo: ['All Crops'],
-    growingRegions: ['Central Valley - Fresno', 'Salinas Valley - Salinas', 'Imperial Valley - El Centro'],
-    documents: ['GlobalGAP_Cert_2024.pdf'],
-    notes: 'International food safety standard for all crops',
-    createdAt: '2024-03-12'
-  },
-  {
-    id: 3,
-    name: 'Sustainable Farming Practices',
-    type: 'sustainability',
-    status: 'active',
-    validUntil: null,
-    description: 'Water conservation, soil health, and biodiversity practices',
-    appliesTo: ['All Crops'],
-    growingRegions: ['Central Valley - Fresno', 'Salinas Valley - Salinas'],
-    documents: ['Sustainability_Report_2024.pdf'],
-    notes: 'Sustainable farming practices including water conservation and soil health',
+    validUntil: '',
+    description: 'Clear plastic clamshell container',
+    appliesTo: ['Strawberries', 'Blueberries'],
+    growingRegions: [],
+    documents: [],
+    notes: '',
     createdAt: '2024-03-15'
   },
   {
-    id: 4,
-    name: 'Premium Quality Grade',
-    type: 'quality',
+    id: 3,
+    name: '2 lb Clamshell', 
+    type: 'packaging',
     status: 'active',
-    validUntil: null,
-    description: 'Premium grade produce with strict quality standards',
-    appliesTo: ['Strawberries', 'Tomatoes', 'Lettuce'],
-    growingRegions: ['Central Valley - Fresno', 'Salinas Valley - Salinas'],
-    documents: ['Quality_Standards_2024.pdf'],
-    notes: 'Premium quality standards for select high-value crops',
-    createdAt: '2024-03-18'
+    validUntil: '',
+    description: 'Large plastic clamshell container',
+    appliesTo: ['Strawberries'],
+    growingRegions: [],
+    documents: [],
+    notes: '',
+    createdAt: '2024-03-16'
   }
 ]
 
-// Mock growing regions for reference
-const mockRegions = [
-  'Central Valley - Fresno',
-  'Salinas Valley - Salinas',
-  'Imperial Valley - El Centro'
-]
-
-// Mock crops for reference
+// Mock crops and regions
 const mockCrops = [
   'Strawberries', 'Lettuce', 'Tomatoes', 'Broccoli', 'Cauliflower',
   'Grapes', 'Almonds', 'Pistachios', 'Dates', 'Alfalfa'
 ]
 
+const mockRegions = [
+  'Central Valley - Fresno',
+  'Salinas Valley - Salinas', 
+  'Imperial Valley - El Centro'
+]
+
 export default function Capabilities() {
   const [capabilities, setCapabilities] = useState<Capability[]>(mockCapabilities)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isCertModalOpen, setIsCertModalOpen] = useState(false)
+  const [isPackagingModalOpen, setIsPackagingModalOpen] = useState(false)
 
   const handleAddCapability = (newCapability: Omit<Capability, 'id'>) => {
     setCapabilities(prev => [...prev, { ...newCapability, id: Date.now() }])
@@ -96,10 +78,22 @@ export default function Capabilities() {
     setCapabilities(prev => prev.filter(capability => capability.id !== capabilityId))
   }
 
-  const certificationCount = capabilities.filter(cap => cap.type === 'certification').length
-  const foodSafetyCount = capabilities.filter(cap => cap.type === 'food_safety').length
-  const sustainabilityCount = capabilities.filter(cap => cap.type === 'sustainability').length
-  const qualityCount = capabilities.filter(cap => cap.type === 'quality').length
+  // Separate certifications and packaging
+  const certifications = capabilities.filter(cap => cap.type === 'certification')
+  const packagingCapabilities = capabilities.filter(cap => cap.type === 'packaging')
+  
+  // Group packaging by type (assuming name format like "1 lb Clamshell")
+  const groupedPackaging = packagingCapabilities.reduce((groups, pkg) => {
+    // Extract package type from name (everything after the unit)
+    const nameParts = pkg.name.split(' ')
+    const packageType = nameParts.slice(2).join(' ') // Skip "1 lb" part
+    
+    if (!groups[packageType]) {
+      groups[packageType] = []
+    }
+    groups[packageType].push(pkg)
+    return groups
+  }, {} as Record<string, Capability[]>)
 
   return (
     <>
@@ -113,200 +107,211 @@ export default function Capabilities() {
           ]} 
           className="mb-4"
         />
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Capabilities & Certifications</h1>
-            <p className="mt-2 text-gray-600">Configure your processing capabilities, certifications, and quality metrics.</p>
-          </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Capability
-          </button>
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Capabilities & Certifications</h1>
+          <p className="mt-2 text-gray-600">Manage your certifications and packaging options for price sheet generation.</p>
         </div>
       </div>
 
-      {/* Summary Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <ShieldCheckIcon className="h-6 w-6 text-blue-600" />
+      {/* Certifications Section */}
+      <div className="mb-8">
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Your Certifications
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                  Organic, food safety, and other certifications you maintain.
+                </p>
               </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Capabilities</dt>
-                  <dd className="text-lg font-medium text-gray-900">{capabilities.length}</dd>
-                </dl>
-              </div>
+              <button
+                onClick={() => setIsCertModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Certification
+              </button>
             </div>
           </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CheckBadgeIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Certifications</dt>
-                  <dd className="text-lg font-medium text-gray-900">{certificationCount}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <StarIcon className="h-6 w-6 text-blue-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Quality Standards</dt>
-                  <dd className="text-lg font-medium text-gray-900">{qualityCount}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <GlobeAltIcon className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Growing Regions</dt>
-                  <dd className="text-lg font-medium text-gray-900">{mockRegions.length}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Capabilities List */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Your Capabilities</h3>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {capabilities.map((capability) => (
-            <div key={capability.id} className="px-6 py-4 hover:bg-gray-50">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h4 className="text-lg font-medium text-gray-900">{capability.name}</h4>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      capability.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {capability.status.charAt(0).toUpperCase() + capability.status.slice(1)}
-                    </span>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      capability.type === 'certification' ? 'bg-blue-100 text-blue-800' :
-                      capability.type === 'food_safety' ? 'bg-green-100 text-green-800' :
-                      capability.type === 'sustainability' ? 'bg-green-100 text-blue-800' :
-                      'bg-orange-100 text-orange-800'
-                    }`}>
-                      {capability.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </span>
-                  </div>
-                  
-                  <p className="text-gray-600 mb-3">{capability.description}</p>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm text-gray-600">
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Applies To</h5>
-                      <p className="text-xs">{capability.appliesTo.join(', ')}</p>
-                    </div>
-                    
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Growing Regions</h5>
-                      <p className="text-xs">{capability.growingRegions.join(', ')}</p>
-                    </div>
-                    
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Status</h5>
-                      <p>
-                        {capability.validUntil ? 
-                          `Valid until ${new Date(capability.validUntil).toLocaleDateString()}` :
-                          'No expiration'
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {capability.documents.length > 0 && (
-                    <div className="mt-3">
-                      <h5 className="font-medium text-gray-900 mb-1 text-sm">Documents</h5>
-                      <div className="flex space-x-2">
-                        {capability.documents.map((doc, index) => (
-                          <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                            {doc}
-                          </span>
-                        ))}
+          <ul role="list" className="divide-y divide-gray-200">
+            {certifications.length === 0 ? (
+              <li className="px-4 py-6 text-center text-gray-500">
+                <ShieldCheckIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No certifications added yet</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Add certifications like USDA Organic, SQF, or GlobalGAP.
+                </p>
+                <button
+                  onClick={() => setIsCertModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Your First Certification
+                </button>
+              </li>
+            ) : (
+              certifications.map((cert) => (
+                <li key={cert.id} className="px-4 py-4 sm:px-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center min-w-0 flex-1">
+                      <div className="flex-shrink-0">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                          <ShieldCheckIcon className="h-6 w-6 text-blue-600" />
+                        </div>
+                      </div>
+                      <div className="ml-4 min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {cert.name}
+                            </p>
+                            {cert.validUntil && (
+                              <p className="text-sm text-gray-500">
+                                Valid until: {new Date(cert.validUntil).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          <div className="ml-6 flex-shrink-0">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                              cert.status === 'active' ? 'bg-green-100 text-green-800' :
+                              cert.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                              cert.status === 'expired' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {cert.status}
+                            </span>
+                          </div>
+                        </div>
+                        {cert.appliesTo.length > 0 && (
+                          <div className="mt-2 flex items-center text-sm text-gray-500">
+                            <span className="truncate">
+                              Applies to: {cert.appliesTo.join(', ')}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  )}
-                  
-                  <div className="mt-3 text-xs text-gray-500">
-                    Added {new Date(capability.createdAt).toLocaleDateString()}
+                    <div className="ml-6 flex items-center space-x-2">
+                      <button
+                        onClick={() => handleDeleteCapability(cert.id)}
+                        className="inline-flex items-center p-2 border border-transparent rounded-full shadow-sm text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
+      </div>
+
+      {/* Packaging Types Section */}
+      <div className="mb-8">
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg leading-6 font-medium text-gray-900">
+                  Your Packaging Types
+                </h3>
+                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+                  Package types and sizes you use for different crops.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsPackagingModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Packaging Type
+              </button>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-200">
+            {Object.keys(groupedPackaging).length === 0 ? (
+              <div className="px-4 py-6 text-center text-gray-500">
+                <div className="h-12 w-12 mx-auto text-gray-400 mb-4">📦</div>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No packaging types added yet</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  Add packaging like clamshells, bags, or cartons with their sizes.
+                </p>
+                <button
+                  onClick={() => setIsPackagingModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Your First Packaging Type
+                </button>
+              </div>
+            ) : (
+              Object.entries(groupedPackaging).map(([packageType, packages]) => (
+                <div key={packageType} className="px-4 py-4 sm:px-6">
+                  <div className="flex items-start justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center">
+                        <div className="text-lg">📦</div>
+                        <div className="ml-3">
+                          <p className="text-sm font-medium text-gray-900">
+                            {packageType} ({packages.length} size{packages.length !== 1 ? 's' : ''})
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-3 ml-6 space-y-2">
+                        {packages.map((pkg) => {
+                          // Extract size from name (everything before the package type)
+                          const size = pkg.name.replace(packageType, '').trim()
+                          return (
+                            <div key={pkg.id} className="flex items-center justify-between py-1">
+                              <div className="flex items-center">
+                                <div className="w-2 h-2 bg-green-400 rounded-full mr-3"></div>
+                                <span className="text-sm text-gray-700 font-medium">{size}</span>
+                                {pkg.appliesTo.length > 0 && (
+                                  <span className="ml-2 text-sm text-gray-500">
+                                    → {pkg.appliesTo.join(', ')}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => handleDeleteCapability(pkg.id)}
+                                className="inline-flex items-center p-1 border border-transparent rounded-full shadow-sm text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                              >
+                                <TrashIcon className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-2 ml-4">
-                  <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteCapability(capability.id)}
-                    className="text-sm font-medium text-red-600 hover:text-red-500"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+              ))
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Next Steps */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-6 mt-8">
-        <div className="text-center">
-          <ShieldCheckIcon className="h-12 w-12 text-green-600 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-green-900 mb-2">
-            Setup Complete! 🎉
-          </h3>
-          <p className="text-green-700 mb-4">
-            You&apos;ve configured {capabilities.length} capabilities across {mockRegions.length} growing regions. You&apos;re now ready to create professional price sheets!
-          </p>
-          <Link
-            href="/dashboard/price-sheets/new"
-            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
-          >
-            Create Your First Price Sheet
-          </Link>
-        </div>
-      </div>
-
-      {/* Add Capability Modal */}
+      {/* Add Certification Modal */}
       <AddCapabilityModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isCertModalOpen}
+        onClose={() => setIsCertModalOpen(false)}
         onSave={handleAddCapability}
         availableCrops={mockCrops}
         availableRegions={mockRegions}
+        modalType="certification"
+      />
+
+      {/* Add Packaging Modal */}
+      <AddCapabilityModal
+        isOpen={isPackagingModalOpen}
+        onClose={() => setIsPackagingModalOpen(false)}
+        onSave={handleAddCapability}
+        availableCrops={mockCrops}
+        availableRegions={mockRegions}
+        modalType="packaging"
       />
     </>
   )

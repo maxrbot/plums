@@ -157,7 +157,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         required
                         value={formData.name}
                         onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                         placeholder="e.g., Central Valley - Fresno"
                       />
                     </div>
@@ -172,7 +172,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         required
                         value={formData.location}
                         onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                         placeholder="Start typing city, state..."
                       />
                       <p className="mt-1 text-xs text-gray-500">
@@ -254,7 +254,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         id="climate"
                         value={formData.climate}
                         onChange={(e) => setFormData(prev => ({ ...prev, climate: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                       >
                         <option value="">Select climate</option>
                         <option value="Mediterranean">Mediterranean</option>
@@ -273,7 +273,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         id="soilType"
                         value={formData.soilType}
                         onChange={(e) => setFormData(prev => ({ ...prev, soilType: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                       >
                         <option value="">Select soil type</option>
                         <option value="Loam">Loam</option>
@@ -306,7 +306,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         rows={3}
                         value={formData.notes}
                         onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                         placeholder="Additional information about this region..."
                         autoFocus
                       />

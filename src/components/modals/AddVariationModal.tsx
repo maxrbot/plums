@@ -304,7 +304,7 @@ export default function AddVariationModal({
                           required
                           value={formData.category}
                           onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                         >
                           <option value="">Select category</option>
                           {categories.map(category => (
@@ -323,7 +323,7 @@ export default function AddVariationModal({
                           disabled={!formData.category}
                           value={formData.commodity}
                           onChange={(e) => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed"
+                          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                         >
                           <option value="">{formData.category ? 'Select commodity' : 'Select category first'}</option>
                           {commodities.map(commodity => (
@@ -382,7 +382,7 @@ export default function AddVariationModal({
                             required
                             value={currentVariation.variety}
                             onChange={(e) => setCurrentVariation(prev => ({ ...prev, variety: e.target.value }))}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                           >
                             <option value="">Select variety</option>
                             {varieties.map(variety => (
@@ -572,7 +572,7 @@ export default function AddVariationModal({
                                       ...prev,
                                       targetPricing: { ...prev.targetPricing, minPrice: parseFloat(e.target.value) || 0 }
                                     }))}
-                                    className="pl-7 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    className="pl-7 pr-3 py-2 mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                     placeholder="0.00"
                                   />
                                 </div>
@@ -593,7 +593,7 @@ export default function AddVariationModal({
                                       ...prev,
                                       targetPricing: { ...prev.targetPricing, maxPrice: parseFloat(e.target.value) || 0 }
                                     }))}
-                                    className="pl-7 mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                    className="pl-7 pr-3 py-2 mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                     placeholder="0.00"
                                   />
                                 </div>
@@ -608,7 +608,7 @@ export default function AddVariationModal({
                                     ...prev,
                                     targetPricing: { ...prev.targetPricing, unit: e.target.value }
                                   }))}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                 >
                                   <option value="lb">lb</option>
                                   <option value="kg">kg</option>
@@ -635,7 +635,7 @@ export default function AddVariationModal({
                                   type="number"
                                   value={currentVariation.minOrder === 0 ? '' : currentVariation.minOrder}
                                   onChange={(e) => setCurrentVariation(prev => ({ ...prev, minOrder: parseInt(e.target.value) || 0 }))}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                   placeholder="e.g. 3, 500, 50"
                                 />
                               </div>
@@ -646,7 +646,7 @@ export default function AddVariationModal({
                                 <select
                                   value={currentVariation.orderUnit || 'case'}
                                   onChange={(e) => setCurrentVariation(prev => ({ ...prev, orderUnit: e.target.value }))}
-                                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                 >
                                   <option value="case">Cases</option>
                                   <option value="pallet">Pallets</option>
@@ -706,7 +706,7 @@ export default function AddVariationModal({
                                 rows={3}
                                 value={currentVariation.notes}
                                 onChange={(e) => setCurrentVariation(prev => ({ ...prev, notes: e.target.value }))}
-                                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                                className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                                 placeholder="Additional notes about this variation..."
                                 autoFocus
                               />

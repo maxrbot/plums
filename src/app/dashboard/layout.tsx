@@ -54,11 +54,11 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg">
+      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 shadow-lg">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center justify-center border-b border-gray-200">
-            <Link href="/" className="text-2xl font-bold text-blue-600">
+          <div className="flex h-16 items-center justify-center border-b border-slate-700">
+            <Link href="/" className="text-2xl font-bold text-lime-400">
               Plums.ag
             </Link>
           </div>
@@ -79,16 +79,16 @@ export default function DashboardLayout({
                   href={isDisabled ? '#' : item.href}
                   className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                     isCurrent
-                      ? 'bg-green-100 text-blue-700'
+                      ? 'bg-slate-700 text-lime-400'
                       : isDisabled
-                      ? 'text-gray-400 cursor-not-allowed'
-                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                      ? 'text-gray-500 cursor-not-allowed'
+                      : 'text-gray-300 hover:bg-slate-700 hover:text-white'
                   }`}
                   onClick={isDisabled ? (e) => e.preventDefault() : undefined}
                 >
                   <item.icon
                     className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                      isCurrent ? 'text-blue-500' : 'text-gray-400 group-hover:text-gray-500'
+                      isCurrent ? 'text-lime-400' : 'text-gray-400 group-hover:text-gray-300'
                     }`}
                     aria-hidden="true"
                   />
@@ -104,27 +104,27 @@ export default function DashboardLayout({
           </nav>
 
           {/* User Section */}
-          <div className="border-t border-gray-200 p-4">
+          <div className="border-t border-slate-700 p-4">
             <div className="flex items-center space-x-3 mb-3">
-              <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-600">
+              <div className="h-8 w-8 rounded-full bg-lime-500 bg-opacity-20 flex items-center justify-center">
+                <span className="text-sm font-medium text-lime-400">
                   {mockUser.name.split(' ').map(n => n[0]).join('')}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{mockUser.name}</p>
-                <p className="text-xs text-gray-500 truncate">{mockUser.email}</p>
+                <p className="text-sm font-medium text-white truncate">{mockUser.name}</p>
+                <p className="text-xs text-gray-300 truncate">{mockUser.email}</p>
               </div>
               <Link
                 href="/dashboard/settings"
-                className="p-1.5 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                className="p-1.5 rounded-md text-gray-400 hover:text-gray-300 hover:bg-slate-700 transition-colors"
                 title="Settings"
               >
                 <Cog6ToothIcon className="h-5 w-5" />
               </Link>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-400">
                 {mockUser.subscription.tier.charAt(0).toUpperCase() + mockUser.subscription.tier.slice(1)} Plan
               </span>
               <button
@@ -132,7 +132,7 @@ export default function DashboardLayout({
                   // TODO: Implement logout functionality when auth is setup
                   console.log('Logout clicked')
                 }}
-                className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+                className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-300 hover:bg-slate-700 rounded-md transition-colors"
                 title="Sign out"
               >
                 <ArrowRightOnRectangleIcon className="h-3 w-3 mr-1" />

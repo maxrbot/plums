@@ -121,7 +121,7 @@ export default function PriceSheets() {
                       </span>
                       <Link
                         href={metric.href}
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 flex-shrink-0"
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
                       >
                         Manage
                         <ArrowRightIcon className="h-3 w-3 ml-1" />
@@ -169,7 +169,7 @@ export default function PriceSheets() {
               <div className="space-y-3">
                 <Link
                   href="/dashboard/price-sheets/new"
-                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
                 >
                   <PlusIcon className="h-4 w-4 mr-2" />
                   Generate New Price Sheet
@@ -217,7 +217,7 @@ export default function PriceSheets() {
               <div className="space-y-3">
                 <Link
                   href="/dashboard/price-sheets/send"
-                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700"
+                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-cyan-500 hover:bg-cyan-600"
                 >
                   <PaperAirplaneIcon className="h-4 w-4 mr-2" />
                   Send Price Sheets

@@ -18,7 +18,7 @@ const mockSetupMetrics = {
     count: 3,
     name: 'Growing Regions',
     description: 'Active growing regions and delivery zones',
-    href: '/dashboard/price-sheets/setup/regions',
+    href: '/dashboard/price-sheets/regions',
     icon: MapPinIcon,
     details: ['Central Valley - Fresno', 'Salinas Valley', 'Imperial Valley'],
     lastUpdated: '2024-03-10'
@@ -27,7 +27,7 @@ const mockSetupMetrics = {
     count: 8,
     name: 'Commodities',
     description: 'Configured crop varieties and seasons',
-    href: '/dashboard/price-sheets/setup/crops',
+    href: '/dashboard/price-sheets/crops',
     icon: SparklesIcon,
     details: ['3 Organic varieties', '5 Conventional varieties', '12 total variations'],
     lastUpdated: '2024-03-15'
@@ -36,7 +36,7 @@ const mockSetupMetrics = {
     count: 4,
     name: 'Capabilities & Certs',
     description: 'Processing capabilities and certifications',
-    href: '/dashboard/price-sheets/setup/capabilities',
+    href: '/dashboard/price-sheets/capabilities',
     icon: ShieldCheckIcon,
     details: ['USDA Organic', 'Food Safety Certified', 'Cold Storage', 'Custom Packaging'],
     lastUpdated: '2024-03-18'
@@ -56,85 +56,6 @@ export default function PriceSheets() {
 
       {/* Main Action Sections */}
       <div className="space-y-8">
-        
-        {/* 1. Manage Your Data - Full Width Horizontal */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
-                  <Cog6ToothIcon className="h-6 w-6 text-blue-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Manage Your Data</h3>
-                  <p className="text-sm text-gray-500">Setup regions, crops & capabilities</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Data Management Cards - Horizontal Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-              {Object.values(mockSetupMetrics).map((metric) => {
-                const Icon = metric.icon
-                
-                return (
-                  <div key={metric.name} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
-                          <Icon className="h-5 w-5 text-gray-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-medium text-gray-900 truncate">{metric.name}</h4>
-                          <p className="text-xs text-gray-500 truncate">{metric.description}</p>
-                        </div>
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-lg font-bold text-blue-600">{metric.count}</div>
-                        <div className="text-xs text-gray-500">
-                          {metric.name === 'Growing Regions' ? 'regions' :
-                           metric.name === 'Commodities' ? 'commodities' :
-                           'capabilities'}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {/* Details */}
-                    <div className="space-y-1 mb-3">
-                      {metric.details.slice(0, 2).map((detail, index) => (
-                        <div key={index} className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{detail}</span>
-                        </div>
-                      ))}
-                      {metric.details.length > 2 && (
-                        <div className="text-xs text-gray-500">
-                          +{metric.details.length - 2} more...
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Action */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500 truncate">
-                        Updated {new Date(metric.lastUpdated).toLocaleDateString()}
-                      </span>
-                      <Link
-                        href={metric.href}
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
-                      >
-                        Manage
-                        <ArrowRightIcon className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-          </div>
-        </div>
-
         {/* Generate and Send Actions - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
@@ -226,6 +147,83 @@ export default function PriceSheets() {
                   Select saved price sheets and send to your contacts with automatic pricing optimization.
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Manage Your Data - Full Width Horizontal */}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 p-3 bg-blue-100 rounded-lg">
+                  <Cog6ToothIcon className="h-6 w-6 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">Manage Your Data</h3>
+                  <p className="text-sm text-gray-500">Setup regions, crops & capabilities</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Data Management Cards - Horizontal Layout */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+              {Object.values(mockSetupMetrics).map((metric) => {
+                const Icon = metric.icon
+                
+                return (
+                  <div key={metric.name} className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-3">
+                        <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
+                          <Icon className="h-5 w-5 text-gray-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-sm font-medium text-gray-900 truncate">{metric.name}</h4>
+                          <p className="text-xs text-gray-500 truncate">{metric.description}</p>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <div className="text-lg font-bold text-blue-600">{metric.count}</div>
+                        <div className="text-xs text-gray-500">
+                          {metric.name === 'Growing Regions' ? 'regions' :
+                           metric.name === 'Commodities' ? 'commodities' :
+                           'capabilities'}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Details */}
+                    <div className="space-y-1 mb-3">
+                      {metric.details.slice(0, 2).map((detail, index) => (
+                        <div key={index} className="flex items-center text-xs text-gray-600">
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
+                          <span className="truncate">{detail}</span>
+                        </div>
+                      ))}
+                      {metric.details.length > 2 && (
+                        <div className="text-xs text-gray-500">
+                          +{metric.details.length - 2} more...
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Action */}
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                      <span className="text-xs text-gray-500 truncate">
+                        Updated {new Date(metric.lastUpdated).toLocaleDateString()}
+                      </span>
+                      <Link
+                        href={metric.href}
+                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
+                      >
+                        Manage
+                        <ArrowRightIcon className="h-3 w-3 ml-1" />
+                      </Link>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>

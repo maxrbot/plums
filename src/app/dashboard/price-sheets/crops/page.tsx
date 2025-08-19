@@ -9,8 +9,8 @@ import {
   MapPinIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline'
-import type { CropManagement } from '../../../../../types'
-import { Breadcrumbs, AddVariationModal } from '../../../../../components/ui'
+import type { CropManagement } from '../../../../types'
+import { Breadcrumbs, AddVariationModal } from '../../../../components/ui'
 
 // Mock crop data with new structure
 const mockCrops: CropManagement[] = [

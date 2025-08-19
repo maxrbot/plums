@@ -6,9 +6,9 @@ import {
   ShieldCheckIcon, 
   TrashIcon
 } from '@heroicons/react/24/outline'
-import { Breadcrumbs } from '../../../../../components/ui'
-import AddCapabilityModal from '../../../../../components/modals/AddCapabilityModal'
-import { Capability } from '../../../../../types'
+import { Breadcrumbs } from '../../../../components/ui'
+import AddCapabilityModal from '../../../../components/modals/AddCapabilityModal'
+import { Capability } from '../../../../types'
 
 // Mock capabilities data
 const mockCapabilities: Capability[] = [

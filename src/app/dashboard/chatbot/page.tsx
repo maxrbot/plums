@@ -1,21 +1,26 @@
 import Link from 'next/link'
 import { 
   ChatBubbleLeftRightIcon, 
-  CodeBracketIcon, 
-  GlobeAltIcon, 
   Cog6ToothIcon,
   PlayIcon,
-  PauseIcon
+  PauseIcon,
+  GlobeAltIcon,
+  CodeBracketIcon
 } from '@heroicons/react/24/outline'
 
-// Mock chatbot data
+// Mock chatbot analytics data
 const mockChatbot = {
   status: 'active',
   conversations: 47,
   avgResponseTime: '2.3s',
   satisfaction: 94,
-  websiteUrl: 'https://agrifarm.com',
-  lastDeployed: '2024-03-15'
+  weeklyConversations: [12, 18, 15, 22, 19, 25, 31],
+  knowledgeGaps: [
+    { question: "What's your minimum order for mixed boxes?", attempts: 8, status: 'unanswered' },
+    { question: "Do you offer farm tours during harvest?", attempts: 5, status: 'unanswered' },
+    { question: "What's your policy on damaged goods?", attempts: 4, status: 'partial' },
+    { question: "Can you provide COA certificates?", attempts: 3, status: 'unanswered' }
+  ]
 }
 
 export default function Chatbot() {
@@ -26,7 +31,7 @@ export default function Chatbot() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">AI Chatbot</h1>
-            <p className="mt-2 text-gray-600">Deploy intelligent customer support on your website.</p>
+            <p className="mt-2 text-gray-600">Monitor performance and test your chatbot.</p>
           </div>
           <div className="flex items-center space-x-3">
             <button className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
@@ -44,10 +49,10 @@ export default function Chatbot() {
             </button>
             <Link
               href="/dashboard/chatbot/setup"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
             >
               <Cog6ToothIcon className="h-4 w-4 mr-2" />
-              Setup Knowledge Base
+              Setup
             </Link>
           </div>
         </div>
@@ -126,157 +131,103 @@ export default function Chatbot() {
         </div>
       </div>
 
-      {/* Knowledge Base Setup - Primary Focus */}
-      <div className="bg-white shadow rounded-lg mb-8">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">Knowledge Base Setup</h3>
-            <Link
-              href="/dashboard/chatbot/setup"
-              className="text-sm font-medium text-blue-600 hover:text-blue-500"
-            >
-              Configure →
-            </Link>
-          </div>
-        </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="flex-shrink-0 p-3 bg-green-100 rounded-lg mx-auto w-fit mb-3">
-                <ChatBubbleLeftRightIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <h4 className="text-sm font-medium text-gray-900 mb-1">Farm Knowledge</h4>
-              <p className="text-xs text-gray-500 mb-2">Auto-populated from your setup</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-green-500 h-2 rounded-full" style={{ width: '85%' }}></div>
-              </div>
-              <p className="text-xs text-green-600 mt-1 font-medium">85% Complete</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="flex-shrink-0 p-3 bg-gray-100 rounded-lg mx-auto w-fit mb-3">
-                <Cog6ToothIcon className="h-6 w-6 text-gray-600" />
-              </div>
-              <h4 className="text-sm font-medium text-gray-900 mb-1">Chat Configuration</h4>
-              <p className="text-xs text-gray-500 mb-2">Bot personality & integration</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-gray-300 h-2 rounded-full" style={{ width: '0%' }}></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Not started</p>
-            </div>
-            
-            <div className="text-center">
-              <div className="flex-shrink-0 p-3 bg-gray-100 rounded-lg mx-auto w-fit mb-3">
-                <GlobeAltIcon className="h-6 w-6 text-gray-600" />
-              </div>
-              <h4 className="text-sm font-medium text-gray-900 mb-1">Deploy & Test</h4>
-              <p className="text-xs text-gray-500 mb-2">Go live on your website</p>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div className="bg-gray-300 h-2 rounded-full" style={{ width: '0%' }}></div>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">Not started</p>
-            </div>
-          </div>
-          
-          <div className="mt-6 text-center">
-            <Link
-              href="/dashboard/chatbot/setup"
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-            >
-              Continue Setup
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Website Integration & Recent Conversations */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Website Integration */}
+      {/* Analytics Dashboard */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 mb-8">
+        {/* Performance Analytics */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Website Integration</h3>
+            <h3 className="text-lg font-medium text-gray-900">Performance Analytics</h3>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Weekly Conversations Chart */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Your Website URL</label>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Weekly Conversations</h4>
+                <div className="flex items-end space-x-2 h-20">
+                  {mockChatbot.weeklyConversations.map((count, index) => (
+                    <div key={index} className="flex-1 bg-lime-200 rounded-t" style={{ height: `${(count / 35) * 100}%` }}>
+                      <div className="text-xs text-center text-gray-600 mt-1">{count}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-2">
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span>Sat</span>
+                  <span>Sun</span>
+                </div>
+              </div>
+
+              {/* Knowledge Gaps */}
+              <div>
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Knowledge Gaps</h4>
+                <div className="space-y-2">
+                  {mockChatbot.knowledgeGaps.map((item, index) => (
+                    <div key={index} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-900 truncate">{item.question}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-gray-500">{item.attempts}x</span>
+                        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
+                          item.status === 'unanswered' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Testing */}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Test Your Chatbot</h3>
+          </div>
+          <div className="p-6">
+            {/* Mock Chat Interface */}
+            <div className="border border-gray-200 rounded-lg h-80 flex flex-col">
+              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 rounded-t-lg">
                 <div className="flex items-center space-x-2">
+                  <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+                  <span className="text-sm font-medium text-gray-900">MarketHunt Bot</span>
+                </div>
+              </div>
+              
+              <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+                <div className="flex items-start space-x-2">
+                  <div className="h-6 w-6 bg-lime-500 rounded-full flex items-center justify-center">
+                    <span className="text-xs text-white font-medium">B</span>
+                  </div>
+                  <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-xs">
+                    <p className="text-sm text-gray-900">Hi! I&apos;m here to help with questions about Sunny Fields Farm. What would you like to know?</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="border-t border-gray-200 p-4">
+                <div className="flex space-x-2">
                   <input
-                    type="url"
-                    value={mockChatbot.websiteUrl}
-                    className="flex-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                    placeholder="https://yourwebsite.com"
+                    type="text"
+                    placeholder="Type a message to test..."
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-lime-500 focus:border-lime-500"
                   />
-                  <button className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-                    Update
+                  <button className="px-4 py-2 bg-lime-500 text-white rounded-md text-sm font-medium hover:bg-lime-600">
+                    Send
                   </button>
                 </div>
               </div>
-              
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h4 className="text-sm font-medium text-gray-900 mb-2">Integration Code</h4>
-                <div className="bg-gray-900 text-green-400 p-3 rounded text-sm font-mono overflow-x-auto">
-                  {`<script src="https://chat.markethunt.com/widget.js" 
-  data-account="your-account-id">
-</script>`}
-                </div>
-                <button className="mt-2 text-sm text-blue-600 hover:text-blue-500">
-                  Copy to clipboard
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Conversations */}
-        <div className="bg-white shadow rounded-lg">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Recent Conversations</h3>
-          </div>
-          <div className="p-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">&ldquo;What&apos;s your organic strawberry pricing?&rdquo;</p>
-                  <p className="text-sm text-gray-500">2 hours ago</p>
-                </div>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Resolved
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">&ldquo;Do you deliver to downtown?&rdquo;</p>
-                  <p className="text-sm text-gray-500">4 hours ago</p>
-                </div>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                  Resolved
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">&ldquo;Minimum order requirements?&rdquo;</p>
-                  <p className="text-sm text-gray-500">6 hours ago</p>
-                </div>
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Pending
-                </span>
-              </div>
-            </div>
-            
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <Link
-                href="/dashboard/chatbot/conversations"
-                className="text-sm font-medium text-blue-600 hover:text-blue-500"
-              >
-                View all conversations →
-              </Link>
             </div>
           </div>
         </div>
       </div>
+
+
     </>
   )
 }

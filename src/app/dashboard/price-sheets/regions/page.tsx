@@ -2,9 +2,9 @@
 
 import { useState } from 'react'
 import { MapPinIcon, PlusIcon, PencilIcon, TrashIcon, CheckCircleIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
-import AddRegionModal from '../../../../../components/modals/AddRegionModal'
-import { GrowingRegion } from '../../../../../types'
-import { Breadcrumbs } from '../../../../../components/ui'
+import AddRegionModal from '../../../../components/modals/AddRegionModal'
+import { GrowingRegion } from '../../../../types'
+import { Breadcrumbs } from '../../../../components/ui'
 
 // Mock regions data
 const mockRegions: GrowingRegion[] = [

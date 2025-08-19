@@ -1,228 +1,302 @@
 import Link from 'next/link'
-import { ChartBarIcon, ChatBubbleLeftRightIcon, DocumentTextIcon, GlobeAltIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { 
+  ChartBarIcon, 
+  DocumentTextIcon, 
+  ArrowTrendingUpIcon,
+  CurrencyDollarIcon
+} from '@heroicons/react/24/outline'
+
+// Mock dashboard data
+const mockProducts = [
+  { name: 'Organic Strawberries', variety: 'Albion', price: '$4.50/lb', trend: '+12%', sheets: 8, lastSent: '2 days ago', region: 'Central Valley' },
+  { name: 'Romaine Lettuce', variety: 'Hearts', price: '$2.25/head', trend: '+8%', sheets: 5, lastSent: '1 week ago', region: 'Salinas Valley' },
+  { name: 'Beefsteak Tomatoes', variety: 'Heirloom', price: '$3.75/lb', trend: '-3%', sheets: 3, lastSent: '3 days ago', region: 'Central Valley' }
+]
+
+const mockBuyerActivity = [
+  { buyer: 'Fresh Market Co.', action: 'Downloaded your strawberry sheet', time: '2 min ago', status: 'hot' },
+  { buyer: 'Valley Distributors', action: 'Opened price sheet (3rd time)', time: '8 min ago', status: 'hot' },
+  { buyer: 'Organic Plus', action: 'Requested updated pricing', time: '15 min ago', status: 'warm' }
+]
 
 export default function Home() {
   return (
-    <div className="bg-white">
+    <div className="bg-gray-50 min-h-screen">
       {/* Header */}
-      <header className="absolute inset-x-0 top-0 z-50">
-        <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <nav className="flex items-center justify-between p-4 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-2xl font-bold text-blue-600">MarketHunt</span>
+              <span className="text-2xl font-bold text-lime-500">MarketHunt</span>
             </Link>
           </div>
-          <div className="flex gap-x-12">
-            <Link href="#features" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
+          <div className="flex gap-x-8">
+            <Link href="#dashboard" className="text-sm font-medium text-gray-700 hover:text-lime-600">
+              See Dashboard
+            </Link>
+            <Link href="#features" className="text-sm font-medium text-gray-700 hover:text-lime-600">
               Features
             </Link>
-            <Link href="#pricing" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
+            <Link href="#pricing" className="text-sm font-medium text-gray-700 hover:text-lime-600">
               Pricing
-            </Link>
-            <Link href="#about" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
-              About
             </Link>
           </div>
           <div className="flex lg:flex-1 lg:justify-end">
-            <Link href="/dashboard" className="text-sm font-semibold leading-6 text-gray-900 hover:text-blue-600">
-              Dashboard <span aria-hidden="true">→</span>
+            <Link href="/dashboard" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600">
+              Start Free Trial
             </Link>
           </div>
         </nav>
       </header>
 
-      {/* Hero section */}
-      <div className="relative isolate pt-14">
-        <div className="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80" aria-hidden="true">
-          <div
-                            className="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-blue-600 to-green-600 opacity-30 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
-            style={{
-              clipPath:
-                'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
-            }}
-          />
-        </div>
+      {/* Dashboard Hero */}
+      <div className="relative">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8 py-12">
+          {/* Hero Text */}
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
+              Your Farm&apos;s{' '}
+              <span className="text-lime-500">Command Center</span>
+            </h1>
+            <p className="mt-6 text-xl leading-8 text-gray-600 max-w-3xl mx-auto">
+              See how MarketHunt puts your agricultural products in front of premium buyers. 
+              Real-time insights, professional price sheets, and buyer engagement - all in one dashboard.
+            </p>
+          </div>
 
-        <div className="py-24 sm:py-32 lg:pb-40">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl text-center">
-              <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-                Get Discovered by{' '}
-                <span className="text-blue-600">Premium Buyers</span>
-              </h1>
-              <p className="mt-6 text-lg leading-8 text-gray-600">
-                Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. 
-                Everything suppliers need to attract quality customers.
+          {/* Live Dashboard Preview */}
+          <div className="bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+            {/* Dashboard Header */}
+            <div className="bg-slate-800 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="h-8 w-8 rounded-full bg-lime-500 bg-opacity-20 flex items-center justify-center">
+                  <span className="text-sm font-medium text-lime-400">SF</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">Sunny Fields Farm</h3>
+                  <p className="text-gray-300 text-sm">Premium Organic Produce</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-lime-400 font-semibold">15 Sheets</p>
+                  <p className="text-gray-300 text-sm">Sent this month</p>
+                </div>
+                <div className="h-2 w-2 bg-green-400 rounded-full"></div>
+              </div>
+            </div>
+
+            {/* Dashboard Content */}
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Product Performance */}
+                <div className="lg:col-span-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900">Your Products</h4>
+                    <span className="text-sm text-gray-500">Price sheet performance</span>
+                  </div>
+                  <div className="space-y-3">
+                    {mockProducts.map((product, index) => (
+                      <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-lime-300 transition-colors">
+                        <div className="flex items-center space-x-4">
+                          <div className="h-12 w-12 bg-gradient-to-br from-green-400 to-lime-500 rounded-lg flex items-center justify-center">
+                            <span className="text-white font-semibold text-sm">{product.name.charAt(0)}</span>
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{product.name}</p>
+                            <p className="text-sm text-gray-600">{product.variety} • {product.region}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-6">
+                          <div className="text-right">
+                            <p className="font-semibold text-gray-900">{product.price}</p>
+                            <div className="flex items-center space-x-1">
+                              <ArrowTrendingUpIcon className={`h-3 w-3 ${product.trend.startsWith('+') ? 'text-green-500' : 'text-red-500'}`} />
+                              <span className={`text-xs font-medium ${product.trend.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                                {product.trend}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="text-right text-gray-500">
+                            <p className="text-sm font-medium">{product.sheets} sheets</p>
+                            <p className="text-xs">Last sent {product.lastSent}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Buyer Activity */}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900">Buyer Activity</h4>
+                    <div className="flex items-center space-x-1">
+                      <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></div>
+                      <span className="text-sm text-gray-500">Live</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {mockBuyerActivity.map((activity, index) => (
+                      <div key={index} className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 text-sm">{activity.buyer}</p>
+                            <p className="text-gray-600 text-xs mt-1">{activity.action}</p>
+                            <p className="text-gray-400 text-xs mt-1">{activity.time}</p>
+                          </div>
+                          <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                            activity.status === 'hot' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'
+                          }`}>
+                            {activity.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Quick Stats */}
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <div className="bg-lime-50 p-3 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-lime-600">23</p>
+                      <p className="text-xs text-lime-700">Active Buyers</p>
+                    </div>
+                    <div className="bg-cyan-50 p-3 rounded-lg text-center">
+                      <p className="text-2xl font-bold text-cyan-600">89%</p>
+                      <p className="text-xs text-cyan-700">Open Rate</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* CTA */}
+          <div className="text-center mt-12">
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
+            >
+              Build Your Dashboard
+            </Link>
+            <p className="mt-4 text-sm text-gray-600">
+              Free 14-day trial • No credit card required • Setup in 5 minutes
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div id="features" className="bg-white py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center mb-16">
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+              Three steps to premium buyers
+            </h2>
+            <p className="mt-6 text-lg leading-8 text-gray-600">
+              Set up your farm profile, create professional price sheets, and watch buyers come to you.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <div className="text-center">
+              <div className="mx-auto h-16 w-16 rounded-full bg-lime-100 flex items-center justify-center mb-6">
+                <DocumentTextIcon className="h-8 w-8 text-lime-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Setup Your Products</h3>
+              <p className="text-gray-600">
+                Add your crops, regions, certifications, and packaging options. We auto-populate from your existing data.
               </p>
-              <div className="mt-10 flex items-center justify-center gap-x-6">
-                <Link
-                  href="/dashboard"
-                  className="rounded-md bg-blue-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
-                >
-                  Get started
-                </Link>
-                <Link href="#demo" className="text-sm font-semibold leading-6 text-gray-900">
-                  Watch demo <span aria-hidden="true">→</span>
-                </Link>
+            </div>
+            
+            <div className="text-center">
+              <div className="mx-auto h-16 w-16 rounded-full bg-cyan-100 flex items-center justify-center mb-6">
+                <CurrencyDollarIcon className="h-8 w-8 text-cyan-600" />
               </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Generate Price Sheets</h3>
+              <p className="text-gray-600">
+                Create professional price sheets in minutes. Send to buyers and track who&apos;s engaging with your products.
+              </p>
+            </div>
+            
+            <div className="text-center">
+              <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                <ChartBarIcon className="h-8 w-8 text-green-600" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Track & Optimize</h3>
+              <p className="text-gray-600">
+                See which buyers are interested, optimize pricing, and let AI handle customer questions 24/7.
+              </p>
             </div>
           </div>
         </div>
-        <div className="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]" aria-hidden="true">
-          <div
-                            className="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-blue-600 to-green-600 opacity-30 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
-            style={{
-              clipPath:
-                'polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)',
-            }}
-          />
-        </div>
       </div>
 
-      {/* Features section */}
-      <div id="features" className="py-16 sm:py-20">
+      {/* Social Proof */}
+      <div className="bg-gray-50 py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              Everything you need to attract premium buyers
+          <div className="text-center mb-12">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Trusted by agricultural suppliers nationwide
             </h2>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
-              Professional tools that showcase your products, engage quality customers, and provide instant support. 
-              Built specifically for agricultural suppliers who want to stand out.
+            <p className="text-gray-600">
+              Join hundreds of farms already using MarketHunt to connect with premium buyers
             </p>
           </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
-              <div className="flex flex-col">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <DocumentTextIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                  Price Sheet Generator
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">Create professional price sheets that showcase your products beautifully. Track buyer engagement and optimize pricing to attract the customers who value quality.</p>
-                  <p className="mt-6">
-                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
-                      Learn more <span aria-hidden="true">→</span>
-                    </Link>
-                  </p>
-                </dd>
-              </div>
-              <div className="flex flex-col">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <ChatBubbleLeftRightIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                  AI Chatbot
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">Let AI represent your farm 24/7. Answer buyer questions instantly with your product knowledge, pricing, and availability. Make a professional impression even when you&apos;re not available.</p>
-                  <p className="mt-6">
-                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
-                      Learn more <span aria-hidden="true">→</span>
-                    </Link>
-                  </p>
-                </dd>
-              </div>
-              <div className="flex flex-col">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <ChartBarIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                  Analytics & Insights
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">See which buyers are most interested in your products. Track engagement patterns and identify your best prospects to focus your sales efforts where they matter most.</p>
-                  <p className="mt-6">
-                    <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
-                      Learn more <span aria-hidden="true">→</span>
-                    </Link>
-                  </p>
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </div>
-      </div>
-
-      {/* Phase 2 Preview */}
-      <div className="bg-gray-50 py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:text-center">
-            <h2 className="text-base font-semibold leading-7 text-blue-600">Coming Soon</h2>
-            <p className="mt-2 text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              More tools to help you grow
-            </p>
-            <p className="mt-6 text-lg leading-8 text-gray-600">
-              We&apos;re building more features to help agricultural suppliers succeed. 
-              Stay tuned for advanced analytics, customer management, and more.
-            </p>
-          </div>
-          <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
-            <div className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-2">
-              <div className="flex flex-col">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <GlobeAltIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                  Advanced Analytics
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">Track price sheet performance, customer engagement, and business insights. Make data-driven decisions to grow your agricultural business.</p>
-                </dd>
-              </div>
-              <div className="flex flex-col">
-                <dt className="flex items-center gap-x-3 text-base font-semibold leading-7 text-gray-900">
-                  <ShieldCheckIcon className="h-5 w-5 flex-none text-blue-600" aria-hidden="true" />
-                  Customer Management
-                </dt>
-                <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">Manage customer relationships, track interactions, and build stronger partnerships with buyers in the agricultural industry.</p>
-                </dd>
-              </div>
+          
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
+            <div className="text-center">
+              <p className="text-3xl font-bold text-lime-600">500+</p>
+              <p className="text-sm text-gray-600">Active Suppliers</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-cyan-600">2.3M</p>
+              <p className="text-sm text-gray-600">Price Sheets Sent</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-green-600">89%</p>
+              <p className="text-sm text-gray-600">Open Rate</p>
+            </div>
+            <div className="text-center">
+              <p className="text-3xl font-bold text-gray-900">1,200+</p>
+              <p className="text-sm text-gray-600">Active Buyers</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* CTA section */}
-      <div className="bg-blue-600">
-        <div className="px-6 py-16 sm:px-6 sm:py-20 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Ready to grow your agricultural business?
-            </h2>
-                            <p className="mx-auto mt-6 max-w-xl text-lg leading-8 text-blue-200">
-              Start with professional supplier tools today. Create better price sheets and provide instant customer support.
-            </p>
-            <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link
-                href="/dashboard"
-                className="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-blue-600 shadow-sm hover:bg-green-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-              >
-                Get started
-              </Link>
-              <Link href="#demo" className="text-sm font-semibold leading-6 text-white">
-                Learn more <span aria-hidden="true">→</span>
-              </Link>
-            </div>
-          </div>
+      {/* Final CTA */}
+      <div className="bg-slate-800 py-16">
+        <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Ready to build your command center?
+          </h2>
+          <p className="text-xl text-gray-300 mb-8">
+            Start your free trial today. No credit card required.
+          </p>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-slate-800 bg-lime-400 hover:bg-lime-300"
+          >
+            Start Free Trial
+          </Link>
+          <p className="mt-4 text-sm text-gray-400">
+            14-day free trial • Cancel anytime • Setup in 5 minutes
+          </p>
         </div>
       </div>
 
-      {/* Footer */}
-      <footer className="bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8">
-          <div className="flex justify-center space-x-6 md:order-2">
-            <Link href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">Twitter</span>
-              <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
-              </svg>
-            </Link>
-            <Link href="#" className="text-gray-400 hover:text-gray-500">
-              <span className="sr-only">GitHub</span>
-              <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
-              </svg>
-            </Link>
-          </div>
-          <div className="mt-8 md:order-1 md:mt-0">
-            <p className="text-center text-xs leading-5 text-gray-500">
-              &copy; 2024 Plums.ag. All rights reserved.
+      {/* Simple Footer */}
+      <footer className="bg-white border-t border-gray-200">
+        <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <span className="text-xl font-bold text-lime-500">MarketHunt</span>
+              <span className="text-gray-400">•</span>
+              <span className="text-sm text-gray-600">Your Farm&apos;s Command Center</span>
+            </div>
+            <p className="text-sm text-gray-500">
+              © 2024 MarketHunt. All rights reserved.
             </p>
           </div>
         </div>

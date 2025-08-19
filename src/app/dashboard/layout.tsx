@@ -17,7 +17,7 @@ const mockUser = {
   name: "John Smith",
   email: "john@agrifarm.com",
   subscription: {
-    tier: 'premium' as 'basic' | 'premium' | 'enterprise',
+    tier: 'enterprise' as 'basic' | 'premium' | 'enterprise',
     features: ['price_sheets', 'analytics', 'ai_chatbot', 'contacts']
   }
 }
@@ -69,6 +69,8 @@ export default function DashboardLayout({
             <div className="space-y-1">
               {filteredNavigation.map((item) => {
                 const isCurrent = pathname === item.href
+                const isChatbotSection = pathname.startsWith('/dashboard/chatbot')
+                const isPriceSheetsSection = pathname.startsWith('/dashboard/price-sheets')
                 const isDisabled = !userFeatures.includes(
                   item.name === 'AI Chatbot' ? 'ai_chatbot' :
                   item.name === 'Analytics' ? 'analytics' :
@@ -76,72 +78,98 @@ export default function DashboardLayout({
                 )
                 
                 return (
-                  <Link
-                    key={item.name}
-                    href={isDisabled ? '#' : item.href}
-                    className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isCurrent
-                        ? 'bg-slate-700 text-lime-400'
-                        : isDisabled
-                        ? 'text-gray-500 cursor-not-allowed'
-                        : 'text-gray-300 hover:bg-slate-700 hover:text-white'
-                    }`}
-                    onClick={isDisabled ? (e) => e.preventDefault() : undefined}
-                  >
-                    <item.icon
-                      className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                        isCurrent ? 'text-lime-400' : 'text-gray-400 group-hover:text-gray-300'
+                  <div key={item.name}>
+                    <Link
+                      href={isDisabled ? '#' : item.href}
+                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        isCurrent
+                          ? 'bg-slate-700 text-lime-400'
+                          : isDisabled
+                          ? 'text-gray-500 cursor-not-allowed'
+                          : 'text-gray-300 hover:bg-slate-700 hover:text-white'
                       }`}
-                      aria-hidden="true"
-                    />
-                    {item.name}
-                    {isDisabled && (
-                      <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        {mockUser.subscription.tier === 'basic' ? 'Premium' : 'Enterprise'}
-                      </span>
+                      onClick={isDisabled ? (e) => e.preventDefault() : undefined}
+                    >
+                      <item.icon
+                        className={`mr-3 h-5 w-5 flex-shrink-0 ${
+                          isCurrent ? 'text-lime-400' : 'text-gray-400 group-hover:text-gray-300'
+                        }`}
+                        aria-hidden="true"
+                      />
+                      {item.name}
+                      {isDisabled && (
+                        <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                          {mockUser.subscription.tier === 'basic' ? 'Premium' : 'Enterprise'}
+                        </span>
+                      )}
+                    </Link>
+                    
+                    {/* Price Sheets Sub-navigation */}
+                    {item.name === 'Price Sheets' && isPriceSheetsSection && !isDisabled && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        <Link
+                          href="/dashboard/price-sheets/regions"
+                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                            pathname === '/dashboard/price-sheets/regions'
+                              ? 'bg-slate-700 text-lime-400'
+                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                          }`}
+                        >
+                          <span className="text-xs mr-2">📍</span>
+                          Growing Regions
+                        </Link>
+                        <Link
+                          href="/dashboard/price-sheets/crops"
+                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                            pathname === '/dashboard/price-sheets/crops'
+                              ? 'bg-slate-700 text-lime-400'
+                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                          }`}
+                        >
+                          <span className="text-xs mr-2">🌾</span>
+                          Commodities
+                        </Link>
+                        <Link
+                          href="/dashboard/price-sheets/capabilities"
+                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                            pathname === '/dashboard/price-sheets/capabilities'
+                              ? 'bg-slate-700 text-lime-400'
+                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                          }`}
+                        >
+                          <span className="text-xs mr-2">🏆</span>
+                          Capabilities & Certifications
+                        </Link>
+                      </div>
                     )}
-                  </Link>
+                    
+                    {/* Chatbot Sub-navigation */}
+                    {item.name === 'AI Chatbot' && isChatbotSection && !isDisabled && (
+                      <div className="ml-6 mt-1 space-y-1">
+                        <Link
+                          href="/dashboard/chatbot/setup"
+                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                            pathname === '/dashboard/chatbot/setup'
+                              ? 'bg-slate-700 text-lime-400'
+                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                          }`}
+                        >
+                          <Cog6ToothIcon
+                            className={`mr-2 h-4 w-4 flex-shrink-0 ${
+                              pathname === '/dashboard/chatbot/setup' ? 'text-lime-400' : 'text-gray-500'
+                            }`}
+                            aria-hidden="true"
+                          />
+                          Setup
+                        </Link>
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </div>
 
-            {/* Divider */}
-            <div className="my-4 border-t border-slate-700"></div>
 
-            {/* Chatbot Section */}
-            <div className="space-y-1">
-              {(() => {
-                const isCurrent = pathname.startsWith('/dashboard/chatbot')
-                const isDisabled = !userFeatures.includes('ai_chatbot')
-                
-                return (
-                  <Link
-                    href={isDisabled ? '#' : '/dashboard/chatbot'}
-                    className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isCurrent
-                        ? 'bg-slate-700 text-lime-400'
-                        : isDisabled
-                        ? 'text-gray-500 cursor-not-allowed'
-                        : 'text-gray-300 hover:bg-slate-700 hover:text-white'
-                    }`}
-                    onClick={isDisabled ? (e) => e.preventDefault() : undefined}
-                  >
-                    <ChatBubbleLeftRightIcon
-                      className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                        isCurrent ? 'text-lime-400' : 'text-gray-400 group-hover:text-gray-300'
-                      }`}
-                      aria-hidden="true"
-                    />
-                    Chatbot
-                    {isDisabled && (
-                      <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                        Enterprise
-                      </span>
-                    )}
-                  </Link>
-                )
-              })()}
-            </div>
           </nav>
 
           {/* User Section */}

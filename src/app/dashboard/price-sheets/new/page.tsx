@@ -5,9 +5,7 @@ import Link from 'next/link'
 import {
   DocumentTextIcon,
   PlusIcon,
-  EyeIcon,
-  UserIcon,
-  BuildingOfficeIcon
+  EyeIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
@@ -80,7 +78,7 @@ interface PreviewProduct {
 }
 
 export default function NewPriceSheet() {
-  const [priceSheetTitle, setPriceSheetTitle] = useState(`Plums AG Price Sheet - ${new Date().toLocaleDateString()}`)
+  const [priceSheetTitle, setPriceSheetTitle] = useState(`MarketHunt Price Sheet - ${new Date().toLocaleDateString()}`)
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [productRows, setProductRows] = useState<ProductRow[]>(() => 
@@ -199,33 +197,7 @@ export default function NewPriceSheet() {
           </div>
         </div>
 
-        {/* Contact Information */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <UserIcon className="h-6 w-6 text-green-600" />
-            <h2 className="text-lg font-medium text-gray-900">Contact Information</h2>
-          </div>
-          
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
-            <div className="flex items-start space-x-3">
-              <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mt-0.5" />
-              <div>
-                <p className="text-sm font-medium text-blue-900">
-                  Contact information is automatically synced from your Profile page.
-                </p>
-                <p className="text-sm text-blue-700 mt-1">
-                  Visit your profile to update this information.
-                </p>
-                <Link
-                  href="/dashboard/settings"
-                  className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-500 mt-2"
-                >
-                  Update Profile Information →
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Products and Pricing */}
         <div className="bg-white shadow rounded-lg">

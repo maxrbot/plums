@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRightIcon, ChartBarIcon, ChatBubbleLeftRightIcon, DocumentTextIcon, GlobeAltIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
+import { ChartBarIcon, ChatBubbleLeftRightIcon, DocumentTextIcon, GlobeAltIcon, ShieldCheckIcon } from '@heroicons/react/24/outline'
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
         <nav className="flex items-center justify-between p-6 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-2xl font-bold text-blue-600">Plums.ag</span>
+              <span className="text-2xl font-bold text-blue-600">MarketHunt</span>
             </Link>
           </div>
           <div className="flex gap-x-12">
@@ -47,12 +47,12 @@ export default function Home() {
           <div className="mx-auto max-w-7xl px-6 lg:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">
-                From Price Sheet to{' '}
-                <span className="text-blue-600">Sale</span>
+                Get Discovered by{' '}
+                <span className="text-blue-600">Premium Buyers</span>
               </h1>
               <p className="mt-6 text-lg leading-8 text-gray-600">
-                Create better price sheets, track engagement with smart analytics, and provide instant customer support with AI. 
-                Everything agricultural suppliers need to grow their business.
+                Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. 
+                Everything suppliers need to attract quality customers.
               </p>
               <div className="mt-10 flex items-center justify-center gap-x-6">
                 <Link
@@ -84,11 +84,11 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl lg:text-center">
             <h2 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              Three powerful tools that work together
+              Everything you need to attract premium buyers
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Create professional price sheets, track customer engagement, and provide instant support. 
-              All designed specifically for agricultural suppliers.
+              Professional tools that showcase your products, engage quality customers, and provide instant support. 
+              Built specifically for agricultural suppliers who want to stand out.
             </p>
           </div>
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
@@ -99,7 +99,7 @@ export default function Home() {
                   Price Sheet Generator
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">&ldquo;HubSpot for price sheets&rdquo; - create, send, and track engagement with your customers. AI-powered insights help you optimize pricing and availability.</p>
+                  <p className="flex-auto">Create professional price sheets that showcase your products beautifully. Track buyer engagement and optimize pricing to attract the customers who value quality.</p>
                   <p className="mt-6">
                     <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
                       Learn more <span aria-hidden="true">→</span>
@@ -113,7 +113,7 @@ export default function Home() {
                   AI Chatbot
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">AI handles customer inquiries using all your supplier data. Deploy as a chatbot on your website for instant, intelligent customer support that scales with your business.</p>
+                  <p className="flex-auto">Let AI represent your farm 24/7. Answer buyer questions instantly with your product knowledge, pricing, and availability. Make a professional impression even when you&apos;re not available.</p>
                   <p className="mt-6">
                     <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
                       Learn more <span aria-hidden="true">→</span>
@@ -127,7 +127,7 @@ export default function Home() {
                   Analytics & Insights
                 </dt>
                 <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-gray-600">
-                  <p className="flex-auto">Track who&apos;s opening your price sheets, monitor customer engagement, and get insights to optimize your sales strategy.</p>
+                  <p className="flex-auto">See which buyers are most interested in your products. Track engagement patterns and identify your best prospects to focus your sales efforts where they matter most.</p>
                   <p className="mt-6">
                     <Link href="/dashboard" className="text-sm font-semibold leading-6 text-blue-600">
                       Learn more <span aria-hidden="true">→</span>

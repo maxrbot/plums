@@ -13,13 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Plums.ag - From Price Sheet to Sale",
-  description: "Create better price sheets, track engagement with smart analytics, and provide instant customer support with AI. Everything agricultural suppliers need to grow their business.",
-  keywords: ["agriculture", "supplier tools", "price sheets", "AI chatbot", "agricultural business", "farming", "produce"],
-  authors: [{ name: "Plums.ag" }],
+  title: "MarketHunt - Get Discovered by Premium Buyers",
+  description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
+  keywords: ["agriculture", "supplier tools", "price sheets", "AI chatbot", "agricultural business", "farming", "premium buyers", "sales"],
+  authors: [{ name: "MarketHunt" }],
   openGraph: {
-    title: "Plums.ag - From Price Sheet to Sale",
-    description: "Create better price sheets, track engagement with smart analytics, and provide instant customer support with AI. Everything agricultural suppliers need to grow their business.",
+    title: "MarketHunt - Get Discovered by Premium Buyers",
+    description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
     type: "website",
   },
 };

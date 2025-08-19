@@ -137,7 +137,8 @@ export interface GrowingRegion {
 
 export interface CropVariation {
   id: string;
-  variety: string;
+  subtype?: string;      // Optional subtype (e.g., "cherry", "roma")
+  variety?: string;      // Optional variety (e.g., "Sweet 100", "San Marzano")
   isOrganic: boolean;
   growingRegions: GrowingRegionConfig[];
   targetPricing: {

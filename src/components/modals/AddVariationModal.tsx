@@ -4,7 +4,7 @@ import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, SparklesIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { CropManagement, CropVariation, GrowingRegion } from '../../types'
-import { getCategoryNames, getCommodityNames, getVarietiesByCommodity } from '../../config/commodityOptions'
+import { getCategoryNames, getCommodityNames, getVarietiesByCommodity, getSubtypesByCommodity, getVarietiesBySubtype, hasSubtypes } from '../../config/commodityOptions'
 
 interface AddVariationModalProps {
   isOpen: boolean
@@ -64,6 +64,7 @@ export default function AddVariationModal({
   const [showAddVariationForm, setShowAddVariationForm] = useState(false)
   const [showNotesInput, setShowNotesInput] = useState(false)
   const [currentVariation, setCurrentVariation] = useState<Omit<CropVariation, 'id'>>({
+    subtype: '',
     variety: '',
     isOrganic: false,
     growingRegions: [],
@@ -77,7 +78,20 @@ export default function AddVariationModal({
   // Get available options
   const categories = getCategoryNames()
   const commodities = formData.category ? getCommodityNames(formData.category) : []
-  const varieties = (formData.category && formData.commodity) ? getVarietiesByCommodity(formData.category, formData.commodity) : []
+  
+  // Check if commodity has hierarchical structure
+  const commodityHasSubtypes = (formData.category && formData.commodity) ? hasSubtypes(formData.category, formData.commodity) : false
+  
+  // Get subtypes if commodity has them
+  const subtypes = (formData.category && formData.commodity && commodityHasSubtypes) ? 
+    getSubtypesByCommodity(formData.category, formData.commodity) : []
+  
+  // Get varieties - either from subtype or directly from commodity
+  const varieties = (formData.category && formData.commodity) ? 
+    (commodityHasSubtypes && currentVariation.subtype ? 
+      getVarietiesBySubtype(formData.category, formData.commodity, currentVariation.subtype) :
+      getVarietiesByCommodity(formData.category, formData.commodity)
+    ) : []
 
   // Initialize form data if editing
   useEffect(() => {
@@ -373,23 +387,51 @@ export default function AddVariationModal({
                       
                       {/* Basic Variation Details */}
                       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 mb-4">
-                        <div>
-                          <label htmlFor="variety" className="block text-sm font-medium text-gray-700">
-                            Variety *
-                          </label>
-                          <select
-                            id="variety"
-                            required
-                            value={currentVariation.variety}
-                            onChange={(e) => setCurrentVariation(prev => ({ ...prev, variety: e.target.value }))}
-                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                          >
-                            <option value="">Select variety</option>
-                            {varieties.map(variety => (
-                              <option key={variety} value={variety}>{variety}</option>
-                            ))}
-                          </select>
-                        </div>
+                        {/* Subtype dropdown (if commodity has subtypes) */}
+                        {commodityHasSubtypes && (
+                          <div>
+                            <label htmlFor="subtype" className="block text-sm font-medium text-gray-700">
+                              Type *
+                            </label>
+                            <select
+                              id="subtype"
+                              required
+                              value={currentVariation.subtype || ''}
+                              onChange={(e) => setCurrentVariation(prev => ({ 
+                                ...prev, 
+                                subtype: e.target.value,
+                                variety: '' // Reset variety when subtype changes
+                              }))}
+                              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                            >
+                              <option value="">Select type</option>
+                              {subtypes.map(subtype => (
+                                <option key={subtype.id} value={subtype.id}>{subtype.name}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                        
+                        {/* Variety dropdown (optional) */}
+                        {varieties.length > 0 && (
+                          <div>
+                            <label htmlFor="variety" className="block text-sm font-medium text-gray-700">
+                              Variety {!commodityHasSubtypes ? '*' : '(optional)'}
+                            </label>
+                            <select
+                              id="variety"
+                              required={!commodityHasSubtypes}
+                              value={currentVariation.variety || ''}
+                              onChange={(e) => setCurrentVariation(prev => ({ ...prev, variety: e.target.value }))}
+                              className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                            >
+                              <option value="">Select variety</option>
+                              {varieties.map(variety => (
+                                <option key={variety} value={variety}>{variety}</option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -743,6 +785,7 @@ export default function AddVariationModal({
                               onClick={() => {
                                 // Reset current variation form and show it
                                 setCurrentVariation({
+                                  subtype: '',
                                   variety: '',
                                   isOrganic: false,
                                   growingRegions: [],

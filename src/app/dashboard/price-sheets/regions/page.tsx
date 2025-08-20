@@ -13,9 +13,9 @@ const mockRegions: GrowingRegion[] = [
     name: 'Central Valley - Fresno',
     city: 'Fresno',
     state: 'California',
-    climate: 'Mediterranean',
-    soilType: 'Loam',
-    deliveryZones: ['Downtown Fresno', 'North Fresno', 'Industrial District'],
+    climate: '',
+    soilType: '',
+    deliveryZones: [],
     status: 'active' as const,
     createdAt: '2024-03-10'
   },
@@ -24,9 +24,9 @@ const mockRegions: GrowingRegion[] = [
     name: 'Salinas Valley - Salinas',
     city: 'Salinas',
     state: 'California',
-    climate: 'Mediterranean',
-    soilType: 'Sandy Loam',
-    deliveryZones: ['Salinas City', 'Monterey Peninsula', 'Carmel Valley'],
+    climate: '',
+    soilType: '',
+    deliveryZones: [],
     status: 'active' as const,
     createdAt: '2024-03-12'
   },
@@ -35,9 +35,9 @@ const mockRegions: GrowingRegion[] = [
     name: 'Imperial Valley - El Centro',
     city: 'El Centro',
     state: 'California',
-    climate: 'Desert',
-    soilType: 'Clay',
-    deliveryZones: ['El Centro', 'Brawley', 'Calexico'],
+    climate: '',
+    soilType: '',
+    deliveryZones: [],
     status: 'active' as const,
     createdAt: '2024-03-15'
   }
@@ -69,7 +69,7 @@ export default function GrowingRegions() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Growing Regions</h1>
-            <p className="mt-2 text-gray-600">Define where you grow your crops and your delivery zones.</p>
+            <p className="mt-2 text-gray-600">Define where you grow your crops and manage your growing locations.</p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
@@ -125,9 +125,9 @@ export default function GrowingRegions() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Delivery Zones</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Locations</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {regions.reduce((total, region) => total + region.deliveryZones.length, 0)}
+                    {regions.filter(region => region.city && region.state).length}
                   </dd>
                 </dl>
               </div>
@@ -154,61 +154,73 @@ export default function GrowingRegions() {
         </div>
       </div>
 
-      {/* Regions List */}
-      <div className="bg-white shadow rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Your Growing Regions</h3>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {regions.map((region) => (
-            <div key={region.id} className="px-6 py-4 hover:bg-gray-50">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h4 className="text-lg font-medium text-gray-900">{region.name}</h4>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      {region.status.charAt(0).toUpperCase() + region.status.slice(1)}
+      {/* Regions Grid */}
+      <div className="mb-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Your Growing Regions</h3>
+        
+        {regions.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <MapPinIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No regions yet</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by adding your first growing region.</p>
+            <div className="mt-6">
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                Add Your First Region
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {regions.map((region) => (
+              <div key={region.id} className="bg-white rounded-lg shadow hover:shadow-md transition-shadow border border-gray-200">
+                <div className="p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-lg font-medium text-gray-900 truncate">{region.name}</h4>
+                      <div className="flex items-center mt-1">
+                        <MapPinIcon className="h-4 w-4 text-gray-400 mr-1" />
+                        <p className="text-sm text-gray-600">{region.city}, {region.state}</p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                      Active
                     </span>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm text-gray-600">
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Location</h5>
-                      <p>{region.city}, {region.state}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-gray-500">
+                      Added {new Date(region.createdAt).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        year: 'numeric'
+                      })}
                     </div>
                     
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Climate & Soil</h5>
-                      <p>{region.climate} • {region.soilType}</p>
-                    </div>
-                    
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Delivery Zones</h5>
-                      <p className="text-xs">{region.deliveryZones.join(', ')}</p>
-                    </div>
-                    
-                    <div>
-                      <h5 className="font-medium text-gray-900 mb-1">Added</h5>
-                      <p>{new Date(region.createdAt).toLocaleDateString()}</p>
+                    <div className="flex items-center space-x-2">
+                      <button 
+                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Edit region"
+                      >
+                        <PencilIcon className="h-4 w-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteRegion(region.id)}
+                        className="p-1 text-gray-400 hover:text-red-600 transition-colors"
+                        title="Delete region"
+                      >
+                        <TrashIcon className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-2 ml-4">
-                  <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                    <PencilIcon className="h-4 w-4" />
-                  </button>
-                  <button 
-                    onClick={() => handleDeleteRegion(region.id)}
-                    className="text-sm font-medium text-red-600 hover:text-red-500"
-                  >
-                    <TrashIcon className="h-4 w-4" />
-                  </button>
-                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
 

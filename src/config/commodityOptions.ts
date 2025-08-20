@@ -285,7 +285,17 @@ export const commodityOptions: CategoryOption[] = [
       {
         id: 'orange',
         name: 'Orange',
-        varieties: ['Navel', 'Valencia', 'Blood Orange', 'Cara Cara', 'Seville', 'Mandarin', 'Tangerine', 'Clementine', 'Satsuma']
+        varieties: ['Navel', 'Valencia', 'Blood Orange', 'Cara Cara', 'Seville', 'Hamlin', 'Pineapple Orange', 'Jaffa']
+      },
+      {
+        id: 'mandarin',
+        name: 'Mandarin',
+        varieties: ['Sumo Citrus', 'Gold Nugget', 'Clementine', 'Lee Nova', 'Murcott', 'Tangerine', 'Satsuma', 'Honey Murcott', 'W. Murcott']
+      },
+      {
+        id: 'minneola',
+        name: 'Minneola',
+        varieties: ['Minneola Tangelo', 'Orlando Tangelo', 'Honeybell']
       },
       {
         id: 'lemon',

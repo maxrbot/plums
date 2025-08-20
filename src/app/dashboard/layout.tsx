@@ -104,44 +104,55 @@ export default function DashboardLayout({
                       )}
                     </Link>
                     
-                    {/* Price Sheets Sub-navigation */}
-                    {item.name === 'Price Sheets' && isPriceSheetsSection && !isDisabled && (
-                      <div className="ml-6 mt-1 space-y-1">
-                        <Link
-                          href="/dashboard/price-sheets/regions"
-                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            pathname === '/dashboard/price-sheets/regions'
-                              ? 'bg-slate-700 text-lime-400'
-                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
-                          }`}
-                        >
-                          <span className="text-xs mr-2">📍</span>
-                          Growing Regions
-                        </Link>
-                        <Link
-                          href="/dashboard/price-sheets/crops"
-                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            pathname === '/dashboard/price-sheets/crops'
-                              ? 'bg-slate-700 text-lime-400'
-                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
-                          }`}
-                        >
-                          <span className="text-xs mr-2">🌾</span>
-                          Commodities
-                        </Link>
-                        <Link
-                          href="/dashboard/price-sheets/capabilities"
-                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            pathname === '/dashboard/price-sheets/capabilities'
-                              ? 'bg-slate-700 text-lime-400'
-                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
-                          }`}
-                        >
-                          <span className="text-xs mr-2">🏆</span>
-                          Capabilities & Certifications
-                        </Link>
-                      </div>
-                    )}
+                                               {/* Price Sheets Sub-navigation */}
+                           {item.name === 'Price Sheets' && isPriceSheetsSection && !isDisabled && (
+                             <div className="ml-6 mt-1 space-y-1">
+                               <Link
+                                 href="/dashboard/price-sheets/regions"
+                                 className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                   pathname === '/dashboard/price-sheets/regions'
+                                     ? 'bg-slate-700 text-lime-400'
+                                     : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                                 }`}
+                               >
+                                 <span className="text-xs mr-2">📍</span>
+                                 Growing Regions
+                               </Link>
+                               <Link
+                                 href="/dashboard/price-sheets/crops"
+                                 className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                   pathname === '/dashboard/price-sheets/crops'
+                                     ? 'bg-slate-700 text-lime-400'
+                                     : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                                 }`}
+                               >
+                                 <span className="text-xs mr-2">🌾</span>
+                                 Commodities
+                               </Link>
+                               <Link
+                                 href="/dashboard/price-sheets/packaging"
+                                 className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                   pathname === '/dashboard/price-sheets/packaging'
+                                     ? 'bg-slate-700 text-lime-400'
+                                     : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                                 }`}
+                               >
+                                 <span className="text-xs mr-2">📦</span>
+                                 Packaging Reference
+                               </Link>
+                               <Link
+                                 href="/dashboard/price-sheets/capabilities"
+                                 className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                                   pathname === '/dashboard/price-sheets/capabilities'
+                                     ? 'bg-slate-700 text-lime-400'
+                                     : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
+                                 }`}
+                               >
+                                 <span className="text-xs mr-2">🏆</span>
+                                 Certifications
+                               </Link>
+                             </div>
+                           )}
                     
                     {/* Chatbot Sub-navigation */}
                     {item.name === 'AI Chatbot' && isChatbotSection && !isDisabled && (

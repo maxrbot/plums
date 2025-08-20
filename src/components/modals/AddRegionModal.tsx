@@ -17,8 +17,6 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
     location: '',
     farmingTypes: [] as string[],
     acreage: '',
-    climate: '',
-    soilType: '',
     notes: '',
     status: 'active' as const
   })
@@ -32,8 +30,6 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
     'Vineyard',
     'Greenhouse',
     'Hydroponic',
-    'Pasture',
-    'Mixed Farming',
     'Specialty Crops',
     'Regenerative',
     'Berry Farm'
@@ -63,8 +59,8 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
       name: formData.name,
       city: formData.location, // Store location in city field for now
       state: '', // Will be populated from Google Maps API later
-      climate: formData.climate,
-      soilType: formData.soilType,
+      climate: '', // Removed climate field
+      soilType: '', // Removed soil type field
       deliveryZones: [], // Remove delivery zones for now
       status: 'active' as const,
       createdAt: new Date().toISOString().split('T')[0]
@@ -79,8 +75,6 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
       location: '',
       farmingTypes: [],
       acreage: '',
-      climate: '',
-      soilType: '',
       notes: '',
       status: 'active' as const
     })
@@ -186,7 +180,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                     <label className="block text-sm font-medium text-gray-700 mb-3">
                       Farming Types
                     </label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {farmingTypeOptions.map((type) => (
                         <button
                           key={type}
@@ -244,46 +238,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                     </div>
                   </div>
 
-                  {/* Climate and Soil Type */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="climate" className="block text-sm font-medium text-gray-700">
-                        Climate
-                      </label>
-                      <select
-                        id="climate"
-                        value={formData.climate}
-                        onChange={(e) => setFormData(prev => ({ ...prev, climate: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                      >
-                        <option value="">Select climate</option>
-                        <option value="Mediterranean">Mediterranean</option>
-                        <option value="Desert">Desert</option>
-                        <option value="Temperate">Temperate</option>
-                        <option value="Tropical">Tropical</option>
-                        <option value="Continental">Continental</option>
-                      </select>
-                    </div>
 
-                    <div>
-                      <label htmlFor="soilType" className="block text-sm font-medium text-gray-700">
-                        Soil Type
-                      </label>
-                      <select
-                        id="soilType"
-                        value={formData.soilType}
-                        onChange={(e) => setFormData(prev => ({ ...prev, soilType: e.target.value }))}
-                        className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                      >
-                        <option value="">Select soil type</option>
-                        <option value="Loam">Loam</option>
-                        <option value="Clay">Clay</option>
-                        <option value="Sandy">Sandy</option>
-                        <option value="Silt">Silt</option>
-                        <option value="Peat">Peat</option>
-                      </select>
-                    </div>
-                  </div>
 
                   {/* Notes Section */}
                   {!showNotesInput ? (

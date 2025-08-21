@@ -124,7 +124,7 @@ export interface DeliveryLocation {
 }
 
 export interface GrowingRegion {
-  id: number;
+  id: number | string;
   name: string;
   city: string;
   state: string;
@@ -133,6 +133,18 @@ export interface GrowingRegion {
   deliveryZones: string[];
   status: 'active' | 'inactive';
   createdAt: string;
+  // Additional fields for API integration
+  farmingTypes?: string[];
+  acreage?: string;
+  notes?: string;
+  location?: {
+    city?: string;
+    state?: string;
+    country?: string;
+    placeId?: string;
+    formattedAddress?: string;
+    coordinates?: { lat: number; lng: number };
+  };
 }
 
 export interface CropVariation {

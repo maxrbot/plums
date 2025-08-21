@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
 import { 
   ChartBarIcon, 
@@ -5,6 +8,7 @@ import {
   ArrowTrendingUpIcon,
   CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
+import LoginModal from '@/components/modals/LoginModal'
 
 // Mock dashboard data
 const mockProducts = [
@@ -20,6 +24,12 @@ const mockBuyerActivity = [
 ]
 
 export default function Home() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+
+  const handleLogin = async (email: string, password: string) => {
+    // This will be handled by the LoginModal component
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* Header */}
@@ -41,7 +51,13 @@ export default function Home() {
               Pricing
             </Link>
           </div>
-          <div className="flex lg:flex-1 lg:justify-end">
+          <div className="flex lg:flex-1 lg:justify-end gap-x-4">
+            <button 
+              onClick={() => setIsLoginModalOpen(true)}
+              className="text-sm font-medium text-gray-700 hover:text-lime-600"
+            >
+              Login
+            </button>
             <Link href="/dashboard" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600">
               Start Free Trial
             </Link>
@@ -301,6 +317,13 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLogin={handleLogin}
+      />
     </div>
   )
 }

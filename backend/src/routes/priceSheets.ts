@@ -1,0 +1,333 @@
+import { FastifyPluginAsync } from 'fastify'
+import { ObjectId } from 'mongodb'
+import database from '../config/database'
+import { authenticate, AuthenticatedRequest } from '../middleware/auth'
+import { PriceSheet, PriceSheetProduct } from '../models/types'
+
+const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
+  
+  // Add auth middleware to all routes
+  fastify.addHook('preHandler', authenticate)
+  
+  // Get all user's price sheets
+  fastify.get('/', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      const priceSheets = await db.collection<PriceSheet>('priceSheets')
+        .find({ userId: userDoc._id })
+        .sort({ createdAt: -1 })
+        .toArray()
+      
+      return { priceSheets }
+      
+    } catch (error) {
+      console.error('Get price sheets error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to get price sheets'
+      })
+    }
+  })
+  
+  // Get single price sheet with products
+  fastify.get('/:id', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      const priceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
+        _id: new ObjectId(id),
+        userId: userDoc._id
+      })
+      
+      if (!priceSheet) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+      
+      // Get associated products
+      const products = await db.collection<PriceSheetProduct>('priceSheetProducts')
+        .find({ priceSheetId: priceSheet._id })
+        .sort({ createdAt: 1 })
+        .toArray()
+      
+      return { 
+        priceSheet,
+        products
+      }
+      
+    } catch (error) {
+      console.error('Get price sheet error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to get price sheet'
+      })
+    }
+  })
+  
+  // Create new price sheet with products
+  fastify.post('/', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { priceSheet, products } = request.body as {
+      priceSheet: Omit<PriceSheet, '_id' | 'userId' | 'createdAt' | 'updatedAt'>
+      products: Omit<PriceSheetProduct, '_id' | 'priceSheetId' | 'userId' | 'createdAt' | 'updatedAt'>[]
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      // Create price sheet
+      const newPriceSheet: Omit<PriceSheet, '_id'> = {
+        ...priceSheet,
+        userId: userDoc._id!,
+        productsCount: products.length,
+        totalValue: products.reduce((sum, p) => sum + (p.price || 0), 0),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
+      
+      const priceSheetResult = await db.collection<PriceSheet>('priceSheets').insertOne(newPriceSheet)
+      
+      // Create products
+      const newProducts = products.map(product => ({
+        ...product,
+        priceSheetId: priceSheetResult.insertedId,
+        userId: userDoc._id!,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }))
+      
+      if (newProducts.length > 0) {
+        await db.collection<PriceSheetProduct>('priceSheetProducts').insertMany(newProducts)
+      }
+      
+      // Get created price sheet with products
+      const createdPriceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
+        _id: priceSheetResult.insertedId
+      })
+      
+      const createdProducts = await db.collection<PriceSheetProduct>('priceSheetProducts')
+        .find({ priceSheetId: priceSheetResult.insertedId })
+        .toArray()
+      
+      return { 
+        priceSheet: createdPriceSheet,
+        products: createdProducts
+      }
+      
+    } catch (error) {
+      console.error('Create price sheet error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to create price sheet'
+      })
+    }
+  })
+  
+  // Update price sheet
+  fastify.put('/:id', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    const updateData = request.body as Partial<PriceSheet>
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      const { _id, userId, createdAt, ...allowedUpdates } = updateData
+      
+      const result = await db.collection<PriceSheet>('priceSheets').updateOne(
+        { 
+          _id: new ObjectId(id),
+          userId: userDoc._id
+        },
+        { 
+          $set: {
+            ...allowedUpdates,
+            updatedAt: new Date()
+          }
+        }
+      )
+      
+      if (result.matchedCount === 0) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+      
+      const updatedPriceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
+        _id: new ObjectId(id)
+      })
+      
+      return { priceSheet: updatedPriceSheet }
+      
+    } catch (error) {
+      console.error('Update price sheet error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to update price sheet'
+      })
+    }
+  })
+  
+  // Delete price sheet and associated products
+  fastify.delete('/:id', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      const priceSheetId = new ObjectId(id)
+      
+      // Delete products first
+      await db.collection<PriceSheetProduct>('priceSheetProducts').deleteMany({
+        priceSheetId
+      })
+      
+      // Delete price sheet
+      const result = await db.collection<PriceSheet>('priceSheets').deleteOne({
+        _id: priceSheetId,
+        userId: userDoc._id
+      })
+      
+      if (result.deletedCount === 0) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+      
+      return { message: 'Price sheet deleted successfully' }
+      
+    } catch (error) {
+      console.error('Delete price sheet error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to delete price sheet'
+      })
+    }
+  })
+  
+  // Get products for a price sheet
+  fastify.get('/:id/products', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      // Verify price sheet exists and belongs to user
+      const priceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
+        _id: new ObjectId(id),
+        userId: userDoc._id
+      })
+      
+      if (!priceSheet) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+      
+      const products = await db.collection<PriceSheetProduct>('priceSheetProducts')
+        .find({ priceSheetId: priceSheet._id })
+        .sort({ createdAt: 1 })
+        .toArray()
+      
+      return { products }
+      
+    } catch (error) {
+      console.error('Get price sheet products error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to get price sheet products'
+      })
+    }
+  })
+}
+
+export default priceSheetsRoutes

@@ -63,7 +63,11 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
       soilType: '', // Removed soil type field
       deliveryZones: [], // Remove delivery zones for now
       status: 'active' as const,
-      createdAt: new Date().toISOString().split('T')[0]
+      createdAt: new Date().toISOString().split('T')[0],
+      // Include additional fields for API
+      farmingTypes: formData.farmingTypes,
+      acreage: formData.acreage,
+      notes: formData.notes
     }
     onSave(regionData)
     handleClose()

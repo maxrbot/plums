@@ -149,31 +149,6 @@ export const cropsApi = {
   },
 }
 
-// Certifications API
-export const certificationsApi = {
-  getAll: async () => {
-    return apiRequest<{ certifications: any[] }>('/certifications')
-  },
-
-  create: async (data: any) => {
-    return apiRequest<{ certification: any }>('/certifications', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
-  },
-
-  update: async (id: string, data: any) => {
-    return apiRequest<{ certification: any }>(`/certifications/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-  },
-
-  delete: async (id: string) => {
-    return apiRequest(`/certifications/${id}`, { method: 'DELETE' })
-  },
-}
-
 // Contacts API
 export const contactsApi = {
   getAll: async () => {
@@ -204,6 +179,35 @@ export const contactsApi = {
     if (tags) params.append('tags', tags)
     
     return apiRequest<{ contacts: any[] }>(`/contacts/search?${params.toString()}`)
+  },
+}
+
+// Certifications API
+export const certificationsApi = {
+  getAll: async () => {
+    return apiRequest<{ certifications: any[] }>('/certifications')
+  },
+
+  getById: async (id: string) => {
+    return apiRequest<{ certification: any }>(`/certifications/${id}`)
+  },
+
+  create: async (data: any) => {
+    return apiRequest<{ certification: any }>('/certifications', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  update: async (id: string, data: any) => {
+    return apiRequest<{ certification: any }>(`/certifications/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+
+  delete: async (id: string) => {
+    return apiRequest(`/certifications/${id}`, { method: 'DELETE' })
   },
 }
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   PlusIcon, 
   UserGroupIcon, 
@@ -17,6 +17,7 @@ import {
 import { Contact, ContactTag } from '../../../types'
 import AddContactModal from '../../../components/modals/AddContactModal'
 import ContactDetailsModal from '../../../components/modals/ContactDetailsModal'
+import { contactsApi } from '../../../lib/api'
 
 // Mock tags
 const mockTags: ContactTag[] = [
@@ -27,87 +28,7 @@ const mockTags: ContactTag[] = [
   { id: 'volume', name: 'Volume Buyer', type: 'tier', color: 'bg-orange-100 text-orange-800' }
 ]
 
-// Mock contacts with rich data
-const mockContacts: Contact[] = [
-  {
-    id: '1',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah@freshmarket.com',
-    phone: '(555) 123-4567',
-    title: 'Purchasing Manager',
-    company: 'Fresh Market Co.',
-    companySize: 'medium',
-    industry: 'Retail Grocery',
-    tags: ['premium', 'priority'],
-    primaryCrops: ['Strawberries', 'Lettuce'],
-    orderFrequency: 'weekly',
-    averageOrderValue: 2500,
-    status: 'active',
-    relationshipStage: 'customer',
-    interactions: [],
-    lastContactDate: '2024-03-15',
-    totalOrders: 48,
-    lifetimeValue: 120000,
-    pricingTier: 'premium',
-    pricingAdjustment: -5, // 5% discount
-    source: 'manual',
-    createdAt: '2023-08-15',
-    updatedAt: '2024-03-15'
-  },
-  {
-    id: '2',
-    firstName: 'Mike',
-    lastName: 'Chen',
-    email: 'mike@organicgrocers.com',
-    phone: '(555) 234-5678',
-    title: 'Head Buyer',
-    company: 'Organic Grocers Inc.',
-    companySize: 'large',
-    industry: 'Organic Retail',
-    tags: ['organic', 'volume'],
-    primaryCrops: ['Tomatoes', 'Lettuce'],
-    orderFrequency: 'monthly',
-    averageOrderValue: 5000,
-    status: 'active',
-    relationshipStage: 'customer',
-    interactions: [],
-    lastContactDate: '2024-03-12',
-    totalOrders: 24,
-    lifetimeValue: 240000,
-    pricingTier: 'volume',
-    pricingAdjustment: -15, // 15% volume discount
-    source: 'csv_import',
-    createdAt: '2023-06-20',
-    updatedAt: '2024-03-12'
-  },
-  {
-    id: '3',
-    firstName: 'Lisa',
-    lastName: 'Rodriguez',
-    email: 'lisa@farmersmarket.com',
-    phone: '(555) 345-6789',
-    title: 'Owner',
-    company: 'Rodriguez Farmers Market',
-    companySize: 'small',
-    industry: 'Farmers Market',
-    tags: ['local'],
-    primaryCrops: ['Strawberries'],
-    orderFrequency: 'seasonal',
-    averageOrderValue: 800,
-    status: 'active',
-    relationshipStage: 'warm',
-    interactions: [],
-    lastContactDate: '2024-03-08',
-    totalOrders: 12,
-    lifetimeValue: 15000,
-    pricingTier: 'standard',
-    pricingAdjustment: 0,
-    source: 'manual',
-    createdAt: '2023-09-10',
-    updatedAt: '2024-03-08'
-  }
-]
+
 
 export default function Contacts() {
   const [searchTerm, setSearchTerm] = useState('')
@@ -116,7 +37,38 @@ export default function Contacts() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null)
-  const [contacts, setContacts] = useState<Contact[]>(mockContacts)
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load contacts from API
+  useEffect(() => {
+    loadContacts()
+  }, [])
+
+  const loadContacts = async () => {
+    try {
+      setError(null)
+      const response = await contactsApi.getAll()
+      console.log('loadContacts - API response:', response)
+      
+      const contactsData = response.contacts || []
+      console.log('loadContacts - setting contacts:', contactsData)
+      
+      setContacts(contactsData)
+    } catch (err) {
+      console.error('Failed to load contacts:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load contacts')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Helper function to get the correct ID field (handles both 'id' and '_id')
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getContactId = (contact: any): string | undefined => {
+    return contact.id || contact._id
+  }
 
   // Filter contacts based on search and tags
   const filteredContacts = contacts.filter(contact => {
@@ -132,18 +84,20 @@ export default function Contacts() {
   })
 
   // Handle saving new contact
-  const handleSaveContact = (contactData: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'interactions' | 'totalOrders' | 'lifetimeValue' | 'lastContactDate' | 'firstOrderDate' | 'lastOrderDate'>) => {
-    const newContact: Contact = {
-      ...contactData,
-      id: `contact_${Date.now()}`,
-      interactions: [],
-      totalOrders: 0,
-      lifetimeValue: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+  const handleSaveContact = async (contactData: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'interactions' | 'totalOrders' | 'lifetimeValue' | 'lastContactDate' | 'firstOrderDate' | 'lastOrderDate'>) => {
+    try {
+      setError(null)
+      
+      const response = await contactsApi.create(contactData)
+      console.log('✅ Contact created successfully:', response.contact)
+      
+      // Add to local state
+      setContacts(prev => [response.contact, ...prev])
+      
+    } catch (err) {
+      console.error('Failed to create contact:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create contact')
     }
-    
-    setContacts(prev => [newContact, ...prev])
   }
 
   // Handle opening contact details
@@ -163,9 +117,9 @@ export default function Contacts() {
 
 
   // Calculate stats
-  const totalContacts = mockContacts.length
-  const activeContacts = mockContacts.filter(c => c.status === 'active').length
-  const totalLifetimeValue = mockContacts.reduce((sum, c) => sum + c.lifetimeValue, 0)
+  const totalContacts = contacts.length
+  const activeContacts = contacts.filter(c => c.status === 'active').length
+  const totalLifetimeValue = contacts.reduce((sum, c) => sum + (c.lifetimeValue || 0), 0)
 
   return (
     <>
@@ -254,7 +208,7 @@ export default function Contacts() {
                 <dl>
                   <dt className="text-sm font-medium text-gray-500 truncate">Premium Tier</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {mockContacts.filter(c => c.pricingTier === 'premium').length}
+                    {contacts.filter(c => c.pricingTier === 'premium').length}
                   </dd>
                 </dl>
               </div>
@@ -326,8 +280,45 @@ export default function Contacts() {
           </div>
         </div>
         <div className="divide-y divide-gray-200">
-          {filteredContacts.map((contact) => (
-            <div key={contact.id} className="px-6 py-4 hover:bg-gray-50">
+          {isLoading ? (
+            <div className="px-6 py-12 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading contacts...</p>
+            </div>
+          ) : error ? (
+            <div className="px-6 py-12 text-center">
+              <div className="text-red-600 mb-2">Error loading contacts</div>
+              <p className="text-gray-500 text-sm">{error}</p>
+              <button 
+                onClick={loadContacts}
+                className="mt-4 inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+              >
+                Retry
+              </button>
+            </div>
+          ) : filteredContacts.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No contacts found</h3>
+              <p className="text-gray-500 mb-4">
+                {contacts.length === 0 
+                  ? "Get started by adding your first contact."
+                  : "Try adjusting your search or filter criteria."
+                }
+              </p>
+              {contacts.length === 0 && (
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                >
+                  <PlusIcon className="h-4 w-4 mr-2" />
+                  Add Your First Contact
+                </button>
+              )}
+            </div>
+          ) : (
+            filteredContacts.map((contact) => (
+            <div key={getContactId(contact) || `contact-${contact.firstName}-${contact.lastName}`} className="px-6 py-4 hover:bg-gray-50">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-3 mb-2">
@@ -396,7 +387,8 @@ export default function Contacts() {
                 </div>
               </div>
             </div>
-          ))}
+          ))
+          )}
         </div>
       </div>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   UserIcon, 
   BuildingOfficeIcon,
@@ -10,6 +10,7 @@ import {
   CheckIcon,
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline'
+import { useUser } from '@/contexts/UserContext'
 
 // Mock user data - this would come from backend
 const initialUserData = {
@@ -54,11 +55,61 @@ const initialUserData = {
 }
 
 export default function Settings() {
+  const { user, loading, updateUser } = useUser()
   const [userData, setUserData] = useState(initialUserData)
   const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'notifications' | 'subscription'>('profile')
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+
+  // Update form data when user data loads
+  useEffect(() => {
+    if (user) {
+      const firstName = user.profile.contactName.split(' ')[0] || ''
+      const lastName = user.profile.contactName.split(' ').slice(1).join(' ') || ''
+      
+      setUserData({
+        // Personal Info from user data
+        firstName,
+        lastName,
+        email: user.email,
+        phone: user.profile.phone || '',
+        
+        // Company Info
+        companyName: user.profile.companyName || '',
+        companySize: 'medium' as 'small' | 'medium' | 'large' | 'enterprise', // Default
+        industry: 'Organic Produce', // Default
+        website: user.profile.website || '',
+        
+        // Address from user data
+        address: user.profile.address?.street || '',
+        city: user.profile.address?.city || '',
+        state: user.profile.address?.state || '',
+        zipCode: user.profile.address?.zipCode || '',
+        country: user.profile.address?.country || 'USA',
+        
+        // Contact Info for Price Sheets
+        contactEmail: user.profile.email,
+        contactPhone: user.profile.phone || '',
+        
+        // Notification Preferences from user data
+        emailNotifications: {
+          priceSheetOpens: user.preferences.notifications.priceAlerts,
+          newContacts: user.preferences.notifications.email,
+          weeklyReports: user.preferences.notifications.marketUpdates,
+          systemUpdates: user.preferences.notifications.email
+        },
+        
+        // Subscription
+        subscription: {
+          tier: user.subscriptionTier,
+          status: 'active',
+          nextBilling: user.billing.nextBillingDate || '2024-02-15',
+          amount: '$100/month' // Default amount
+        }
+      })
+    }
+  }, [user])
 
   const handleInputChange = (field: string, value: string | boolean, section?: string) => {
     setUserData(prev => {
@@ -80,13 +131,46 @@ export default function Settings() {
   }
 
   const handleSave = async () => {
+    if (!user) return
+    
     setIsSaving(true)
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    setIsSaving(false)
-    setHasChanges(false)
-    setShowSuccess(true)
-    setTimeout(() => setShowSuccess(false), 3000)
+    try {
+      // Transform form data back to user format
+      const updatedUserData = {
+        profile: {
+          ...user.profile,
+          contactName: `${userData.firstName} ${userData.lastName}`.trim(),
+          phone: userData.phone,
+          companyName: userData.companyName,
+          website: userData.website,
+          address: {
+            street: userData.address,
+            city: userData.city,
+            state: userData.state,
+            zipCode: userData.zipCode,
+            country: userData.country
+          }
+        },
+        preferences: {
+          ...user.preferences,
+          notifications: {
+            email: userData.emailNotifications.newContacts,
+            priceAlerts: userData.emailNotifications.priceSheetOpens,
+            marketUpdates: userData.emailNotifications.weeklyReports
+          }
+        }
+      }
+      
+      await updateUser(updatedUserData)
+      setHasChanges(false)
+      setShowSuccess(true)
+      setTimeout(() => setShowSuccess(false), 3000)
+    } catch (error) {
+      console.error('Failed to save settings:', error)
+      // You could add error handling here
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const tabs = [
@@ -95,6 +179,16 @@ export default function Settings() {
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
     { id: 'subscription', name: 'Subscription', icon: ShieldCheckIcon }
   ]
+
+  // Show loading state while user data is loading
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">Loading settings...</span>
+      </div>
+    )
+  }
 
   return (
     <>

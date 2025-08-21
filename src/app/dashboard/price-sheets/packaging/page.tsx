@@ -1,34 +1,155 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   PlusIcon, 
   MagnifyingGlassIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  ChevronDownIcon,
+  ChevronUpIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import { STANDARD_PACKAGING, PackagingSpec, getPackagingByCategory } from '../../../../lib/packagingSpecs'
 import AddPackagingModal from '../../../../components/modals/AddPackagingModal'
-
-// Mock custom packaging (would come from user's saved data)
-const mockCustomPackaging: PackagingSpec[] = [
-  {
-    id: 'custom-strawberry-tray',
-    name: '12 oz Tray',
-    description: 'Custom strawberry tray for premium market',
-    commodities: ['strawberries'],
-    isStandard: false,
-    category: 'specialty'
-  }
-]
+import { packagingApi, cropsApi } from '../../../../lib/api'
+import type { CropManagement } from '../../../../types'
 
 export default function PackagingReference() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCommodity, setSelectedCommodity] = useState('all')
-  const [customPackaging, setCustomPackaging] = useState<PackagingSpec[]>(mockCustomPackaging)
+  const [customPackaging, setCustomPackaging] = useState<PackagingSpec[]>([])
+  const [userCrops, setUserCrops] = useState<CropManagement[]>([])
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
+    new Set(['container', 'carton', 'bag', 'bulk', 'specialty'])
+  )
 
-  // Get unique commodities from all packaging
+  // Load custom packaging and user crops from API
+  useEffect(() => {
+    loadCustomPackaging()
+    loadUserCrops()
+  }, [])
+
+  const loadCustomPackaging = async () => {
+    try {
+      setIsLoading(true)
+      setError(null)
+      const response = await packagingApi.getAll()
+      
+      // Transform backend data to frontend format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformedPackaging: PackagingSpec[] = response.packaging.map((pkg: any) => ({
+        id: pkg._id,
+        name: pkg.name,
+        description: pkg.description,
+        commodities: pkg.commodities || [],
+        isStandard: false,
+        category: pkg.category
+      }))
+      
+      setCustomPackaging(transformedPackaging)
+    } catch (err) {
+      console.error('Failed to load custom packaging:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load custom packaging')
+      // Show empty state on error
+      setCustomPackaging([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const loadUserCrops = async () => {
+    try {
+      const response = await cropsApi.getAll()
+      
+      // Transform backend data to frontend format
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const transformedCrops: CropManagement[] = response.crops.map((crop: any) => ({
+        id: crop._id,
+        category: crop.category,
+        commodity: crop.commodity,
+        variations: crop.variations || [],
+        status: 'active' as const,
+        createdAt: new Date(crop.createdAt).toISOString().split('T')[0]
+      }))
+      
+      setUserCrops(transformedCrops)
+    } catch (err) {
+      console.error('Failed to load user crops:', err)
+      // Don't set error for crops, just use empty array
+      setUserCrops([])
+    }
+  }
+
+  const handleAddCustomPackaging = async (newPackaging: Omit<PackagingSpec, 'id' | 'isStandard'>) => {
+    try {
+      setError(null)
+      
+      // Transform frontend data to backend format
+      const packagingData = {
+        name: newPackaging.name,
+        description: newPackaging.description,
+        commodities: newPackaging.commodities,
+        category: newPackaging.category
+      }
+
+      const response = await packagingApi.create(packagingData)
+      
+      // Add the new packaging to the list
+      const transformedPackaging: PackagingSpec = {
+        id: response.packaging._id,
+        name: response.packaging.name,
+        description: response.packaging.description,
+        commodities: response.packaging.commodities || [],
+        isStandard: false,
+        category: response.packaging.category
+      }
+      
+      setCustomPackaging([...customPackaging, transformedPackaging])
+      setIsAddModalOpen(false)
+      
+      console.log('✅ Custom packaging created successfully:', response.packaging)
+    } catch (err) {
+      console.error('Failed to create custom packaging:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create custom packaging')
+    }
+  }
+
+  const handleDeleteCustomPackaging = async (packagingId: string) => {
+    try {
+      setError(null)
+      
+      await packagingApi.delete(packagingId)
+      
+      // Remove from local state
+      setCustomPackaging(prev => prev.filter(p => p.id !== packagingId))
+      
+      console.log('✅ Custom packaging deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete custom packaging:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete custom packaging')
+    }
+  }
+
+  // Toggle category collapse state
+  const toggleCategory = (category: string) => {
+    const newCollapsed = new Set(collapsedCategories)
+    if (newCollapsed.has(category)) {
+      newCollapsed.delete(category)
+    } else {
+      newCollapsed.add(category)
+    }
+    setCollapsedCategories(newCollapsed)
+  }
+
+  // Get user's actual commodities from their crop management
+  const userCommodities = Array.from(new Set(
+    userCrops.map(crop => crop.commodity)
+  )).sort()
+
+  // Get unique commodities from all packaging (for filtering display)
   const allCommodities = Array.from(new Set(
     [...STANDARD_PACKAGING, ...customPackaging].flatMap(pkg => pkg.commodities)
   )).sort()
@@ -59,58 +180,37 @@ export default function PackagingReference() {
     specialty: 'Specialty Packaging'
   }
 
-  const handleAddCustomPackaging = (newPackaging: Omit<PackagingSpec, 'id' | 'isStandard'>) => {
-    const customPackage: PackagingSpec = {
-      ...newPackaging,
-      id: `custom-${Date.now()}`,
-      isStandard: false
-    }
-    setCustomPackaging(prev => [...prev, customPackage])
-  }
+
 
   return (
     <>
-      <Breadcrumbs 
-        items={[
-          { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-          { label: 'Packaging Reference', href: '/dashboard/price-sheets/packaging' }
-        ]} 
-      />
+      {/* Header */}
+      <div className="mb-8">
+        <Breadcrumbs 
+          items={[
+            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Packaging Reference', current: true }
+          ]} 
+          className="mb-4"
+        />
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Packaging Reference</h1>
+            <p className="mt-2 text-gray-600">Industry-standard packaging options for your commodities. Add custom packaging if needed.</p>
+          </div>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Custom Packaging
+          </button>
+        </div>
+      </div>
 
       <div className="space-y-6">
-        {/* Header */}
+        {/* Filters */}
         <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Packaging Reference</h1>
-              <p className="mt-1 text-gray-600">
-                Industry-standard packaging options for your commodities. Add custom packaging if needed.
-              </p>
-            </div>
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-600 hover:bg-lime-700"
-            >
-              <PlusIcon className="h-4 w-4 mr-2" />
-              Add Custom Packaging
-            </button>
-          </div>
-
-          {/* Info Banner */}
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
-            <div className="flex">
-              <InformationCircleIcon className="h-5 w-5 text-blue-400 mt-0.5 mr-3" />
-              <div className="text-sm text-blue-700">
-                <p className="font-medium">How it works:</p>
-                <p className="mt-1">
-                  When creating price sheets, packaging options are automatically filtered by commodity. 
-                  Standard industry packaging is included by default. Add custom packaging types for specialized needs.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Filters */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Search */}
             <div className="relative">
@@ -145,16 +245,30 @@ export default function PackagingReference() {
         {/* Packaging Categories */}
         {Object.entries(groupedPackaging).map(([category, packages]) => (
           <div key={category} className="bg-white shadow rounded-lg">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium text-gray-900">
-                {categoryLabels[category as keyof typeof categoryLabels] || category}
-              </h2>
-              <p className="text-sm text-gray-500 mt-1">
-                {packages.length} packaging {packages.length === 1 ? 'type' : 'types'}
-              </p>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {packages.map((pkg) => (
+            {/* Collapsible Category Header */}
+            <button
+              onClick={() => toggleCategory(category)}
+              className="w-full px-6 py-4 border-b border-gray-200 flex items-center justify-between hover:bg-gray-50 transition-colors"
+            >
+              <div className="text-left">
+                <h2 className="text-lg font-medium text-gray-900">
+                  {categoryLabels[category as keyof typeof categoryLabels] || category}
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  {packages.length} packaging {packages.length === 1 ? 'type' : 'types'}
+                </p>
+              </div>
+              {collapsedCategories.has(category) ? (
+                <ChevronUpIcon className="h-5 w-5 text-gray-400" />
+              ) : (
+                <ChevronDownIcon className="h-5 w-5 text-gray-400" />
+              )}
+            </button>
+            
+            {/* Collapsible Package List */}
+            {!collapsedCategories.has(category) && (
+              <div className="divide-y divide-gray-200">
+                {packages.map((pkg) => (
                 <div key={pkg.id} className="px-6 py-4">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -184,9 +298,7 @@ export default function PackagingReference() {
                     </div>
                     {!pkg.isStandard && (
                       <button
-                        onClick={() => {
-                          setCustomPackaging(prev => prev.filter(p => p.id !== pkg.id))
-                        }}
+                        onClick={() => handleDeleteCustomPackaging(pkg.id)}
                         className="ml-4 text-red-600 hover:text-red-800 text-sm"
                       >
                         Remove
@@ -195,7 +307,8 @@ export default function PackagingReference() {
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         ))}
 
@@ -210,36 +323,7 @@ export default function PackagingReference() {
           </div>
         )}
 
-        {/* Summary Stats */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Summary</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-lime-600">
-                {STANDARD_PACKAGING.length}
-              </div>
-              <div className="text-sm text-gray-500">Standard Types</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {customPackaging.length}
-              </div>
-              <div className="text-sm text-gray-500">Custom Types</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {allCommodities.length}
-              </div>
-              <div className="text-sm text-gray-500">Commodities</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-600">
-                {Object.keys(categoryLabels).length}
-              </div>
-              <div className="text-sm text-gray-500">Categories</div>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       {/* Add Custom Packaging Modal */}
@@ -247,7 +331,7 @@ export default function PackagingReference() {
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleAddCustomPackaging}
-        availableCommodities={allCommodities}
+        availableCommodities={userCommodities}
       />
     </>
   )

@@ -1,9 +1,10 @@
 "use client"
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, UserPlusIcon, TagIcon } from '@heroicons/react/24/outline'
-import { Contact } from '../../types'
+import { Contact, CropManagement } from '../../types'
+import { cropsApi } from '../../lib/api'
 
 interface AddContactModalProps {
   isOpen: boolean
@@ -21,21 +22,53 @@ const availableTags = [
   { id: 'new_customer', name: 'New Customer', color: 'bg-yellow-100 text-yellow-800' }
 ]
 
-// Available crops for primary interests
-const availableCrops = [
-  'Strawberries',
-  'Tomatoes', 
-  'Lettuce',
-  'Spinach',
-  'Kale',
-  'Bell Peppers',
-  'Cucumbers',
-  'Carrots',
-  'Broccoli',
-  'Cauliflower'
-]
-
 export default function AddContactModal({ isOpen, onClose, onSave }: AddContactModalProps) {
+  const [availableCrops, setAvailableCrops] = useState<string[]>([])
+  const [isLoadingCrops, setIsLoadingCrops] = useState(false)
+
+  // Load user's commodities when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      loadUserCrops()
+    }
+  }, [isOpen])
+
+  const loadUserCrops = async () => {
+    try {
+      setIsLoadingCrops(true)
+      const response = await cropsApi.getAll()
+      console.log('loadUserCrops - API response:', response)
+      
+      const crops = response.crops || []
+      // Extract unique commodities from user's crop management
+      const commodities = Array.from(new Set(crops.map((crop: CropManagement) => crop.commodity))).sort()
+      console.log('loadUserCrops - extracted commodities:', commodities)
+      
+      setAvailableCrops(commodities)
+    } catch (err) {
+      console.error('Failed to load user crops:', err)
+      // Fallback to some basic crops if API fails
+      setAvailableCrops(['Strawberries', 'Lettuce', 'Tomatoes', 'Broccoli'])
+    } finally {
+      setIsLoadingCrops(false)
+    }
+  }
+
+  // Phone formatting function
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-digits
+    const phoneNumber = value.replace(/\D/g, '')
+    
+    // Format as (XXX) XXX-XXXX
+    if (phoneNumber.length <= 3) {
+      return phoneNumber
+    } else if (phoneNumber.length <= 6) {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    } else {
+      return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+    }
+  }
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -270,9 +303,13 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
                               type="tel"
                               id="phone"
                               value={formData.phone}
-                              onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+                              onChange={(e) => {
+                                const formatted = formatPhoneNumber(e.target.value)
+                                setFormData(prev => ({ ...prev, phone: formatted }))
+                              }}
                               className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                               placeholder="(555) 123-4567"
+                              maxLength={14}
                             />
                           </div>
                         </div>
@@ -378,19 +415,33 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
                       {/* Primary Crops */}
                       <div>
                         <h4 className="text-sm font-medium text-gray-900 mb-3">Primary Crop Interests</h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
-                          {availableCrops.map((crop) => (
-                            <label key={crop} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                checked={formData.primaryCrops.includes(crop)}
-                                onChange={() => toggleCrop(crop)}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <span className="text-sm text-gray-700">{crop}</span>
-                            </label>
-                          ))}
-                        </div>
+                        {isLoadingCrops ? (
+                          <div className="flex items-center justify-center py-4">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                            <span className="ml-2 text-sm text-gray-500">Loading your crops...</span>
+                          </div>
+                        ) : availableCrops.length === 0 ? (
+                          <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <p className="text-sm text-yellow-700 mb-2">No crops found in your crop management.</p>
+                            <p className="text-xs text-yellow-600">
+                              Add crops to your <a href="/dashboard/price-sheets/crops" className="underline">Crop Management</a> first.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                            {availableCrops.map((crop) => (
+                              <label key={crop} className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={formData.primaryCrops.includes(crop)}
+                                  onChange={() => toggleCrop(crop)}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                />
+                                <span className="text-sm text-gray-700">{crop}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       {/* Notes */}

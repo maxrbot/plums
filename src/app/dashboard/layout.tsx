@@ -11,15 +11,13 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline'
+import { UserProvider, useUser } from '@/contexts/UserContext'
 
-// Mock subscription data - in real app this would come from auth/API
-const mockUser = {
-  name: "John Smith",
-  email: "john@agrifarm.com",
-  subscription: {
-    tier: 'enterprise' as 'basic' | 'premium' | 'enterprise',
-    features: ['price_sheets', 'analytics', 'ai_chatbot', 'contacts']
-  }
+// Feature access mapping - generous for demo purposes
+const featureAccess = {
+  basic: ['price_sheets', 'contacts'], // Basic users get core features
+  premium: ['price_sheets', 'analytics', 'contacts'], // Premium adds analytics
+  enterprise: ['price_sheets', 'analytics', 'contacts', 'ai_chatbot'] // Enterprise gets everything
 }
 
 const navigation = [
@@ -30,19 +28,26 @@ const navigation = [
   { name: 'AI Chatbot', href: '/dashboard/chatbot', icon: ChatBubbleLeftRightIcon },
 ]
 
-const featureAccess = {
-  basic: ['price_sheets'],
-  premium: ['price_sheets', 'analytics', 'contacts'],
-  enterprise: ['price_sheets', 'analytics', 'contacts', 'ai_chatbot']
-}
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const userFeatures = featureAccess[mockUser.subscription.tier]
+  const { user, loading, logout } = useUser()
+  
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
+  }
+  
+  // Redirect to login if no user
+  if (!user) {
+    window.location.href = '/'
+    return null
+  }
+  
+  const userFeatures = featureAccess[user.subscriptionTier]
   
   const filteredNavigation = navigation.filter(item => {
     if (item.name === 'AI Chatbot') return userFeatures.includes('ai_chatbot')
@@ -99,7 +104,7 @@ export default function DashboardLayout({
                       {item.name}
                       {isDisabled && (
                         <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
-                          {mockUser.subscription.tier === 'basic' ? 'Premium' : 'Enterprise'}
+                          {user.subscriptionTier === 'basic' ? 'Premium' : 'Enterprise'}
                         </span>
                       )}
                     </Link>
@@ -141,9 +146,9 @@ export default function DashboardLayout({
                                  Packaging Reference
                                </Link>
                                <Link
-                                 href="/dashboard/price-sheets/capabilities"
+                                 href="/dashboard/price-sheets/certifications"
                                  className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                                   pathname === '/dashboard/price-sheets/capabilities'
+                                   pathname === '/dashboard/price-sheets/certifications'
                                      ? 'bg-slate-700 text-lime-400'
                                      : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
                                  }`}
@@ -188,12 +193,12 @@ export default function DashboardLayout({
             <div className="flex items-center space-x-3 mb-3">
               <div className="h-8 w-8 rounded-full bg-lime-500 bg-opacity-20 flex items-center justify-center">
                 <span className="text-sm font-medium text-lime-400">
-                  {mockUser.name.split(' ').map(n => n[0]).join('')}
+                  {user.profile.contactName.split(' ').map(n => n[0]).join('').toUpperCase()}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{mockUser.name}</p>
-                <p className="text-xs text-gray-300 truncate">{mockUser.email}</p>
+                <p className="text-sm font-medium text-white truncate">{user.profile.contactName}</p>
+                <p className="text-xs text-gray-300 truncate">{user.email}</p>
               </div>
               <Link
                 href="/dashboard/settings"
@@ -205,13 +210,10 @@ export default function DashboardLayout({
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">
-                {mockUser.subscription.tier.charAt(0).toUpperCase() + mockUser.subscription.tier.slice(1)} Plan
+                {user.subscriptionTier.charAt(0).toUpperCase() + user.subscriptionTier.slice(1)} Plan
               </span>
               <button
-                onClick={() => {
-                  // TODO: Implement logout functionality when auth is setup
-                  console.log('Logout clicked')
-                }}
+                onClick={logout}
                 className="inline-flex items-center px-2 py-1 text-xs font-medium text-gray-400 hover:text-gray-300 hover:bg-slate-700 rounded-md transition-colors"
                 title="Sign out"
               >
@@ -232,5 +234,17 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+  )
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <UserProvider>
+      <DashboardContent>{children}</DashboardContent>
+    </UserProvider>
   )
 }

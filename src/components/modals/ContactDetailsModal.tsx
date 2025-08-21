@@ -28,7 +28,8 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
 
   if (!contact) return null
 
-  const formatCurrency = (amount: number) => {
+  const formatCurrency = (amount: number | undefined | null) => {
+    if (!amount || amount === 0) return '$0'
     if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`
     if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`
     return `$${amount.toFixed(0)}`

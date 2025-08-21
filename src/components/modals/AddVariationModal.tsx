@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useState, useEffect } from 'react'
+import { Fragment, useState, useEffect, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, SparklesIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { CropManagement, CropVariation, GrowingRegion } from '../../types'
@@ -11,6 +11,7 @@ interface AddVariationModalProps {
   onClose: () => void
   onSave: (cropManagement: CropManagement) => void
   availableRegions: GrowingRegion[]
+  existingCrops: CropManagement[] // All existing crops to check for duplicates
   existingCrop?: CropManagement // For editing existing commodity
   isEditMode?: boolean
 }
@@ -51,6 +52,7 @@ export default function AddVariationModal({
   onClose, 
   onSave, 
   availableRegions, 
+  existingCrops,
   existingCrop,
   isEditMode = false 
 }: AddVariationModalProps) {
@@ -93,6 +95,17 @@ export default function AddVariationModal({
       getVarietiesByCommodity(formData.category, formData.commodity)
     ) : []
 
+  // Helper function to find existing crop by category and commodity
+  const findExistingCrop = useCallback((category: string, commodity: string): CropManagement | undefined => {
+    return existingCrops.find(crop => crop.category === category && crop.commodity === commodity)
+  }, [existingCrops])
+
+  // Check if a commodity already has variations
+  const commodityHasExistingVariations = useCallback((category: string, commodity: string): boolean => {
+    const existing = findExistingCrop(category, commodity)
+    return existing ? existing.variations.length > 0 : false
+  }, [findExistingCrop])
+
   // Initialize form data if editing
   useEffect(() => {
     if (existingCrop && isEditMode) {
@@ -100,7 +113,8 @@ export default function AddVariationModal({
         category: existingCrop.category,
         commodity: existingCrop.commodity,
         variations: existingCrop.variations.map(v => ({
-          variety: v.variety,
+          subtype: v.subtype || '',
+          variety: v.variety || '',
           isOrganic: v.isOrganic,
           growingRegions: v.growingRegions,
           targetPricing: v.targetPricing,
@@ -113,19 +127,64 @@ export default function AddVariationModal({
     }
   }, [existingCrop, isEditMode])
 
-  // Reset dependent fields when category changes
+  // Reset dependent fields when category changes (but preserve variations if they exist)
   useEffect(() => {
-    if (formData.category) {
-      setFormData(prev => ({ ...prev, commodity: '', variations: [] }))
+    if (formData.category && formData.variations.length === 0) {
+      setFormData(prev => ({ ...prev, commodity: '' }))
     }
-  }, [formData.category])
+  }, [formData.category, formData.variations.length])
 
-  // Reset commodity when commodity changes
+  // Handle selection of commodity that already has existing variations
   useEffect(() => {
-    if (formData.commodity) {
-      setFormData(prev => ({ ...prev, variations: [] }))
+    if (formData.category && formData.commodity && !isEditMode) {
+      const existingCrop = findExistingCrop(formData.category, formData.commodity)
+      if (existingCrop && existingCrop.variations.length > 0) {
+        // Auto-load existing variations when selecting a commodity that already exists
+        setFormData(prev => ({
+          ...prev,
+          variations: existingCrop.variations.map(v => ({
+            subtype: v.subtype || '',
+            variety: v.variety || '',
+            isOrganic: v.isOrganic,
+            growingRegions: v.growingRegions,
+            targetPricing: v.targetPricing,
+            growingPractices: v.growingPractices,
+            minOrder: v.minOrder,
+            orderUnit: v.orderUnit,
+            notes: v.notes
+          }))
+        }))
+      }
     }
-  }, [formData.commodity])
+  }, [formData.category, formData.commodity, isEditMode, findExistingCrop])
+
+  // Don't reset variations when commodity changes if variations already exist
+  // This prevents losing work when user has already added variations
+
+  // Reset form when modal closes or switches modes
+  useEffect(() => {
+    if (!isOpen) {
+      setFormData({
+        category: '',
+        commodity: '',
+        variations: []
+      })
+      setCurrentVariation({
+        subtype: '',
+        variety: '',
+        isOrganic: false,
+        growingRegions: [],
+        targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
+        growingPractices: [],
+        minOrder: 0,
+        orderUnit: 'case',
+        notes: ''
+      })
+      setShowAdditionalInputs(false)
+      setShowAddVariationForm(false)
+      setShowNotesInput(false)
+    }
+  }, [isOpen])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -312,13 +371,17 @@ export default function AddVariationModal({
                       <div>
                         <label htmlFor="category" className="block text-sm font-medium text-gray-700">
                           Category *
+                          {formData.variations.length > 0 && (
+                            <span className="text-xs text-gray-500 ml-2">(locked - variations added)</span>
+                          )}
                         </label>
                         <select
                           id="category"
                           required
+                          disabled={formData.variations.length > 0}
                           value={formData.category}
                           onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                         >
                           <option value="">Select category</option>
                           {categories.map(category => (
@@ -330,19 +393,28 @@ export default function AddVariationModal({
                       <div>
                         <label htmlFor="commodity" className="block text-sm font-medium text-gray-700">
                           Commodity *
+                          {formData.variations.length > 0 && (
+                            <span className="text-xs text-gray-500 ml-2">(locked - variations added)</span>
+                          )}
                         </label>
                         <select
                           id="commodity"
                           required
-                          disabled={!formData.category}
+                          disabled={!formData.category || formData.variations.length > 0}
                           value={formData.commodity}
                           onChange={(e) => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
                           className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                         >
                           <option value="">{formData.category ? 'Select commodity' : 'Select category first'}</option>
-                          {commodities.map(commodity => (
-                            <option key={commodity.id} value={commodity.id}>{commodity.name}</option>
-                          ))}
+                          {commodities.map(commodity => {
+                            const hasExisting = commodityHasExistingVariations(formData.category, commodity.id)
+                            const existingCount = hasExisting ? findExistingCrop(formData.category, commodity.id)?.variations.length || 0 : 0
+                            return (
+                              <option key={commodity.id} value={commodity.id}>
+                                {commodity.name}{hasExisting ? ` (${existingCount} variation${existingCount !== 1 ? 's' : ''})` : ''}
+                              </option>
+                            )
+                          })}
                         </select>
                       </div>
                     </div>
@@ -377,7 +449,7 @@ export default function AddVariationModal({
                   )}
 
                   {/* Variation Form - Conditional rendering based on state */}
-                  {formData.commodity && (formData.variations.length === 0 || showAddVariationForm || isEditMode) && (
+                  {formData.commodity && (formData.variations.length === 0 || showAddVariationForm) && (
                     <div className="border border-gray-200 rounded-lg p-4">
                       <h4 className="text-sm font-medium text-gray-900 mb-4">
                         {formData.variations.length === 0 ? 'Add First Variation' : 
@@ -778,7 +850,7 @@ export default function AddVariationModal({
                   )}
 
                   {/* Show Add Another Variation button when variations exist and form is hidden */}
-                  {formData.commodity && formData.variations.length > 0 && !showAddVariationForm && !isEditMode && (
+                  {formData.commodity && formData.variations.length > 0 && !showAddVariationForm && (
                           <div className="text-center py-6">
                             <button
                               type="button"

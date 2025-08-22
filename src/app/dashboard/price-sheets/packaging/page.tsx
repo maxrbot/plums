@@ -9,7 +9,7 @@ import {
   ChevronUpIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
-import { STANDARD_PACKAGING, PackagingSpec, getPackagingByCategory } from '../../../../lib/packagingSpecs'
+import { STANDARD_PACKAGING, PackagingSpec, getPackagingByCategory } from '../../../../lib/packagingLibrary'
 import AddPackagingModal from '../../../../components/modals/AddPackagingModal'
 import { packagingApi, cropsApi } from '../../../../lib/api'
 import type { CropManagement } from '../../../../types'

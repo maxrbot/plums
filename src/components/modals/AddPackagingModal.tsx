@@ -3,7 +3,7 @@
 import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, CubeTransparentIcon } from '@heroicons/react/24/outline'
-import { PackagingSpec } from '../../lib/packagingSpecs'
+import { PackagingSpec } from '../../lib/packagingLibrary'
 
 interface AddPackagingModalProps {
   isOpen: boolean

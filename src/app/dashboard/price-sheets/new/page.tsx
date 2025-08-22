@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
   DocumentTextIcon,
@@ -9,66 +9,24 @@ import {
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
-import { getCommoditySpec, hasCountSize, getCountSizeOptions, getGradeOptions } from '../../../../lib/commoditySpecs'
-import { getStandardPackaging } from '../../../../lib/packagingSpecs'
+import { getPackagingSpecs } from '../../../../config/packagingSpecs'
+import { cropsApi, regionsApi, priceSheetsApi } from '../../../../lib/api'
+import type { CropManagement, CropVariation } from '../../../../types'
 
-// Mock data based on our setup (packaging now comes from packagingSpecs)
-const mockProducts = [
-  {
-    id: 1,
-    name: 'Organic Strawberries Albion',
-    region: 'Central Valley - Fresno',
-    commodity: 'strawberries', // lowercase for consistency with specs
-    variety: 'Albion',
-    isOrganic: true,
-    seasonality: 'Year-round'
-  },
-  {
-    id: 2,
-    name: 'Conventional Lettuce Romaine',
-    region: 'Salinas Valley - Salinas',
-    commodity: 'lettuce',
-    variety: 'Romaine',
-    isOrganic: false,
-    seasonality: 'October - April'
-  },
-  {
-    id: 3,
-    name: 'Organic Tomatoes Beefsteak',
-    region: 'Central Valley - Fresno',
-    commodity: 'tomatoes',
-    variety: 'Beefsteak',
-    isOrganic: true,
-    seasonality: 'June - September'
-  },
-  {
-    id: 4,
-    name: 'Conventional Mandarins Sumo Citrus',
-    region: 'Central Valley - Fresno',
-    commodity: 'mandarins',
-    variety: 'Sumo Citrus',
-    isOrganic: false,
-    seasonality: 'January - April'
-  },
-  {
-    id: 5,
-    name: 'Organic Apples Honeycrisp',
-    region: 'Yakima Valley - Yakima',
-    commodity: 'apples',
-    variety: 'Honeycrisp',
-    isOrganic: true,
-    seasonality: 'September - June'
-  },
-  {
-    id: 6,
-    name: 'Conventional Carrots Nantes',
-    region: 'Central Valley - Bakersfield',
-    commodity: 'carrots',
-    variety: 'Nantes',
-    isOrganic: false,
-    seasonality: 'Year-round'
-  }
-]
+// Interface for processed product data from user's crops
+interface ProcessedProduct {
+  id: string
+  name: string
+  region: string
+  commodity: string
+  variety?: string
+  subtype?: string
+  isOrganic: boolean
+  seasonality: string
+  cropId: string
+  variationId: string
+  regionId: string
+}
 
 const availabilityOptions = [
   'Available',
@@ -93,6 +51,8 @@ interface ProductRow {
   marketPriceUnit?: string  // USDA unit (per lb, per carton, etc.)
   marketPriceDate?: string  // When USDA published this price
   marketPriceLoading?: boolean // Loading state for refresh
+  marketPriceSource?: 'usda-exact' | 'usda-estimated' | 'calculated' // Data transparency
+  marketPriceConfidence?: 'high' | 'medium' | 'low' // Confidence level
   availability: string
   isSelected: boolean
   isPackStyleRow?: boolean
@@ -117,28 +77,158 @@ export default function NewPriceSheet() {
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
-  const [productRows, setProductRows] = useState<ProductRow[]>(() => 
-    mockProducts.map((product) => {
-      const spec = getCommoditySpec(product.commodity)
-      const packaging = getStandardPackaging(product.commodity)
+  const [isSaving, setIsSaving] = useState(false)
+
+  // Helper functions to work with unified packaging system
+  const getPackagingOptions = (commodity: string) => {
+    const specs = getPackagingSpecs(commodity)
+    return specs.map(spec => ({
+      id: spec.id,
+      type: spec.type,
+      name: spec.name,
+      hasCountSize: !!spec.counts?.length,
+      hasSizes: !!spec.sizes?.length,
+      counts: spec.counts || [],
+      sizes: spec.sizes || [],
+      grades: spec.grades || ['US No. 1']
+    }))
+  }
+
+  const hasCountSize = (commodity: string) => {
+    const options = getPackagingOptions(commodity)
+    return options.some(opt => opt.hasCountSize || opt.hasSizes)
+  }
+
+  const getCountSizeOptions = (commodity: string) => {
+    const options = getPackagingOptions(commodity)
+    const allCounts = options.flatMap(opt => opt.counts)
+    const allSizes = options.flatMap(opt => opt.sizes)
+    return [...new Set([...allCounts, ...allSizes])] // Combine counts and sizes, remove duplicates
+  }
+
+  const getGradeOptions = (commodity: string) => {
+    const options = getPackagingOptions(commodity)
+    const allGrades = options.flatMap(opt => opt.grades)
+    return [...new Set(allGrades)] // Remove duplicates
+  }
+  
+  // Real data state
+  const [products, setProducts] = useState<ProcessedProduct[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
+  const [productRows, setProductRows] = useState<ProductRow[]>([])
+
+  // Load user's crops and regions
+  useEffect(() => {
+    loadUserData()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const loadUserData = async () => {
+    try {
+      setError(null)
+      setIsLoading(true)
+
+      // Load crops and regions in parallel
+      const [cropsRes, regionsRes] = await Promise.all([
+        cropsApi.getAll(),
+        regionsApi.getAll()
+      ])
+
+      const crops = cropsRes.crops || []
+      const userRegions = regionsRes.regions || []
       
-      return {
-        id: `${product.id}-main`,
-        productId: product.id,
-        packageType: packaging[0]?.name || 'Standard Package', // Use first available packaging
-        countSize: spec?.hasCountSize ? (spec.countSizeOptions[0] || '') : '', // Commodity-appropriate count size
-        grade: spec?.gradeOptions[0] || 'US No. 1', // Commodity-appropriate grade
-        price: '',
-        marketPrice: '', // No preloaded data
-        marketPriceUnit: '', // No preloaded data
-        marketPriceDate: '', // No preloaded data
-        marketPriceLoading: false,
-        availability: 'Available',
-        isSelected: false,
-        isPackStyleRow: false
-      }
-    })
-  )
+
+
+      // Process crops into products (each variation becomes a product)
+      const processedProducts: ProcessedProduct[] = []
+      
+      crops.forEach((crop: CropManagement) => {
+        if (crop.variations && crop.variations.length > 0) {
+          crop.variations.forEach((variation: CropVariation) => {
+            // For each growing region in the variation
+            variation.growingRegions.forEach((regionConfig) => {
+              const region = userRegions.find(r => r.id === regionConfig.regionId || r.name === regionConfig.regionName)
+              
+              if (region) {
+                const productName = [
+                  variation.isOrganic ? 'Organic' : 'Conventional',
+                  crop.commodity,
+                  variation.subtype,
+                  variation.variety
+                ].filter(Boolean).join(' ')
+
+                const seasonality = formatSeasonality(regionConfig.seasonality)
+
+                processedProducts.push({
+                  id: `${crop.id}-${variation.id}-${regionConfig.regionId}`,
+                  name: productName,
+                  region: region.name,
+                  commodity: crop.commodity.toLowerCase(),
+                  variety: variation.variety,
+                  subtype: variation.subtype,
+                  isOrganic: variation.isOrganic,
+                  seasonality,
+                  cropId: crop.id,
+                  variationId: variation.id,
+                  regionId: regionConfig.regionId
+                })
+              }
+            })
+          })
+        }
+      })
+
+
+      setProducts(processedProducts)
+
+      // Initialize product rows
+      const initialRows: ProductRow[] = processedProducts.map((product, index) => {
+        const packagingOptions = getPackagingOptions(product.commodity)
+        const firstPackaging = packagingOptions[0]
+        
+        return {
+          id: `${product.id}-main`,
+          productId: index, // Use array index as unique productId
+          packageType: firstPackaging?.name || 'Standard Package',
+          countSize: hasCountSize(product.commodity) ? (getCountSizeOptions(product.commodity)[0] || '') : '',
+          grade: getGradeOptions(product.commodity)[0] || 'US No. 1',
+          price: '',
+          marketPrice: '',
+          marketPriceUnit: '',
+          marketPriceDate: '',
+          marketPriceLoading: false,
+          availability: 'Available',
+          isSelected: false,
+          isPackStyleRow: false
+        }
+      })
+
+      setProductRows(initialRows)
+
+    } catch (err) {
+      console.error('Failed to load user data:', err)
+      setError(err instanceof Error ? err.message : 'Failed to load data')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Helper function to format seasonality
+  const formatSeasonality = (seasonality: { startMonth: number; endMonth: number; isYearRound: boolean }) => {
+    if (seasonality.isYearRound) return 'Year-round'
+    
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ]
+    
+    const startMonth = months[seasonality.startMonth - 1]
+    const endMonth = months[seasonality.endMonth - 1]
+    
+    return `${startMonth} - ${endMonth}`
+  }
 
   const toggleProductSelection = (rowId: string) => {
     setProductRows(prev => prev.map(row => 
@@ -152,16 +242,27 @@ export default function NewPriceSheet() {
     ))
   }
 
-  const addPackStyle = (productId: number) => {
-    const product = mockProducts.find(p => p.id === productId)
-    if (!product) return
+  const addPackStyle = (productId: string | number) => {
+    // productId is now the array index (number), so use it directly
+    const numericProductId = typeof productId === 'number' ? productId : parseInt(productId) || 0
+    
+    // Find the product by matching the productId
+    const productRow = productRows.find(row => row.productId === numericProductId && !row.isPackStyleRow)
+    if (!productRow) {
+      return
+    }
 
-    const packaging = getStandardPackaging(product.commodity)
-    const newRowId = `${productId}-pack-${Date.now()}`
+    const product = products.find(p => p.id === productRow.id.replace('-main', ''))
+    if (!product) {
+      return
+    }
+
+    const packagingOptions = getPackagingOptions(product.commodity)
+    const newRowId = `${numericProductId}-pack-${Date.now()}`
     const newRow: ProductRow = {
       id: newRowId,
-      productId,
-      packageType: packaging[0]?.name || 'Standard Package',
+      productId: numericProductId,
+      packageType: packagingOptions[0]?.name || 'Standard Package',
       countSize: '',
       grade: '',
       price: '',
@@ -172,11 +273,23 @@ export default function NewPriceSheet() {
       availability: 'Available',
       isSelected: false,
       isPackStyleRow: true,
-      parentProductId: productId
+      parentProductId: numericProductId
     }
 
     setProductRows(prev => {
-      const insertIndex = prev.findLastIndex(row => row.productId === productId) + 1
+      // Find the main product row
+      const mainRowIndex = prev.findIndex(row => row.productId === numericProductId && !row.isPackStyleRow)
+      
+      // Find the last pack style row for this product (if any)
+      let insertIndex = mainRowIndex + 1
+      for (let i = mainRowIndex + 1; i < prev.length; i++) {
+        if (prev[i].productId === numericProductId && prev[i].isPackStyleRow) {
+          insertIndex = i + 1
+        } else {
+          break // Stop when we hit a different product
+        }
+      }
+      
       return [...prev.slice(0, insertIndex), newRow, ...prev.slice(insertIndex)]
     })
   }
@@ -185,20 +298,25 @@ export default function NewPriceSheet() {
     setProductRows(prev => prev.filter(row => row.id !== rowId))
   }
 
-  // Refresh market price for individual row
-  const refreshMarketPrice = async (rowId: string) => {
+  // Load market price for individual row (used by bulk loader)
+  const loadMarketPriceForRow = async (rowId: string) => {
     const row = productRows.find(r => r.id === rowId)
-    const product = mockProducts.find(p => p.id === row?.productId)
+    if (!row) return
+
+    // Find the real product data
+    const product = products.find(p => {
+      const productRowId = row.id.replace('-main', '').replace(/-pack-\d+$/, '')
+      return p.id === productRowId
+    })
     
-    if (!row || !product) return
+    if (!product) return
     
     // Validate required fields (commodity-aware)
-    const spec = getCommoditySpec(product.commodity)
     const missingFields = []
     
     if (!row.packageType) missingFields.push('package type')
     if (!row.grade) missingFields.push('grade')
-    if (spec?.hasCountSize && !row.countSize) missingFields.push('count/size')
+    if (hasCountSize(product.commodity) && !row.countSize) missingFields.push('count/size')
     
     if (missingFields.length > 0) {
       alert(`Please select ${missingFields.join(', ')} first`)
@@ -215,19 +333,24 @@ export default function NewPriceSheet() {
       const { fetchUsdaPrice } = await import('../../../../lib/usdaApi')
       
       const result = await fetchUsdaPrice({
-        commodity: product.commodity, 
+        commodity: product.commodity,
+        variety: product.variety,
+        subtype: product.subtype,
+        isOrganic: product.isOrganic,
         packaging: row.packageType,
         countSize: row.countSize,
         grade: row.grade
       })
       
-      setProductRows(prev => prev.map(r => 
+            setProductRows(prev => prev.map(r => 
         r.id === rowId ? { 
           ...r, 
           marketPrice: result.price.toString(),
           marketPriceUnit: result.unit,
           marketPriceDate: result.publishedDate,
-          marketPriceLoading: false
+          marketPriceSource: result.dataSource,
+          marketPriceConfidence: result.confidence,
+          marketPriceLoading: false 
         } : r
       ))
     } catch (error) {
@@ -243,19 +366,31 @@ export default function NewPriceSheet() {
     }
   }
 
+  // Helper function to get confidence dot
+  const getConfidenceDot = (confidence: 'high' | 'medium' | 'low') => {
+    switch (confidence) {
+      case 'high': return '🟢'
+      case 'medium': return '🟡'
+      case 'low': return '⚪'
+      default: return '⚪'
+    }
+  }
+
   // Load all market prices for configured rows
   const loadAllMarketPrices = async () => {
     const eligibleRows = productRows.filter(row => {
       if (row.isPackStyleRow) return false
       
-      const product = mockProducts.find(p => p.id === row.productId)
+      // Find the real product data
+      const product = products.find(p => {
+        const productRowId = row.id.replace('-main', '').replace(/-pack-\d+$/, '')
+        return p.id === productRowId
+      })
       if (!product) return false
-      
-      const spec = getCommoditySpec(product.commodity)
       
       // Check required fields based on commodity
       if (!row.packageType || !row.grade) return false
-      if (spec?.hasCountSize && !row.countSize) return false
+      if (hasCountSize(product.commodity) && !row.countSize) return false
       
       return true
     })
@@ -269,7 +404,7 @@ export default function NewPriceSheet() {
     
     // Process rows sequentially to avoid overwhelming the API
     for (const row of eligibleRows) {
-      await refreshMarketPrice(row.id)
+      await loadMarketPriceForRow(row.id)
     }
     
     setBulkLoading(false)
@@ -277,10 +412,31 @@ export default function NewPriceSheet() {
 
   // Generate preview data for base price sheet
   const generatePreviewData = (): PreviewProduct[] => {
-    const selectedRows = productRows.filter(row => row.isSelected && row.price)
+    // Include both selected main rows AND pack style rows with prices
+    const selectedRows = productRows.filter(row => 
+      (row.isSelected && row.price) || // Main rows that are selected
+      (row.isPackStyleRow && row.price) // Pack style rows with prices (regardless of selection)
+    )
     
     return selectedRows.map((row): PreviewProduct | null => {
-      const product = mockProducts.find(p => p.id === row.productId)
+      // Find the real product data
+      let product: ProcessedProduct | undefined
+
+      if (row.isPackStyleRow) {
+        // For pack style rows, find the parent product using parentProductId
+        const parentRow = productRows.find(r => 
+          r.productId === row.parentProductId && !r.isPackStyleRow
+        )
+        if (parentRow) {
+          const parentProductId = parentRow.id.replace('-main', '')
+          product = products.find(p => p.id === parentProductId)
+        }
+      } else {
+        // For main rows, use the standard lookup
+        const productRowId = row.id.replace('-main', '')
+        product = products.find(p => p.id === productRowId)
+      }
+
       if (!product) return null
 
       const basePrice = parseFloat(row.price)
@@ -302,6 +458,184 @@ export default function NewPriceSheet() {
 
   const handlePreview = () => {
     setIsPreviewModalOpen(true)
+  }
+
+  // Save price sheet to MongoDB
+  const handleSave = async () => {
+    setIsSaving(true)
+    
+    try {
+      // Get all rows with prices (both selected main rows and pack style rows)
+      const rowsToSave = productRows.filter(row => 
+        ((row.isSelected && row.price) || (row.isPackStyleRow && row.price)) && 
+        parseFloat(row.price) > 0
+      )
+
+      if (rowsToSave.length === 0) {
+        alert('Please add prices to at least one product before saving.')
+        setIsSaving(false)
+        return
+      }
+
+      // Prepare price sheet data
+      const priceSheetData = {
+        title: priceSheetTitle,
+        status: 'draft' as const,
+        notes: additionalNotes || undefined
+      }
+
+      // Prepare products data
+      const productsData = rowsToSave.map(row => {
+        // Find the real product data
+        let product: ProcessedProduct | undefined
+
+        if (row.isPackStyleRow) {
+          // For pack style rows, find the parent product using parentProductId
+          const parentRow = productRows.find(r => 
+            r.productId === row.parentProductId && !r.isPackStyleRow
+          )
+          if (parentRow) {
+            const parentProductId = parentRow.id.replace('-main', '')
+            product = products.find(p => p.id === parentProductId)
+          }
+        } else {
+          // For main rows, use the standard lookup
+          const productRowId = row.id.replace('-main', '')
+          product = products.find(p => p.id === productRowId)
+        }
+
+        if (!product) {
+          console.error('Product lookup failed:', {
+            rowId: row.id,
+            isPackStyleRow: row.isPackStyleRow,
+            parentProductId: row.parentProductId,
+            productId: row.productId,
+            availableProducts: products.map(p => ({ id: p.id, name: p.name }))
+          })
+          throw new Error(`Product not found for row ${row.id}${row.isPackStyleRow ? ` (pack style, parent: ${row.parentProductId})` : ''}`)
+        }
+
+        return {
+          cropId: product.cropId, // This will be converted to ObjectId on backend
+          variationId: product.variationId,
+          regionId: product.regionId, // This will be converted to ObjectId on backend
+          packageType: row.packageType,
+          countSize: row.countSize || undefined,
+          grade: row.grade || undefined,
+          price: parseFloat(row.price),
+          marketPrice: row.marketPrice ? parseFloat(row.marketPrice) : undefined,
+          marketPriceUnit: row.marketPriceUnit || undefined,
+          marketPriceDate: row.marketPriceDate ? new Date(row.marketPriceDate) : undefined,
+          availability: row.availability,
+          isSelected: row.isSelected || row.isPackStyleRow, // Pack style rows are considered selected
+          customNote: undefined,
+          discountPercent: undefined
+        }
+      })
+
+      // Save to backend
+      const result = await priceSheetsApi.create({
+        priceSheet: priceSheetData,
+        products: productsData
+      })
+
+      console.log('Price sheet saved:', result)
+      
+      // Show success message
+      alert(`Price sheet "${priceSheetTitle}" saved successfully with ${productsData.length} products!`)
+      
+      // Optionally redirect to price sheets list or send page
+      // window.location.href = '/dashboard/price-sheets'
+      
+    } catch (error) {
+      console.error('Error saving price sheet:', error)
+      alert(`Failed to save price sheet: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="mb-8">
+        <Breadcrumbs 
+          items={[
+            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Create New Price Sheet', current: true }
+          ]} 
+          className="mb-4"
+        />
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <span className="ml-3 text-gray-600">Loading your products...</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="mb-8">
+        <Breadcrumbs 
+          items={[
+            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Create New Price Sheet', current: true }
+          ]} 
+          className="mb-4"
+        />
+        <div className="bg-red-50 border border-red-200 rounded-md p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error Loading Data</h3>
+              <div className="mt-2 text-sm text-red-700">
+                <p>{error}</p>
+              </div>
+              <div className="mt-4">
+                <button
+                  onClick={loadUserData}
+                  className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Show empty state if no products
+  if (products.length === 0) {
+    return (
+      <div className="mb-8">
+        <Breadcrumbs 
+          items={[
+            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Create New Price Sheet', current: true }
+          ]} 
+          className="mb-4"
+        />
+        <div className="text-center py-12">
+          <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+          <h3 className="mt-2 text-sm font-medium text-gray-900">No Products Available</h3>
+          <p className="mt-1 text-sm text-gray-500">
+            You need to set up your crops and growing regions first.
+          </p>
+          <div className="mt-6">
+            <Link
+              href="/dashboard/price-sheets/crops"
+              className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Your First Crop
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -383,21 +717,36 @@ export default function NewPriceSheet() {
                   <th className="w-12 px-2 py-3 text-center">
                     {/* No text - just checkbox column */}
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-0">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                     Product Name
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
-                    Package Type
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
+                    Package & Size
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
-                    Count/Size
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">
                     Grade
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-36">
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-48">
                     <div className="flex items-center justify-between">
-                      <span>Price</span>
+                      <div className="flex items-center space-x-1">
+                        <span>Price</span>
+                        <div className="relative group">
+                          <svg className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[9999] shadow-lg">
+                            <div className="text-center">
+                              <div className="font-medium">Market Price Guidance</div>
+                              <div className="text-gray-300 mt-1">
+                                • USDA &quot;mostly&quot; price when available<br/>
+                                • Estimated with variety/organic premiums<br/>
+                                • Date shows when USDA published data
+                              </div>
+                            </div>
+                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
+                          </div>
+                        </div>
+                      </div>
                       <span className="text-xs text-gray-400 font-normal">USDA-LA</span>
                     </div>
                   </th>
@@ -411,8 +760,25 @@ export default function NewPriceSheet() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {productRows.map((row) => {
-                  const product = mockProducts.find(p => p.id === row.productId)
-                  if (!product) return null
+                  // Find the real product data
+                  const product = products.find(p => {
+                    if (row.isPackStyleRow) {
+                      // For pack style rows, find the parent product by productId
+                      const parentRow = productRows.find(r => r.productId === row.productId && !r.isPackStyleRow)
+                      if (parentRow) {
+                        const productRowId = parentRow.id.replace('-main', '')
+                        return p.id === productRowId
+                      }
+                      return false
+                    } else {
+                      // For main rows, use the existing logic
+                      const productRowId = row.id.replace('-main', '').replace(/-pack-\d+$/, '')
+                      return p.id === productRowId
+                    }
+                  })
+                  if (!product) {
+                    return null
+                  }
 
                   return (
                     <tr key={row.id} className={`${row.isPackStyleRow ? 'bg-gray-50' : ''}`}>
@@ -426,43 +792,53 @@ export default function NewPriceSheet() {
                       </td>
                       
                       <td className="px-4 py-4">
-                        <div className={`text-sm ${row.isPackStyleRow ? 'ml-6 text-gray-600' : 'font-medium text-gray-900'}`}>
-                          {row.isPackStyleRow ? '↳ Additional Pack Style' : product.name}
-                        </div>
-                      </td>
-                      
-                      <td className="w-40 px-4 py-4">
-                        <select
-                          value={row.packageType}
-                          onChange={(e) => updateRowData(row.id, 'packageType', e.target.value)}
-                          className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
-                        >
-                          {getStandardPackaging(product.commodity).map(pkg => (
-                            <option key={pkg.id} value={pkg.name}>{pkg.name}</option>
-                          ))}
-                        </select>
-                      </td>
-                      
-                      {/* Count/Size */}
-                      <td className="w-24 px-4 py-4">
-                        {hasCountSize(product.commodity) ? (
-                          <select
-                            value={row.countSize || ''}
-                            onChange={(e) => updateRowData(row.id, 'countSize', e.target.value)}
-                            className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
-                          >
-                            <option value="">-</option>
-                            {getCountSizeOptions(product.commodity).map(size => (
-                              <option key={size} value={size}>{size}</option>
-                            ))}
-                          </select>
+                        {row.isPackStyleRow ? (
+                          <div className="ml-6 text-sm text-gray-600">
+                            ↳ Additional Pack Style
+                          </div>
                         ) : (
-                          <span className="text-gray-400 text-sm">N/A</span>
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">
+                              {product.commodity}{product.variety ? `, ${product.variety}` : ''}
+                            </div>
+                            {product.isOrganic && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                Organic
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                       
+                      {/* Combined Package & Size */}
+                      <td className="w-32 px-4 py-4">
+                        <div className="space-y-1">
+                          <select
+                            value={row.packageType}
+                            onChange={(e) => updateRowData(row.id, 'packageType', e.target.value)}
+                            className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
+                          >
+                            {getPackagingOptions(product.commodity).map((pkg, idx) => (
+                              <option key={idx} value={pkg.name}>{pkg.name}</option>
+                            ))}
+                          </select>
+                          {hasCountSize(product.commodity) && (
+                            <select
+                              value={row.countSize || ''}
+                              onChange={(e) => updateRowData(row.id, 'countSize', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
+                            >
+                              <option value="">Select size...</option>
+                              {getCountSizeOptions(product.commodity).map(size => (
+                                <option key={size} value={size}>{size}</option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                      </td>
+                      
                       {/* Grade */}
-                      <td className="w-24 px-4 py-4">
+                      <td className="w-20 px-4 py-4">
                         <select
                           value={row.grade || ''}
                           onChange={(e) => updateRowData(row.id, 'grade', e.target.value)}
@@ -476,7 +852,7 @@ export default function NewPriceSheet() {
                       </td>
                       
                       {/* Combined Price Column */}
-                      <td className="w-36 px-4 py-4">
+                      <td className="w-48 px-4 py-4">
                         {/* Your Price Input */}
                         <div className="relative mb-2">
                           <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-2">
@@ -503,63 +879,21 @@ export default function NewPriceSheet() {
                               <span>Loading...</span>
                             </div>
                           ) : row.marketPrice && row.marketPrice !== 'Error' ? (
-                            <div className="space-y-0.5">
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium text-gray-700">${row.marketPrice}</span>
-                                {row.marketPriceDate && (
-                                  <span className="text-xs text-gray-400">
-                                    {new Date(row.marketPriceDate).toLocaleDateString('en-US', { 
-                                      month: 'short', 
-                                      day: 'numeric' 
-                                    })}
-                                  </span>
-                                )}
-                              </div>
+                            <div className="flex items-center space-x-1">
+                              {row.marketPriceConfidence && (
+                                <span>{getConfidenceDot(row.marketPriceConfidence)}</span>
+                              )}
+                              <span className="font-medium text-gray-700">${row.marketPrice}</span>
                               {row.marketPriceUnit && (
-                                <div className="text-xs text-gray-500">{row.marketPriceUnit}</div>
+                                <span className="text-gray-500">/ {row.marketPriceUnit}</span>
                               )}
                             </div>
                           ) : row.marketPrice === 'Error' ? (
                             <span className="text-red-500">Error loading</span>
                           ) : (
-                            <button
-                              onClick={() => refreshMarketPrice(row.id)}
-                              disabled={(() => {
-                                const spec = getCommoditySpec(product.commodity)
-                                if (row.marketPriceLoading) return true
-                                if (!row.packageType || !row.grade) return true
-                                if (spec?.hasCountSize && !row.countSize) return true
-                                return false
-                              })()}
-                              className="text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-                              title={(() => {
-                                const spec = getCommoditySpec(product.commodity)
-                                const missing = []
-                                if (!row.packageType) missing.push('package type')
-                                if (!row.grade) missing.push('grade')
-                                if (spec?.hasCountSize && !row.countSize) missing.push('count/size')
-                                
-                                return missing.length > 0 
-                                  ? `Select ${missing.join(', ')} first`
-                                  : 'Get market price'
-                              })()}
-                            >
-                              🔄 Get market price
-                            </button>
+                            <span className="text-gray-400">-</span>
                           )}
                         </div>
-                        
-                        {/* Refresh button when price is loaded */}
-                        {row.marketPrice && row.marketPrice !== 'Error' && (
-                          <button
-                            onClick={() => refreshMarketPrice(row.id)}
-                            disabled={row.marketPriceLoading}
-                            className="mt-1 text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed"
-                            title="Refresh market price"
-                          >
-                            🔄 Refresh
-                          </button>
-                        )}
                       </td>
                       
                       <td className="w-36 px-4 py-4">
@@ -584,11 +918,11 @@ export default function NewPriceSheet() {
                           </button>
                         ) : (
                           <button
-                            onClick={() => addPackStyle(product.id)}
-                            className="inline-flex items-center text-blue-600 hover:text-blue-900 text-sm"
+                            onClick={() => addPackStyle(row.productId)}
+                            className="inline-flex items-center justify-center w-6 h-6 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded-full transition-colors"
+                            title="Add pack style"
                           >
-                            <PlusIcon className="h-4 w-4 mr-1" />
-                            Add Pack
+                            <PlusIcon className="h-4 w-4" />
                           </button>
                         )}
                       </td>
@@ -641,6 +975,8 @@ export default function NewPriceSheet() {
         title={priceSheetTitle}
         products={generatePreviewData()}
         additionalNotes={additionalNotes}
+        onSave={handleSave}
+        isSaving={isSaving}
       />
     </>
   )

@@ -25,6 +25,8 @@ interface PriceSheetPreviewModalProps {
     pricingAdjustment: number
   }
   additionalNotes?: string
+  onSave?: () => void
+  isSaving?: boolean
 }
 
 export default function PriceSheetPreviewModal({
@@ -33,7 +35,9 @@ export default function PriceSheetPreviewModal({
   title,
   products,
   contactInfo,
-  additionalNotes
+  additionalNotes,
+  onSave,
+  isSaving = false
 }: PriceSheetPreviewModalProps) {
   // Group products by region
   const productsByRegion = products.reduce((groups, product) => {
@@ -156,10 +160,21 @@ export default function PriceSheetPreviewModal({
                     </button>
                     <button
                       type="button"
-                      className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
+                      onClick={onSave}
+                      disabled={isSaving || !onSave}
+                      className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      <BookmarkIcon className="h-4 w-4 mr-2" />
-                      Save Price Sheet
+                      {isSaving ? (
+                        <>
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <BookmarkIcon className="h-4 w-4 mr-2" />
+                          Save Price Sheet
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

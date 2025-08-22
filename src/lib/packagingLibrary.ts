@@ -16,7 +16,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'clamshell-1lb',
     name: '1 lb Clamshell',
     description: 'Clear plastic clamshell container for berries',
-    commodities: ['strawberries', 'blueberries', 'raspberries', 'blackberries'],
+    commodities: ['strawberry', 'blueberry', 'raspberry', 'blackberry'],
     isStandard: true,
     category: 'container'
   },
@@ -24,7 +24,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'clamshell-2lb',
     name: '2 lb Clamshell',
     description: 'Large plastic clamshell container for berries',
-    commodities: ['strawberries', 'blueberries'],
+    commodities: ['strawberry', 'blueberry'],
     isStandard: true,
     category: 'container'
   },
@@ -32,7 +32,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'berry-flat',
     name: 'Berry Flat',
     description: 'Flat containing multiple berry containers',
-    commodities: ['strawberries', 'blueberries', 'raspberries', 'blackberries'],
+    commodities: ['strawberry', 'blueberry', 'raspberry', 'blackberry'],
     isStandard: true,
     category: 'container'
   },
@@ -40,7 +40,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'pint-container',
     name: 'Pint Container',
     description: 'Pint-sized container for berries',
-    commodities: ['blueberries', 'blackberries'],
+    commodities: ['blueberry', 'blackberry'],
     isStandard: true,
     category: 'container'
   },
@@ -48,7 +48,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'half-pint-container',
     name: 'Half Pint Container',
     description: 'Half-pint container for delicate berries',
-    commodities: ['raspberries'],
+    commodities: ['raspberry'],
     isStandard: true,
     category: 'container'
   },
@@ -58,7 +58,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'citrus-carton-40lb',
     name: '40 lb Carton',
     description: 'Standard citrus carton (40 pounds)',
-    commodities: ['oranges', 'grapefruit', 'minneolas'],
+    commodities: ['orange', 'grapefruit', 'minneola'],
     isStandard: true,
     category: 'carton'
   },
@@ -66,7 +66,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'citrus-carton-38lb',
     name: '38 lb Carton',
     description: 'Lemon carton (38 pounds)',
-    commodities: ['lemons'],
+    commodities: ['lemon'],
     isStandard: true,
     category: 'carton'
   },
@@ -74,7 +74,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'mandarin-carton-25lb',
     name: '25 lb Carton',
     description: 'Mandarin/small citrus carton (25 pounds)',
-    commodities: ['mandarins', 'limes'],
+    commodities: ['mandarin', 'lime'],
     isStandard: true,
     category: 'carton'
   },
@@ -82,7 +82,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'mandarin-carton-18lb',
     name: '18 lb Carton',
     description: 'Small mandarin carton (18 pounds)',
-    commodities: ['mandarins'],
+    commodities: ['mandarin'],
     isStandard: true,
     category: 'carton'
   },
@@ -92,7 +92,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'apple-carton-40lb',
     name: '40 lb Carton',
     description: 'Standard apple carton (40 pounds)',
-    commodities: ['apples', 'pears'],
+    commodities: ['apple', 'pear'],
     isStandard: true,
     category: 'carton'
   },
@@ -100,7 +100,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'apple-bag-20lb',
     name: '20 lb Bag',
     description: 'Mesh or plastic bag for apples',
-    commodities: ['apples', 'pears'],
+    commodities: ['apple', 'pear'],
     isStandard: true,
     category: 'bag'
   },
@@ -108,7 +108,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'apple-tray-pack',
     name: 'Tray Pack',
     description: 'Individual apple tray packaging',
-    commodities: ['apples', 'pears'],
+    commodities: ['apple', 'pear'],
     isStandard: true,
     category: 'specialty'
   },
@@ -144,7 +144,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'carrot-carton-50lb',
     name: '50 lb Carton',
     description: 'Large carton for bulk carrots',
-    commodities: ['carrots'],
+    commodities: ['carrot'],
     isStandard: true,
     category: 'carton'
   },
@@ -152,7 +152,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'carrot-bag-25lb',
     name: '25 lb Bag',
     description: 'Mesh bag for carrots',
-    commodities: ['carrots', 'potatoes'],
+    commodities: ['carrot', 'potato'],
     isStandard: true,
     category: 'bag'
   },
@@ -160,7 +160,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'potato-bag-50lb',
     name: '50 lb Bag',
     description: 'Burlap or mesh bag for potatoes',
-    commodities: ['potatoes'],
+    commodities: ['potato'],
     isStandard: true,
     category: 'bag'
   },
@@ -170,7 +170,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'tomato-carton-25lb',
     name: '25 lb Carton',
     description: 'Standard tomato carton (25 pounds)',
-    commodities: ['tomatoes'],
+    commodities: ['tomato'],
     isStandard: true,
     category: 'carton'
   },
@@ -178,7 +178,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'tomato-box-20lb',
     name: '20 lb Box',
     description: 'Smaller tomato box (20 pounds)',
-    commodities: ['tomatoes'],
+    commodities: ['tomato'],
     isStandard: true,
     category: 'carton'
   },
@@ -186,7 +186,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'pepper-carton-25lb',
     name: '25 lb Carton',
     description: 'Bell pepper carton (25 pounds)',
-    commodities: ['bell peppers'],
+    commodities: ['bell-pepper'],
     isStandard: true,
     category: 'carton'
   },
@@ -230,7 +230,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'stone-fruit-carton-25lb',
     name: '25 lb Carton',
     description: 'Standard carton for stone fruits',
-    commodities: ['peaches'],
+    commodities: ['peach'],
     isStandard: true,
     category: 'carton'
   },
@@ -238,7 +238,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'stone-fruit-carton-28lb',
     name: '28 lb Carton',
     description: 'Plum carton (28 pounds)',
-    commodities: ['plums'],
+    commodities: ['plum'],
     isStandard: true,
     category: 'carton'
   },
@@ -246,7 +246,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'cherry-carton-20lb',
     name: '20 lb Carton',
     description: 'Cherry carton (20 pounds)',
-    commodities: ['cherries'],
+    commodities: ['cherry'],
     isStandard: true,
     category: 'carton'
   },
@@ -254,7 +254,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'apricot-carton-24lb',
     name: '24 lb Carton',
     description: 'Apricot carton (24 pounds)',
-    commodities: ['apricots'],
+    commodities: ['apricot'],
     isStandard: true,
     category: 'carton'
   },
@@ -262,7 +262,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'stone-fruit-tray-pack',
     name: 'Tray Pack',
     description: 'Individual fruit tray packaging',
-    commodities: ['peaches', 'plums', 'cherries', 'apricots'],
+    commodities: ['peach', 'plum', 'cherry', 'apricot'],
     isStandard: true,
     category: 'specialty'
   },
@@ -272,7 +272,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'pear-carton-44lb',
     name: '44 lb Carton',
     description: 'Standard pear carton (44 pounds)',
-    commodities: ['pears'],
+    commodities: ['pear'],
     isStandard: true,
     category: 'carton'
   },
@@ -308,7 +308,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'cucumber-carton-55lb',
     name: '55 lb Carton',
     description: 'Cucumber carton (55 pounds)',
-    commodities: ['cucumbers'],
+    commodities: ['cucumber'],
     isStandard: true,
     category: 'carton'
   },
@@ -334,7 +334,7 @@ export const STANDARD_PACKAGING: PackagingSpec[] = [
     id: 'onion-sack-50lb',
     name: '50 lb Sack',
     description: 'Mesh sack for onions',
-    commodities: ['onions'],
+    commodities: ['onion'],
     isStandard: true,
     category: 'bag'
   },

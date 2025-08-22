@@ -13,7 +13,8 @@ import {
   MapPinIcon,
   ShieldCheckIcon,
   ArrowRightIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  CurrencyDollarIcon
 } from '@heroicons/react/24/outline'
 import { regionsApi, cropsApi, certificationsApi, packagingApi, contactsApi, priceSheetsApi } from '../../../lib/api'
 import type { GrowingRegion, CropManagement, Capability, Contact } from '../../../types'
@@ -198,8 +199,8 @@ export default function PriceSheets() {
 
       {/* Main Action Sections */}
       <div className="space-y-8">
-        {/* Generate and Send Actions - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Generate, Send, and USDA Actions - Three Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           {/* 2. Generate Price Sheets */}
           <div className="bg-white shadow rounded-lg overflow-hidden">
@@ -303,6 +304,60 @@ export default function PriceSheets() {
                 </Link>
                 <p className="text-xs text-gray-500 text-center">
                   Select saved price sheets and send to your contacts with automatic pricing optimization.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. USDA Market Pricing */}
+          <div className="bg-white shadow rounded-lg overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-shrink-0 p-3 bg-orange-100 rounded-lg">
+                    <CurrencyDollarIcon className="h-6 w-6 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900">USDA Market Pricing</h3>
+                    <p className="text-sm text-gray-500">Real-time agricultural prices</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4 mb-6">
+                {isLoading ? (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-600"></div>
+                    <span className="ml-2 text-sm text-gray-500">Loading data...</span>
+                  </div>
+                ) : error ? (
+                  <div className="text-center py-4">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Your Crops:</span>
+                      <span className="text-sm font-semibold text-orange-600">{metrics.crops.variations} variations</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Commodities:</span>
+                      <span className="text-sm font-semibold text-orange-600">{metrics.crops.commodities} types</span>
+                    </div>
+                  </>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                <Link
+                  href="/dashboard/price-sheets/usda-pricing"
+                  className="w-full inline-flex items-center justify-center px-4 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-orange-500 hover:bg-orange-600"
+                >
+                  <CurrencyDollarIcon className="h-4 w-4 mr-2" />
+                  View Market Prices
+                </Link>
+                <p className="text-xs text-gray-500 text-center">
+                  See current USDA market prices for all your crops with high, low, and mostly pricing data.
                 </p>
               </div>
             </div>

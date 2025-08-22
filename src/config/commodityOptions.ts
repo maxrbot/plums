@@ -391,6 +391,103 @@ export const commodityOptions: CategoryOption[] = [
         varieties: ['Flat Leaf', 'Curly Leaf', 'Italian', 'Forest Green', 'Triple Curled', 'Giant of Italy', 'Hamburg', 'Moss Curled']
       }
     ]
+  },
+  {
+    id: 'tropical-fruits',
+    name: 'Tropical & Exotic Fruits',
+    commodities: [
+      {
+        id: 'kiwi',
+        name: 'Kiwi',
+        varieties: ['Hayward', 'Golden Kiwi', 'Baby Kiwi', 'Red Kiwi', 'Bruno', 'Saanichton', 'Arctic Beauty']
+      },
+      {
+        id: 'avocado',
+        name: 'Avocado',
+        varieties: ['Hass', 'Fuerte', 'Bacon', 'Zutano', 'Pinkerton', 'Reed', 'Lamb Hass', 'Gwen']
+      },
+      {
+        id: 'mango',
+        name: 'Mango',
+        varieties: ['Tommy Atkins', 'Ataulfo', 'Keitt', 'Kent', 'Haden', 'Francis', 'Palmer', 'Valencia Pride']
+      },
+      {
+        id: 'pineapple',
+        name: 'Pineapple',
+        varieties: ['Gold', 'Sweet Gold', 'MD2', 'Smooth Cayenne', 'Queen', 'Red Spanish', 'Sugarloaf']
+      },
+      {
+        id: 'papaya',
+        name: 'Papaya',
+        varieties: ['Solo', 'Maradol', 'Red Lady', 'Sunrise', 'Sunset', 'Kapoho', 'Waimanalo', 'Rainbow']
+      },
+      {
+        id: 'banana',
+        name: 'Banana',
+        varieties: ['Cavendish', 'Lady Finger', 'Red Banana', 'Plantain', 'Apple Banana', 'Burro', 'Manzano', 'Blue Java']
+      },
+      {
+        id: 'coconut',
+        name: 'Coconut',
+        varieties: ['Young Coconut', 'Mature Coconut', 'Thai Coconut', 'Malayan Dwarf', 'Jamaican Tall', 'Panama Tall']
+      },
+      {
+        id: 'passion-fruit',
+        name: 'Passion Fruit',
+        varieties: ['Purple Passion Fruit', 'Yellow Passion Fruit', 'Sweet Granadilla', 'Giant Granadilla', 'Red Passion Fruit']
+      },
+      {
+        id: 'dragon-fruit',
+        name: 'Dragon Fruit',
+        varieties: ['White Flesh', 'Red Flesh', 'Yellow Dragon Fruit', 'Pink Dragon Fruit']
+      },
+      {
+        id: 'dates',
+        name: 'Dates',
+        varieties: ['Medjool', 'Deglet Noor', 'Zahidi', 'Halawi', 'Barhi', 'Mazafati', 'Ajwa', 'Sukkari']
+      }
+    ]
+  },
+  {
+    id: 'nuts',
+    name: 'Nuts & Tree Nuts',
+    commodities: [
+      {
+        id: 'almond',
+        name: 'Almond',
+        varieties: ['Nonpareil', 'Carmel', 'Monterey', 'Butte', 'Padre', 'Fritz', 'Price', 'Sonora']
+      },
+      {
+        id: 'walnut',
+        name: 'Walnut',
+        varieties: ['Chandler', 'Howard', 'Tulare', 'Serr', 'Hartley', 'Payne', 'Franquette', 'English Walnut']
+      },
+      {
+        id: 'pecan',
+        name: 'Pecan',
+        varieties: ['Desirable', 'Stuart', 'Schley', 'Elliott', 'Cape Fear', 'Sumner', 'Pawnee', 'Cheyenne']
+      },
+      {
+        id: 'pistachio',
+        name: 'Pistachio',
+        varieties: ['Kerman', 'Peters', 'Lost Hills', 'Golden Hills', 'Randy', 'Red Aleppo']
+      },
+      {
+        id: 'hazelnut',
+        name: 'Hazelnut',
+        varieties: ['Barcelona', 'Ennis', 'Butler', 'Casina', 'Tonda Gentile', 'Jefferson', 'Theta', 'McDonald']
+      },
+      {
+        id: 'macadamia',
+        name: 'Macadamia',
+        varieties: ['Beaumont', 'A4', 'A16', 'Hinde', 'Ikaika', 'Kakea', 'Keauhou', 'Mauka']
+      },
+      {
+        id: 'chestnut',
+        name: 'Chestnut',
+        varieties: ['Chinese Chestnut', 'European Chestnut', 'Japanese Chestnut', 'American Chestnut', 'Hybrid Chestnut']
+      }
+    ]
   }
 ]
 

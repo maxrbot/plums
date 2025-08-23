@@ -29,7 +29,14 @@ const contactsRoutes: FastifyPluginAsync = async (fastify) => {
         .sort({ createdAt: -1 })
         .toArray()
       
-      return { contacts }
+      // Transform _id to id for frontend compatibility
+      const transformedContacts = contacts.map(contact => ({
+        ...contact,
+        id: contact._id.toString(),
+        _id: undefined // Remove _id to avoid confusion
+      }))
+      
+      return { contacts: transformedContacts }
       
     } catch (error) {
       console.error('Get contacts error:', error)
@@ -75,7 +82,14 @@ const contactsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      return { contact }
+      // Transform _id to id for frontend compatibility
+      const transformedContact = {
+        ...contact,
+        id: contact._id.toString(),
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { contact: transformedContact }
       
     } catch (error) {
       console.error('Get contact error:', error)

@@ -145,7 +145,8 @@ export interface PriceSheet extends BaseDocument {
   userId: ObjectId
   title: string
   status: 'draft' | 'sent' | 'archived'
-  productsCount: number
+  productIds: ObjectId[] // Array of PriceSheetProduct IDs
+  productsCount: number // Computed from productIds.length
   totalValue?: number
   sentTo?: ObjectId[] // References to Contact
   sentAt?: Date
@@ -157,10 +158,19 @@ export interface PriceSheetProduct extends BaseDocument {
   priceSheetId: ObjectId
   userId: ObjectId
   
-  // Product details
+  // References (for data integrity)
   cropId: ObjectId // Reference to CropManagement
   variationId: string // ID within the crop variations
   regionId?: ObjectId // Reference to GrowingRegion
+  
+  // Denormalized product details (for performance)
+  productName: string // e.g., "Organic Lime Key Lime"
+  category: string // e.g., "citrus"
+  commodity: string // e.g., "lime"
+  variety?: string // e.g., "Key Lime"
+  subtype?: string // e.g., "Conventional" or "Organic"
+  isOrganic: boolean
+  regionName?: string // e.g., "Central Valley - Fresno"
   
   // Pricing and packaging
   packageType: string

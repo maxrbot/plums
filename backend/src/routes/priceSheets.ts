@@ -75,11 +75,13 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      // Get associated products
-      const products = await db.collection<PriceSheetProduct>('priceSheetProducts')
-        .find({ priceSheetId: priceSheet._id })
-        .sort({ createdAt: 1 })
-        .toArray()
+      // Get associated products using productIds array for efficiency
+      const products = priceSheet.productIds && priceSheet.productIds.length > 0
+        ? await db.collection<PriceSheetProduct>('priceSheetProducts')
+            .find({ _id: { $in: priceSheet.productIds } })
+            .sort({ createdAt: 1 })
+            .toArray()
+        : []
       
       return { 
         priceSheet,
@@ -114,10 +116,39 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      // Create price sheet
+      // First create products (without priceSheetId)
+      const newProducts = products.map(product => {
+        const baseProduct = {
+          ...product,
+          cropId: new ObjectId(product.cropId), // Convert string to ObjectId
+          priceSheetId: null as any, // Will be updated after price sheet creation
+          userId: userDoc._id!,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+        
+        // Only add regionId if it exists
+        if (product.regionId) {
+          return {
+            ...baseProduct,
+            regionId: new ObjectId(product.regionId)
+          }
+        }
+        
+        return baseProduct
+      })
+      
+      let productIds: any[] = []
+      if (newProducts.length > 0) {
+        const productsResult = await db.collection<PriceSheetProduct>('priceSheetProducts').insertMany(newProducts)
+        productIds = Object.values(productsResult.insertedIds)
+      }
+
+      // Create price sheet with product IDs
       const newPriceSheet: Omit<PriceSheet, '_id'> = {
         ...priceSheet,
         userId: userDoc._id!,
+        productIds: productIds,
         productsCount: products.length,
         totalValue: products.reduce((sum, p) => sum + (p.price || 0), 0),
         createdAt: new Date(),
@@ -126,17 +157,12 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
       
       const priceSheetResult = await db.collection<PriceSheet>('priceSheets').insertOne(newPriceSheet)
       
-      // Create products
-      const newProducts = products.map(product => ({
-        ...product,
-        priceSheetId: priceSheetResult.insertedId,
-        userId: userDoc._id!,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      }))
-      
-      if (newProducts.length > 0) {
-        await db.collection<PriceSheetProduct>('priceSheetProducts').insertMany(newProducts)
+      // Update products with priceSheetId
+      if (productIds.length > 0) {
+        await db.collection<PriceSheetProduct>('priceSheetProducts').updateMany(
+          { _id: { $in: productIds } },
+          { $set: { priceSheetId: priceSheetResult.insertedId } }
+        )
       }
       
       // Get created price sheet with products

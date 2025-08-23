@@ -9,6 +9,8 @@ interface PriceSheetProduct {
   productName: string
   region: string
   packageType: string
+  countSize?: string
+  grade?: string
   basePrice: number
   adjustedPrice: number
   availability: string
@@ -27,6 +29,8 @@ interface PriceSheetPreviewModalProps {
   additionalNotes?: string
   onSave?: () => void
   isSaving?: boolean
+  hasSaved?: boolean
+  mode?: 'save' | 'send' // 'save' shows save button, 'send' is for preview only
 }
 
 export default function PriceSheetPreviewModal({
@@ -37,7 +41,9 @@ export default function PriceSheetPreviewModal({
   contactInfo,
   additionalNotes,
   onSave,
-  isSaving = false
+  isSaving = false,
+  hasSaved = false,
+  mode = 'save'
 }: PriceSheetPreviewModalProps) {
   // Group products by region
   const productsByRegion = products.reduce((groups, product) => {
@@ -112,7 +118,13 @@ export default function PriceSheetPreviewModal({
                             <div className="flex-1">
                               <div className="flex items-center space-x-3">
                                 <span className="font-medium text-gray-900">{product.productName}</span>
-                                <span className="text-sm text-gray-500">{product.packageType}</span>
+                                <span className="text-sm text-gray-500">
+                                  {[
+                                    product.packageType,
+                                    product.countSize,
+                                    product.grade
+                                  ].filter(Boolean).join(' • ')}
+                                </span>
                                 <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
                                   product.availability === 'Available' ? 'bg-green-100 text-green-700' :
                                   product.availability === 'Limited' ? 'bg-yellow-100 text-yellow-700' :
@@ -158,34 +170,47 @@ export default function PriceSheetPreviewModal({
                     >
                       Close
                     </button>
-                    <button
-                      type="button"
-                      onClick={onSave}
-                      disabled={isSaving || !onSave}
-                      className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                    >
-                      {isSaving ? (
-                        <>
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <BookmarkIcon className="h-4 w-4 mr-2" />
-                          Save Price Sheet
-                        </>
-                      )}
-                    </button>
+                    {mode === 'save' && (
+                      <button
+                        type="button"
+                        onClick={onSave}
+                        disabled={isSaving || !onSave || hasSaved}
+                        className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${
+                          hasSaved 
+                            ? 'text-green-700 bg-green-100 cursor-not-allowed'
+                            : 'text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed'
+                        }`}
+                      >
+                        {isSaving ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                            Saving...
+                          </>
+                        ) : hasSaved ? (
+                          <>
+                            <BookmarkIcon className="h-4 w-4 mr-2" />
+                            Saved
+                          </>
+                        ) : (
+                          <>
+                            <BookmarkIcon className="h-4 w-4 mr-2" />
+                            Save Price Sheet
+                          </>
+                        )}
+                      </button>
+                    )}
                   </div>
                 </div>
                 
-                {/* Save Notice */}
-                <div className="bg-blue-50 border-t border-blue-200 px-6 py-3">
-                  <p className="text-sm text-blue-800">
-                    💡 <strong>Next Step:</strong> After saving, send this price sheet to contacts with automatic pricing optimization at{' '}
-                    <span className="font-mono text-xs bg-blue-100 px-2 py-0.5 rounded">/dashboard/price-sheets/send</span>
-                  </p>
-                </div>
+                {/* Save Notice - Only show in save mode */}
+                {mode === 'save' && (
+                  <div className="bg-blue-50 border-t border-blue-200 px-6 py-3">
+                    <p className="text-sm text-blue-800">
+                      💡 <strong>Next Step:</strong> After saving, send this price sheet to contacts with automatic pricing optimization at{' '}
+                      <span className="font-mono text-xs bg-blue-100 px-2 py-0.5 rounded">/dashboard/price-sheets/send</span>
+                    </p>
+                  </div>
+                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>

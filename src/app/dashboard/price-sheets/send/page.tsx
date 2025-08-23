@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   PaperAirplaneIcon,
   EyeIcon,
@@ -8,7 +8,56 @@ import {
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
+import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { Contact } from '../../../../types'
+import { priceSheetsApi, contactsApi } from '../../../../lib/api'
+
+// Interfaces for real data
+interface PriceSheet {
+  _id: string
+  title: string
+  status: 'draft' | 'sent' | 'archived'
+  productIds: string[] // Array of PriceSheetProduct IDs
+  productsCount: number
+  totalValue?: number
+  notes?: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface PriceSheetProduct {
+  _id: string
+  priceSheetId: string
+  
+  // References (for data integrity)
+  cropId: string
+  variationId: string
+  regionId?: string
+  
+  // Denormalized product details (for performance)
+  productName?: string // e.g., "Organic Lime Key Lime"
+  category?: string // e.g., "citrus"
+  commodity?: string // e.g., "lime"
+  variety?: string // e.g., "Key Lime"
+  subtype?: string // e.g., "Conventional" or "Organic"
+  isOrganic?: boolean
+  regionName?: string // e.g., "Central Valley - Fresno"
+  
+  // Pricing and packaging
+  packageType: string
+  countSize?: string
+  grade?: string
+  price: number
+  marketPrice?: number
+  marketPriceUnit?: string
+  marketPriceDate?: string
+  availability: string
+  isSelected: boolean
+  customNote?: string
+  discountPercent?: number
+  createdAt: string
+  updatedAt: string
+}
 
 // Utility function for relative time
 const getRelativeTime = (dateString: string) => {
@@ -28,89 +77,42 @@ const getRelativeTime = (dateString: string) => {
   return `Created on ${date.toLocaleDateString()}`
 }
 
-// Mock saved price sheets (sorted by most recent first)
-const mockSavedPriceSheets = [
-  {
-    id: '1',
-    title: 'Spring Strawberries & Lettuce - March 2024',
-    products: 5,
-    regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas'],
-    createdAt: new Date(Date.now() - 2 * 60 * 1000).toISOString(), // 2 minutes ago
-    lastModified: new Date(Date.now() - 2 * 60 * 1000).toISOString()
-  },
-  {
-    id: '2',
-    title: 'Organic Tomato Collection',
-    products: 3,
-    regions: ['Central Valley - Fresno'],
-    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
-    lastModified: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-  }
-]
-
-// Mock contacts (reusing from contacts page)
-const mockContacts: Contact[] = [
-  {
-    id: '1',
-    firstName: 'Sarah',
-    lastName: 'Johnson',
-    email: 'sarah@freshmarket.com',
-    company: 'Fresh Market Co.',
-    pricingTier: 'premium',
-    pricingAdjustment: -5,
-    tags: ['premium', 'priority'],
-    primaryCrops: ['Strawberries'],
-    status: 'active',
-    relationshipStage: 'customer',
-    interactions: [],
-    totalOrders: 48,
-    lifetimeValue: 120000,
-    source: 'manual',
-    createdAt: '2023-08-15',
-    updatedAt: '2024-03-15'
-  },
-  {
-    id: '2',
-    firstName: 'Mike',
-    lastName: 'Chen',
-    email: 'mike@organicgrocers.com',
-    company: 'Organic Grocers Inc.',
-    pricingTier: 'volume',
-    pricingAdjustment: -15,
-    tags: ['organic', 'volume'],
-    primaryCrops: ['Tomatoes'],
-    status: 'active',
-    relationshipStage: 'customer',
-    interactions: [],
-    totalOrders: 24,
-    lifetimeValue: 240000,
-    source: 'csv_import',
-    createdAt: '2023-06-20',
-    updatedAt: '2024-03-12'
-  },
-  {
-    id: '3',
-    firstName: 'Lisa',
-    lastName: 'Rodriguez',
-    email: 'lisa@farmersmarket.com',
-    company: 'Rodriguez Farmers Market',
-    pricingTier: 'standard',
-    pricingAdjustment: 0,
-    tags: ['local'],
-    primaryCrops: ['Strawberries'],
-    status: 'active',
-    relationshipStage: 'warm',
-    interactions: [],
-    totalOrders: 12,
-    lifetimeValue: 15000,
-    source: 'manual',
-    createdAt: '2023-09-10',
-    updatedAt: '2024-03-08'
-  }
-]
+// Simple function to convert PriceSheet products (now with denormalized data)
+const convertToPreviewFormat = async (products: PriceSheetProduct[]): Promise<Array<{
+  id: string
+  productName: string
+  region: string
+  packageType: string
+  countSize?: string
+  grade?: string
+  basePrice: number
+  adjustedPrice: number
+  availability: string
+}>> => {
+  // No need for complex lookups - data is already denormalized!
+  return products.map(product => ({
+    id: product._id,
+    productName: product.productName || 'Unknown Product', // Direct from denormalized data
+    region: product.regionName || 'Unknown Region', // Direct from denormalized data
+    packageType: product.packageType,
+    countSize: product.countSize,
+    grade: product.grade,
+    basePrice: product.price,
+    adjustedPrice: product.price,
+    availability: product.availability
+  }))
+}
 
 export default function SendPriceSheets() {
-  const [selectedPriceSheet, setSelectedPriceSheet] = useState<string>(mockSavedPriceSheets[0]?.id || '')
+  // Data state
+  const [priceSheets, setPriceSheets] = useState<PriceSheet[]>([])
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [isLoadingPriceSheets, setIsLoadingPriceSheets] = useState(true)
+  const [isLoadingContacts, setIsLoadingContacts] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // UI state
+  const [selectedPriceSheet, setSelectedPriceSheet] = useState<string>('')
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
@@ -118,8 +120,79 @@ export default function SendPriceSheets() {
   const [emailContent, setEmailContent] = useState('')
   const [isEmailGenerated, setIsEmailGenerated] = useState(false)
 
+  // Preview modal state
+  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
+  const [previewPriceSheet, setPreviewPriceSheet] = useState<PriceSheet | null>(null)
+  const [previewProducts, setPreviewProducts] = useState<Array<{
+    id: string
+    productName: string
+    region: string
+    packageType: string
+    basePrice: number
+    adjustedPrice: number
+    availability: string
+  }>>([])
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
+
+  // Load data on component mount
+  useEffect(() => {
+    loadPriceSheets()
+    loadContacts()
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadPriceSheets = async () => {
+    try {
+      setIsLoadingPriceSheets(true)
+      const response = await priceSheetsApi.getAll()
+      const sheets = response.priceSheets || []
+      setPriceSheets(sheets)
+      
+      // Auto-select the most recent price sheet
+      if (sheets.length > 0 && !selectedPriceSheet) {
+        setSelectedPriceSheet(sheets[0]._id)
+      }
+    } catch (error) {
+      console.error('Error loading price sheets:', error)
+      setError('Failed to load price sheets')
+    } finally {
+      setIsLoadingPriceSheets(false)
+    }
+  }
+
+  const loadContacts = async () => {
+    try {
+      setIsLoadingContacts(true)
+      const response = await contactsApi.getAll()
+      setContacts(response.contacts || [])
+    } catch (error) {
+      console.error('Error loading contacts:', error)
+      setError('Failed to load contacts')
+    } finally {
+      setIsLoadingContacts(false)
+    }
+  }
+
+  const handlePreviewPriceSheet = async (priceSheetId: string) => {
+    try {
+      setIsLoadingPreview(true)
+      const response = await priceSheetsApi.getById(priceSheetId)
+      setPreviewPriceSheet(response.priceSheet)
+      
+      // Convert products with full data (async)
+      const convertedProducts = await convertToPreviewFormat(response.products || [])
+      setPreviewProducts(convertedProducts)
+      
+      setIsPreviewModalOpen(true)
+    } catch (error) {
+      console.error('Error loading price sheet preview:', error)
+      alert('Failed to load price sheet preview')
+    } finally {
+      setIsLoadingPreview(false)
+    }
+  }
+
   // Filter contacts
-  const filteredContacts = mockContacts.filter(contact => {
+  const filteredContacts = contacts.filter(contact => {
     const matchesSearch = searchTerm === '' || 
       `${contact.firstName} ${contact.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       contact.company.toLowerCase().includes(searchTerm.toLowerCase())
@@ -164,7 +237,7 @@ export default function SendPriceSheets() {
   }
 
   const generateAIEmail = () => {
-    const selectedSheet = mockSavedPriceSheets.find(s => s.id === selectedPriceSheet)
+    const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
     const contactCount = selectedContacts.length
     
     // Mock AI-generated email
@@ -175,8 +248,8 @@ Dear Valued Customer,
 I hope this message finds you well! I'm excited to share our latest price sheet featuring the freshest, highest-quality produce from our farms.
 
 🌱 What's New This Week:
-• ${selectedSheet?.products || 5} premium products across ${selectedSheet?.regions?.length || 2} growing regions
-• Competitive pricing with volume discounts available
+• ${selectedSheet?.productsCount || 5} premium products with competitive pricing
+• Volume discounts available for qualifying orders
 • Peak season availability on select items
 
 Our team has carefully curated this selection based on current market conditions and seasonal availability. Each product meets our strict quality standards and is harvested at optimal freshness.
@@ -188,8 +261,8 @@ I'm here to answer any questions about availability, minimum orders, or special 
 Looking forward to serving you with the best produce available!
 
 Best regards,
-The Plums AG Team
-sales@plums.ag | (555) 123-4567`
+The MarketHunt Team
+sales@markethunt.com | (555) 123-4567`
 
     setEmailContent(aiEmail)
     setIsEmailGenerated(true)
@@ -205,10 +278,10 @@ sales@plums.ag | (555) 123-4567`
   }
 
   const tierCounts = {
-    premium: mockContacts.filter(c => c.pricingTier === 'premium').length,
-    volume: mockContacts.filter(c => c.pricingTier === 'volume').length,
-    standard: mockContacts.filter(c => c.pricingTier === 'standard').length,
-    new_prospect: mockContacts.filter(c => c.pricingTier === 'new_prospect').length
+    premium: contacts.filter(c => c.pricingTier === 'premium').length,
+    volume: contacts.filter(c => c.pricingTier === 'volume').length,
+    standard: contacts.filter(c => c.pricingTier === 'standard').length,
+    new_prospect: contacts.filter(c => c.pricingTier === 'new_prospect').length
   }
 
   return (
@@ -236,32 +309,58 @@ sales@plums.ag | (555) 123-4567`
             <h2 className="text-lg font-medium text-gray-900">Select Price Sheet</h2>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {mockSavedPriceSheets.map((sheet) => (
-              <div
-                key={sheet.id}
-                onClick={() => setSelectedPriceSheet(sheet.id)}
-                className={`relative cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                  selectedPriceSheet === sheet.id
-                    ? 'border-blue-600 bg-blue-50'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <h3 className="text-sm font-medium text-gray-900">{sheet.title}</h3>
-                    <div className="mt-1 text-sm text-gray-500">
-                      <p>{sheet.products} products • {sheet.regions.length} regions</p>
-                      <p className="text-xs mt-1 text-blue-600 font-medium">{getRelativeTime(sheet.createdAt)}</p>
+          {isLoadingPriceSheets ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {[1, 2].map((i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="bg-gray-200 rounded-lg h-24"></div>
+                </div>
+              ))}
+            </div>
+          ) : priceSheets.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No price sheets found. Create one first in the Price Sheet Generator.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {priceSheets.map((sheet) => (
+                <div
+                  key={sheet._id}
+                  onClick={() => setSelectedPriceSheet(sheet._id)}
+                  className={`relative cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                    selectedPriceSheet === sheet._id
+                      ? 'border-blue-600 bg-blue-50'
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h3 className="text-sm font-medium text-gray-900">{sheet.title}</h3>
+                      <div className="mt-1 text-sm text-gray-500">
+                        <p>{sheet.productsCount} products • {sheet.status}</p>
+                        <p className="text-xs mt-1 text-blue-600 font-medium">{getRelativeTime(sheet.createdAt)}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handlePreviewPriceSheet(sheet._id)
+                        }}
+                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                        title="Preview price sheet"
+                      >
+                        <EyeIcon className="h-4 w-4" />
+                      </button>
+                      {selectedPriceSheet === sheet._id && (
+                        <CheckIcon className="h-5 w-5 text-blue-600" />
+                      )}
                     </div>
                   </div>
-                  {selectedPriceSheet === sheet.id && (
-                    <CheckIcon className="h-5 w-5 text-blue-600" />
-                  )}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
           
           {!selectedPriceSheet && (
             <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
@@ -432,7 +531,7 @@ sales@plums.ag | (555) 123-4567`
               <h3 className="text-sm font-medium text-green-800 mb-2">Ready to Send</h3>
               <div className="text-sm text-green-700">
                 <p className="mb-1">
-                  <strong>Price Sheet:</strong> {mockSavedPriceSheets.find(s => s.id === selectedPriceSheet)?.title}
+                  <strong>Price Sheet:</strong> {priceSheets.find(s => s._id === selectedPriceSheet)?.title}
                 </p>
                 <p className="mb-1">
                   <strong>Recipients:</strong> {selectedContacts.length} contacts
@@ -524,6 +623,28 @@ sales@plums.ag | (555) 123-4567`
           </div>
         )}
       </div>
+
+      {/* Preview Modal */}
+      {previewPriceSheet && (
+        <PriceSheetPreviewModal
+          isOpen={isPreviewModalOpen}
+          onClose={() => setIsPreviewModalOpen(false)}
+          title={previewPriceSheet.title}
+          products={previewProducts}
+          additionalNotes={previewPriceSheet.notes}
+          mode="send"
+        />
+      )}
+
+      {/* Loading overlay for preview */}
+      {isLoadingPreview && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 flex items-center space-x-3">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+            <span className="text-gray-900">Loading preview...</span>
+          </div>
+        </div>
+      )}
     </>
   )
 }

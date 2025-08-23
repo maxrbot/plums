@@ -78,6 +78,7 @@ export default function NewPriceSheet() {
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [hasSaved, setHasSaved] = useState(false)
 
   // Helper functions to work with unified packaging system
   const getPackagingOptions = (commodity: string) => {
@@ -516,9 +517,21 @@ export default function NewPriceSheet() {
         }
 
         return {
+          // References (for data integrity)
           cropId: product.cropId, // This will be converted to ObjectId on backend
           variationId: product.variationId,
           regionId: product.regionId, // This will be converted to ObjectId on backend
+          
+          // Denormalized product details (for performance)
+          productName: product.name, // e.g., "Organic Lime Key Lime"
+          category: product.commodity, // Using commodity as category for now
+          commodity: product.commodity,
+          variety: product.variety,
+          subtype: product.subtype,
+          isOrganic: product.isOrganic,
+          regionName: product.region,
+          
+          // Pricing and packaging
           packageType: row.packageType,
           countSize: row.countSize || undefined,
           grade: row.grade || undefined,
@@ -540,6 +553,9 @@ export default function NewPriceSheet() {
       })
 
       console.log('Price sheet saved:', result)
+      
+      // Mark as saved
+      setHasSaved(true)
       
       // Show success message
       alert(`Price sheet "${priceSheetTitle}" saved successfully with ${productsData.length} products!`)
@@ -977,6 +993,7 @@ export default function NewPriceSheet() {
         additionalNotes={additionalNotes}
         onSave={handleSave}
         isSaving={isSaving}
+        hasSaved={hasSaved}
       />
     </>
   )

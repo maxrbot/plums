@@ -6,7 +6,8 @@ import {
   ChartBarIcon, 
   DocumentTextIcon, 
   ArrowTrendingUpIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ChatBubbleLeftRightIcon
 } from '@heroicons/react/24/outline'
 import LoginModal from '@/components/modals/LoginModal'
 
@@ -71,8 +72,8 @@ export default function Home() {
           {/* Hero Text */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-              Your Farm&apos;s{' '}
-              <span className="text-lime-500">Command Center</span>
+              Turn Your Farm Into a{' '}
+              <span className="text-lime-500">24/7 Sales Machine</span>
             </h1>
             <p className="mt-6 text-xl leading-8 text-gray-600 max-w-3xl mx-auto">
               See how MarketHunt puts your agricultural products in front of premium buyers. 
@@ -207,10 +208,10 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              Three steps to premium buyers
+              Tools to help you sell
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Set up your farm profile, create professional price sheets, and watch buyers come to you.
+              Professional price sheets, AI sales assistance, and analytics that turn inquiries into contracts.
             </p>
           </div>
           
@@ -219,19 +220,19 @@ export default function Home() {
               <div className="mx-auto h-16 w-16 rounded-full bg-lime-100 flex items-center justify-center mb-6">
                 <DocumentTextIcon className="h-8 w-8 text-lime-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Setup Your Products</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Smart Price Sheets</h3>
               <p className="text-gray-600">
-                Add your crops, regions, certifications, and packaging options. We auto-populate from your existing data.
+                Professional, branded pricing that showcases your quality, certifications, and story. Stop competing on price alone.
               </p>
             </div>
             
             <div className="text-center">
               <div className="mx-auto h-16 w-16 rounded-full bg-cyan-100 flex items-center justify-center mb-6">
-                <CurrencyDollarIcon className="h-8 w-8 text-cyan-600" />
+                <ChatBubbleLeftRightIcon className="h-8 w-8 text-cyan-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Generate Price Sheets</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI Sales Assistant</h3>
               <p className="text-gray-600">
-                Create professional price sheets in minutes. Send to buyers and track who&apos;s engaging with your products.
+                24/7 AI SDR that handles basic inquiries, qualifies leads, and frees your team to close the big contracts.
               </p>
             </div>
             
@@ -239,9 +240,9 @@ export default function Home() {
               <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
                 <ChartBarIcon className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Track & Optimize</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Analytics</h3>
               <p className="text-gray-600">
-                See which buyers are interested, optimize pricing, and let AI handle customer questions 24/7.
+                See which buyers are interested, track engagement, and turn insights into revenue. Be the farm that procurement managers bookmark.
               </p>
             </div>
           </div>

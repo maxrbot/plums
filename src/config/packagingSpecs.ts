@@ -27,8 +27,10 @@ export const commodityPrimaryPackages: Record<string, {
   standardUnit?: number  // 40 for "40 lb", 24 for "24 ct"
   unitType?: 'lb' | 'ct' | 'kg'
 }> = {
-  // Citrus
+  // Citrus Fruits
   orange: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
+  mandarin: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  minneola: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
   lemon: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
   lime: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
   grapefruit: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
@@ -36,32 +38,72 @@ export const commodityPrimaryPackages: Record<string, {
   // Root Vegetables
   carrot: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
   potato: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  'sweet-potato': { packageName: '40 lb Box', type: 'weight', standardUnit: 40, unitType: 'lb' },
   onion: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  garlic: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
+  beet: { packageName: '25 lb Bag', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  turnip: { packageName: '25 lb Bag', type: 'weight', standardUnit: 25, unitType: 'lb' },
   
   // Leafy Greens
   lettuce: { packageName: '24 ct Carton', type: 'count', standardUnit: 24, unitType: 'ct' },
-  chard: { packageName: '12 bunch Carton', type: 'count', standardUnit: 12, unitType: 'ct' },
   spinach: { packageName: '24 ct Carton', type: 'count', standardUnit: 24, unitType: 'ct' },
+  kale: { packageName: '12 bunch Carton', type: 'count', standardUnit: 12, unitType: 'ct' },
+  chard: { packageName: '12 bunch Carton', type: 'count', standardUnit: 12, unitType: 'ct' },
+  arugula: { packageName: '4 lb Case', type: 'weight', standardUnit: 4, unitType: 'lb' },
   
-  // Stone Fruits
-  peach: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
-  pear: { packageName: '44 lb Box', type: 'weight', standardUnit: 44, unitType: 'lb' },
-  plum: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  // Vine Crops
+  tomato: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  'bell-pepper': { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
+  'hot-pepper': { packageName: '10 lb Box', type: 'weight', standardUnit: 10, unitType: 'lb' },
+  cucumber: { packageName: '55 lb Box', type: 'weight', standardUnit: 55, unitType: 'lb' },
+  'summer-squash': { packageName: '42 lb Box', type: 'weight', standardUnit: 42, unitType: 'lb' },
+  'winter-squash': { packageName: '50 lb Box', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  melon: { packageName: '42 lb Box', type: 'weight', standardUnit: 42, unitType: 'lb' },
   
   // Berries
   strawberry: { packageName: '8x1lb Flat', type: 'weight', standardUnit: 8, unitType: 'lb' },
   blueberry: { packageName: '12x1lb Flat', type: 'weight', standardUnit: 12, unitType: 'lb' },
+  raspberry: { packageName: '12x6oz Flat', type: 'weight', standardUnit: 4.5, unitType: 'lb' },
+  blackberry: { packageName: '12x6oz Flat', type: 'weight', standardUnit: 4.5, unitType: 'lb' },
   
-  // Tomatoes
-  tomato: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  // Stone Fruits
+  peach: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  plum: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  cherry: { packageName: '20 lb Box', type: 'weight', standardUnit: 20, unitType: 'lb' },
+  apricot: { packageName: '24 lb Box', type: 'weight', standardUnit: 24, unitType: 'lb' },
+  
+  // Pome Fruits
+  apple: { packageName: '42 lb Box', type: 'weight', standardUnit: 42, unitType: 'lb' },
+  pear: { packageName: '44 lb Box', type: 'weight', standardUnit: 44, unitType: 'lb' },
+  
+  // Herbs & Aromatics
+  basil: { packageName: '12 bunch Case', type: 'count', standardUnit: 12, unitType: 'ct' },
+  mint: { packageName: '12 bunch Case', type: 'count', standardUnit: 12, unitType: 'ct' },
+  rosemary: { packageName: '12 bunch Case', type: 'count', standardUnit: 12, unitType: 'ct' },
+  thyme: { packageName: '12 bunch Case', type: 'count', standardUnit: 12, unitType: 'ct' },
+  cilantro: { packageName: '24 bunch Case', type: 'count', standardUnit: 24, unitType: 'ct' },
+  parsley: { packageName: '24 bunch Case', type: 'count', standardUnit: 24, unitType: 'ct' },
+  
+  // Tropical Fruits
+  kiwi: { packageName: '7 lb Flat', type: 'weight', standardUnit: 7, unitType: 'lb' },
+  avocado: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  mango: { packageName: '10 lb Box', type: 'weight', standardUnit: 10, unitType: 'lb' },
+  pineapple: { packageName: '8 ct Box', type: 'count', standardUnit: 8, unitType: 'ct' },
+  papaya: { packageName: '10 lb Box', type: 'weight', standardUnit: 10, unitType: 'lb' },
+  banana: { packageName: '40 lb Box', type: 'weight', standardUnit: 40, unitType: 'lb' },
+  coconut: { packageName: '50 ct Box', type: 'count', standardUnit: 50, unitType: 'ct' },
+  'passion-fruit': { packageName: '5 lb Box', type: 'weight', standardUnit: 5, unitType: 'lb' },
+  'dragon-fruit': { packageName: '10 lb Box', type: 'weight', standardUnit: 10, unitType: 'lb' },
+  dates: { packageName: '22 lb Box', type: 'weight', standardUnit: 22, unitType: 'lb' },
   
   // Nuts
   almond: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
   walnut: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
   pecan: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
-  
-  // Dates
-  dates: { packageName: '22 lb Box', type: 'weight', standardUnit: 22, unitType: 'lb' },
+  pistachio: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  hazelnut: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  macadamia: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  chestnut: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
 }
 
 // Comprehensive industry-standard packaging specifications

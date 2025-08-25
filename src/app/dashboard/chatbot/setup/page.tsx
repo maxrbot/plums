@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { chatbotConfigApi, chatbotApi } from '@/lib/api'
+import { chatbotConfigApi, chatbotApi, usersApi, regionsApi, cropsApi, certificationsApi, packagingApi } from '@/lib/api'
 import { 
   CheckCircleIcon,
   ClockIcon,
@@ -17,30 +17,16 @@ import {
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 
-// Mock data - this would come from existing setup data
-const mockFarmData = {
-  // From Settings
-  farmName: "AgriFarm Co.",
-  contactEmail: "sales@agrifarm.com",
-  contactPhone: "(555) 123-4567",
-  website: "https://agrifarm.com",
-  
-  // From Setup - Growing Regions
-  regions: [
-    { name: "Central Valley - Fresno", acreage: "150 acres" },
-    { name: "Salinas Valley - Salinas", acreage: "75 acres" }
-  ],
-  
-  // From Setup - Crops
-  crops: [
-    { commodity: "Strawberries", varieties: ["Albion", "San Andreas"], organic: true },
-    { commodity: "Lettuce", varieties: ["Romaine", "Butter"], organic: false },
-    { commodity: "Tomatoes", varieties: ["Roma", "Cherry"], organic: true }
-  ],
-  
-  // From Setup - Capabilities
-  certifications: ["USDA Organic", "Good Agricultural Practices (GAP)"],
-  packaging: ["1 lb Clamshells", "5 lb Cartons", "25 lb Cases"]
+// Real farm data state
+interface FarmData {
+  farmName: string
+  contactEmail: string
+  contactPhone: string
+  website: string
+  regions: { name: string; acreage: string }[]
+  crops: { commodity: string; varieties: string[]; organic: boolean }[]
+  certifications: string[]
+  packaging: string[]
 }
 
 const mockExtendedKnowledge = {
@@ -84,6 +70,16 @@ const mockChatConfig = {
 
 export default function ChatbotSetup() {
   const [currentPhase, setCurrentPhase] = useState<'knowledge' | 'extended' | 'config' | 'deploy'>('knowledge')
+  const [farmData, setFarmData] = useState<FarmData>({
+    farmName: '',
+    contactEmail: '',
+    contactPhone: '',
+    website: '',
+    regions: [],
+    crops: [],
+    certifications: [],
+    packaging: []
+  })
   const [extendedKnowledge, setExtendedKnowledge] = useState(mockExtendedKnowledge)
   const [chatConfig, setChatConfig] = useState(mockChatConfig)
   const [enabledSections, setEnabledSections] = useState({
@@ -119,8 +115,22 @@ export default function ChatbotSetup() {
   const [syncing, setSyncing] = useState(false)
   const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null)
 
-  // Calculate completion percentages
-  const farmDataCompletion = 85 // Most data from existing setup
+  // Calculate completion percentages based on real data
+  const farmDataCompletion = (() => {
+    const totalFields = 8 // farmName, email, phone, website, regions, crops, certifications, packaging
+    let filledFields = 0
+    
+    if (farmData.farmName) filledFields++
+    if (farmData.contactEmail) filledFields++
+    if (farmData.contactPhone) filledFields++
+    if (farmData.website) filledFields++
+    if (farmData.regions.length > 0) filledFields++
+    if (farmData.crops.length > 0) filledFields++
+    if (farmData.certifications.length > 0) filledFields++
+    if (farmData.packaging.length > 0) filledFields++
+    
+    return Math.round((filledFields / totalFields) * 100)
+  })()
   const extendedKnowledgeCompletion = Object.values(extendedKnowledge).reduce((acc, section) => {
     const filledFields = Object.values(section).filter(value => value.trim() !== '').length
     const totalFields = Object.values(section).length
@@ -205,9 +215,63 @@ export default function ChatbotSetup() {
     loadConfiguration()
   }, [])
 
+  const loadFarmData = async () => {
+    try {
+      // Load all farm data in parallel
+      const [userProfile, regions, crops, certifications, packaging] = await Promise.all([
+        usersApi.getProfile(),
+        regionsApi.getAll(),
+        cropsApi.getAll(),
+        certificationsApi.getAll(),
+        packagingApi.getAll()
+      ])
+
+      // Process crops to extract commodity and varieties
+      const processedCrops = crops.crops?.map((crop: any) => ({
+        commodity: crop.commodity,
+        varieties: crop.variations?.map((v: any) => v.variety) || [],
+        organic: crop.variations?.some((v: any) => v.isOrganic) || false
+      })) || []
+
+      // Process regions to include acreage
+      const processedRegions = regions.regions?.map((region: any) => ({
+        name: region.name,
+        acreage: region.acreage ? `${region.acreage} acres` : 'Not specified'
+      })) || []
+
+      setFarmData({
+        farmName: (userProfile as any)?.profile?.companyName || '',
+        contactEmail: (userProfile as any)?.email || '',
+        contactPhone: (userProfile as any)?.profile?.phone || '',
+        website: (userProfile as any)?.profile?.website || '',
+        regions: processedRegions,
+        crops: processedCrops,
+        certifications: certifications.certifications?.map((cert: any) => cert.name) || [],
+        packaging: packaging.packaging?.map((pkg: any) => pkg.name) || []
+      })
+    } catch (error) {
+      console.error('Failed to load farm data:', error)
+    }
+  }
+
   const loadConfiguration = async () => {
     try {
       setLoading(true)
+      
+      // Load farm data and chatbot config in parallel
+      await Promise.all([
+        loadFarmData(),
+        loadChatbotConfig()
+      ])
+    } catch (error) {
+      console.error('Failed to load configuration:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const loadChatbotConfig = async () => {
+    try {
       const config = await chatbotConfigApi.get()
       
       // Update chat config
@@ -235,9 +299,7 @@ export default function ChatbotSetup() {
 
       setHasChanges(false)
     } catch (error) {
-      console.error('Failed to load configuration:', error)
-    } finally {
-      setLoading(false)
+      console.error('Failed to load chatbot config:', error)
     }
   }
 
@@ -411,19 +473,6 @@ export default function ChatbotSetup() {
             </div>
           </div>
             <div className="p-6">
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-                <div className="flex items-start space-x-3">
-                  <InformationCircleIcon className="h-5 w-5 text-green-600 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-medium text-green-800">Great news!</h4>
-                    <p className="text-sm text-green-700 mt-1">
-                      Most of your farm knowledge is already configured from your price sheet setup. 
-                      Your chatbot will automatically know about your farm, crops, and capabilities.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Farm & Contact Info */}
                 <div>
@@ -434,19 +483,19 @@ export default function ChatbotSetup() {
                   <div className="space-y-3 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Farm Name:</span>
-                      <span className="font-medium">{mockFarmData.farmName}</span>
+                      <span className="font-medium">{farmData.farmName || 'Not set'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Contact Email:</span>
-                      <span className="font-medium">{mockFarmData.contactEmail}</span>
+                      <span className="font-medium">{farmData.contactEmail || 'Not set'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Phone:</span>
-                      <span className="font-medium">{mockFarmData.contactPhone}</span>
+                      <span className="font-medium">{farmData.contactPhone || 'Not set'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-500">Website:</span>
-                      <span className="font-medium">{mockFarmData.website}</span>
+                      <span className="font-medium">{farmData.website || 'Not set'}</span>
                     </div>
                   </div>
                 </div>
@@ -458,12 +507,16 @@ export default function ChatbotSetup() {
                     <h4 className="text-md font-medium text-gray-900">Growing Regions</h4>
                   </div>
                   <div className="space-y-2">
-                    {mockFarmData.regions.map((region, index) => (
-                      <div key={index} className="flex justify-between text-sm">
-                        <span className="text-gray-700">{region.name}</span>
-                        <span className="text-gray-500">{region.acreage}</span>
-                      </div>
-                    ))}
+                    {farmData.regions.length > 0 ? (
+                      farmData.regions.map((region, index) => (
+                        <div key={index} className="flex justify-between text-sm">
+                          <span className="text-gray-700">{region.name}</span>
+                          <span className="text-gray-500">{region.acreage}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No regions configured</div>
+                    )}
                   </div>
                 </div>
 
@@ -474,19 +527,23 @@ export default function ChatbotSetup() {
                     <h4 className="text-md font-medium text-gray-900">Crops & Varieties</h4>
                   </div>
                   <div className="space-y-2">
-                    {mockFarmData.crops.map((crop, index) => (
-                      <div key={index} className="text-sm">
-                        <div className="flex items-center space-x-2">
-                          <span className="font-medium text-gray-900">{crop.commodity}</span>
-                          {crop.organic && (
-                            <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                              Organic
-                            </span>
-                          )}
+                    {farmData.crops.length > 0 ? (
+                      farmData.crops.map((crop, index) => (
+                        <div key={index} className="text-sm">
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium text-gray-900">{crop.commodity}</span>
+                            {crop.organic && (
+                              <span className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                Organic
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-gray-500 ml-0">{crop.varieties.join(', ')}</p>
                         </div>
-                        <p className="text-gray-500 ml-0">{crop.varieties.join(', ')}</p>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <div className="text-sm text-gray-500">No crops configured</div>
+                    )}
                   </div>
                 </div>
 
@@ -500,17 +557,21 @@ export default function ChatbotSetup() {
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Certifications</p>
                       <div className="flex flex-wrap gap-1 mt-1">
-                        {mockFarmData.certifications.map((cert, index) => (
-                          <span key={index} className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                            {cert}
-                          </span>
-                        ))}
+                        {farmData.certifications.length > 0 ? (
+                          farmData.certifications.map((cert, index) => (
+                            <span key={index} className="inline-flex px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              {cert}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-gray-500">No certifications</span>
+                        )}
                       </div>
                     </div>
                     <div>
                       <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">Packaging Options</p>
                       <div className="text-sm text-gray-700 mt-1">
-                        {mockFarmData.packaging.join(', ')}
+                        {farmData.packaging.length > 0 ? farmData.packaging.join(', ') : 'No custom packaging'}
                       </div>
                     </div>
                   </div>
@@ -518,12 +579,12 @@ export default function ChatbotSetup() {
               </div>
 
                              <div className="mt-6 pt-6 border-t border-gray-200">
-                 <Link
-                   href="/dashboard/price-sheets/setup"
-                   className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                 >
-                   Update farm data in Price Sheet Setup →
-                 </Link>
+                                 <Link
+                  href="/dashboard/price-sheets"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                >
+                  Update farm data in Price Sheet Setup →
+                </Link>
                </div>
              </div>
            </div>

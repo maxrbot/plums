@@ -1,14 +1,16 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { 
   UserIcon, 
   BuildingOfficeIcon,
   BellIcon, 
   ShieldCheckIcon,
-
   CheckIcon,
-  ExclamationTriangleIcon
+  ExclamationTriangleIcon,
+  SparklesIcon,
+  RocketLaunchIcon
 } from '@heroicons/react/24/outline'
 import { useUser } from '@/contexts/UserContext'
 
@@ -220,6 +222,34 @@ export default function Settings() {
               </button>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Rapid Onboarding Button */}
+      <div className="mb-8">
+        <div className="bg-gradient-to-r from-lime-50 to-cyan-50 border border-lime-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="flex-shrink-0">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-r from-lime-500 to-cyan-500 flex items-center justify-center">
+                  <RocketLaunchIcon className="h-6 w-6 text-white" />
+                </div>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Accelerated Setup</h3>
+                <p className="text-sm text-gray-600">
+                  Import your company data automatically from your website and jumpstart your profile in minutes.
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/settings/accelerated-setup"
+              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-lime-600 to-cyan-600 hover:from-lime-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 transition-all duration-200"
+            >
+              <SparklesIcon className="h-5 w-5 mr-2" />
+              Launch Setup
+            </Link>
+          </div>
         </div>
       </div>
 

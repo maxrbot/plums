@@ -149,6 +149,46 @@ export const cropsApi = {
   },
 }
 
+// Chatbot Configuration API
+export const chatbotConfigApi = {
+  get: async () => {
+    return apiRequest<any>('/chatbot-config')
+  },
+
+  update: async (config: any) => {
+    return apiRequest<any>('/chatbot-config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    })
+  },
+
+  reset: async () => {
+    return apiRequest<any>('/chatbot-config', {
+      method: 'DELETE',
+    })
+  }
+}
+
+// Chatbot Chat API
+export const chatbotApi = {
+  chat: async (message: string, conversationHistory?: any[]) => {
+    return apiRequest<any>('/chatbot/chat', {
+      method: 'POST',
+      body: JSON.stringify({
+        message,
+        conversationHistory
+      }),
+    })
+  },
+
+  rebuildCache: async () => {
+    return apiRequest<any>('/chatbot/rebuild-cache', {
+      method: 'POST',
+      body: JSON.stringify({}), // Empty body but valid JSON
+    })
+  }
+}
+
 // Contacts API
 export const contactsApi = {
   getAll: async () => {
@@ -269,31 +309,4 @@ export const packagingApi = {
   },
 }
 
-// Chatbot API
-export const chatbotApi = {
-  getConfig: async () => {
-    return apiRequest<{ config: any }>('/chatbot/config')
-  },
 
-  updateConfig: async (data: any) => {
-    return apiRequest<{ config: any }>('/chatbot/config', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    })
-  },
-
-  populateKnowledge: async () => {
-    return apiRequest('/chatbot/populate-knowledge', { method: 'POST' })
-  },
-
-  deploy: async () => {
-    return apiRequest('/chatbot/deploy', { method: 'POST' })
-  },
-
-  test: async (message: string) => {
-    return apiRequest('/chatbot/test', {
-      method: 'POST',
-      body: JSON.stringify({ message }),
-    })
-  },
-}

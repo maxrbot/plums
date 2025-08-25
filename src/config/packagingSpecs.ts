@@ -20,6 +20,50 @@ export interface PackagingSpec {
   createdBy?: string           // User ID for custom packaging (null for standards)
 }
 
+// Primary package defaults for each commodity (industry standards)
+export const commodityPrimaryPackages: Record<string, {
+  packageName: string
+  type: 'weight' | 'count'
+  standardUnit?: number  // 40 for "40 lb", 24 for "24 ct"
+  unitType?: 'lb' | 'ct' | 'kg'
+}> = {
+  // Citrus
+  orange: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
+  lemon: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
+  lime: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
+  grapefruit: { packageName: '40 lb Carton', type: 'weight', standardUnit: 40, unitType: 'lb' },
+  
+  // Root Vegetables
+  carrot: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  potato: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  onion: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  
+  // Leafy Greens
+  lettuce: { packageName: '24 ct Carton', type: 'count', standardUnit: 24, unitType: 'ct' },
+  chard: { packageName: '12 bunch Carton', type: 'count', standardUnit: 12, unitType: 'ct' },
+  spinach: { packageName: '24 ct Carton', type: 'count', standardUnit: 24, unitType: 'ct' },
+  
+  // Stone Fruits
+  peach: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  pear: { packageName: '44 lb Box', type: 'weight', standardUnit: 44, unitType: 'lb' },
+  plum: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  
+  // Berries
+  strawberry: { packageName: '8x1lb Flat', type: 'weight', standardUnit: 8, unitType: 'lb' },
+  blueberry: { packageName: '12x1lb Flat', type: 'weight', standardUnit: 12, unitType: 'lb' },
+  
+  // Tomatoes
+  tomato: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  
+  // Nuts
+  almond: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
+  walnut: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
+  pecan: { packageName: '30 lb Box', type: 'weight', standardUnit: 30, unitType: 'lb' },
+  
+  // Dates
+  dates: { packageName: '22 lb Box', type: 'weight', standardUnit: 22, unitType: 'lb' },
+}
+
 // Comprehensive industry-standard packaging specifications
 export const standardPackagingSpecs: PackagingSpec[] = [
   // CITRUS FRUITS

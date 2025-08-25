@@ -1,12 +1,17 @@
+"use client"
+
 import Link from 'next/link'
+import { useState } from 'react'
 import { 
   ChatBubbleLeftRightIcon, 
   Cog6ToothIcon,
   PlayIcon,
   PauseIcon,
   GlobeAltIcon,
-  CodeBracketIcon
+  CodeBracketIcon,
+  PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
+import { chatbotApi } from '@/lib/api'
 
 // Mock chatbot analytics data
 const mockChatbot = {
@@ -23,7 +28,99 @@ const mockChatbot = {
   ]
 }
 
+// Mock current chatbot configuration (would come from setup)
+const mockChatConfig = {
+  botName: "Farm Assistant",
+  personality: "friendly",
+  primaryGoal: "product_info",
+  welcomeMessage: "Hi! How can I help you learn about our farm and products?",
+  fallbackMessage: "I don't have that specific information, but I can connect you with someone who does if you'd like to share your contact details.",
+  outOfSeasonMessage: "That product is currently out of season. It will be available again in spring.",
+  widgetColor: "#10b981"
+}
+
+// Mock farm data for responses
+const mockFarmData = {
+  farmName: "AgriFarm Co.",
+  crops: ["Strawberries", "Lettuce", "Tomatoes"],
+  regions: ["Central Valley", "Salinas Valley"],
+  certifications: ["USDA Organic", "GAP Certified"]
+}
+
 export default function Chatbot() {
+  const [messages, setMessages] = useState([
+    {
+      id: 1,
+      type: 'bot',
+      content: mockChatConfig.welcomeMessage,
+      timestamp: new Date()
+    }
+  ])
+  const [inputMessage, setInputMessage] = useState('')
+
+  // Real bot response using backend API
+  const generateBotResponse = async (userMessage: string) => {
+    try {
+      // Convert messages to the format expected by the API (excluding the user message we just added)
+      const conversationHistory = messages.slice(0, -1).map(msg => ({
+        role: msg.type === 'user' ? 'user' : 'assistant',
+        content: msg.content
+      }))
+      
+      const response = await chatbotApi.chat(userMessage, conversationHistory)
+      return response.message
+    } catch (error) {
+      console.error('Chat API error:', error)
+      return mockChatConfig.fallbackMessage
+    }
+  }
+
+  const handleSendMessage = async () => {
+    if (!inputMessage.trim()) return
+
+    const currentInput = inputMessage
+    setInputMessage('') // Clear input immediately
+
+    // Add user message
+    const userMessage = {
+      id: messages.length + 1,
+      type: 'user' as const,
+      content: currentInput,
+      timestamp: new Date()
+    }
+
+    // Add user message to state first
+    setMessages(prev => [...prev, userMessage])
+
+    // Generate bot response
+    try {
+      const botResponseContent = await generateBotResponse(currentInput)
+      const botResponse = {
+        id: messages.length + 2,
+        type: 'bot' as const,
+        content: botResponseContent,
+        timestamp: new Date()
+      }
+
+      setMessages(prev => [...prev, botResponse])
+    } catch (error) {
+      console.error('Error generating bot response:', error)
+      const errorResponse = {
+        id: messages.length + 2,
+        type: 'bot' as const,
+        content: mockChatConfig.fallbackMessage,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, errorResponse])
+    }
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSendMessage()
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -187,39 +284,73 @@ export default function Chatbot() {
         {/* Chat Testing */}
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-medium text-gray-900">Test Your Chatbot</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-medium text-gray-900">Test Your Chatbot</h3>
+              <div className="text-xs text-gray-500">
+                Live Preview • {mockChatConfig.personality === 'friendly' ? 'Friendly' : 'Professional'} Mode
+              </div>
+            </div>
           </div>
           <div className="p-6">
-            {/* Mock Chat Interface */}
+            {/* Live Chat Interface */}
             <div className="border border-gray-200 rounded-lg h-80 flex flex-col">
-              <div className="bg-gray-50 px-4 py-2 border-b border-gray-200 rounded-t-lg">
+              <div className="px-4 py-2 border-b border-gray-200 rounded-t-lg" style={{ backgroundColor: mockChatConfig.widgetColor + '10' }}>
                 <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-400 rounded-full"></div>
-                  <span className="text-sm font-medium text-gray-900">MarketHunt Bot</span>
+                  <div className="h-2 w-2 rounded-full" style={{ backgroundColor: mockChatConfig.widgetColor }}></div>
+                  <span className="text-sm font-medium text-gray-900">{mockChatConfig.botName}</span>
+                  <span className="text-xs text-gray-500">• {mockFarmData.farmName}</span>
                 </div>
               </div>
               
               <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-                <div className="flex items-start space-x-2">
-                  <div className="h-6 w-6 bg-lime-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-medium">B</span>
+                {messages.map((message) => (
+                  <div key={message.id} className={`flex items-start space-x-2 ${message.type === 'user' ? 'justify-end' : ''}`}>
+                    {message.type === 'bot' && (
+                      <div 
+                        className="h-6 w-6 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ backgroundColor: mockChatConfig.widgetColor }}
+                      >
+                        <span className="text-xs text-white font-medium">
+                          {mockChatConfig.botName.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                    <div className={`rounded-lg px-3 py-2 max-w-xs ${
+                      message.type === 'bot' 
+                        ? 'bg-gray-100 text-gray-900' 
+                        : 'text-white'
+                    }`} style={message.type === 'user' ? { backgroundColor: mockChatConfig.widgetColor } : {}}>
+                      <p className="text-sm">{message.content}</p>
+                    </div>
+                    {message.type === 'user' && (
+                      <div className="h-6 w-6 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs text-white font-medium">U</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="bg-gray-100 rounded-lg px-3 py-2 max-w-xs">
-                    <p className="text-sm text-gray-900">Hi! I&apos;m here to help with questions about Sunny Fields Farm. What would you like to know?</p>
-                  </div>
-                </div>
+                ))}
               </div>
               
               <div className="border-t border-gray-200 p-4">
                 <div className="flex space-x-2">
                   <input
                     type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
                     placeholder="Type a message to test..."
-                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-lime-500 focus:border-lime-500"
+                    className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
                   />
-                  <button className="px-4 py-2 bg-lime-500 text-white rounded-md text-sm font-medium hover:bg-lime-600">
-                    Send
+                  <button 
+                    onClick={handleSendMessage}
+                    className="px-4 py-2 text-white rounded-md text-sm font-medium hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: mockChatConfig.widgetColor }}
+                  >
+                    <PaperAirplaneIcon className="h-4 w-4" />
                   </button>
+                </div>
+                <div className="mt-2 text-xs text-gray-500">
+                  Try asking: &quot;What crops do you grow?&quot;, &quot;Are you organic?&quot;, &quot;What are your prices?&quot;
                 </div>
               </div>
             </div>

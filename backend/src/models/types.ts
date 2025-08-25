@@ -215,25 +215,169 @@ export interface Contact extends BaseDocument {
   isActive: boolean
 }
 
-// Chatbot Configuration (placeholder for future)
+// Chatbot Configuration
 export interface ChatbotConfig extends BaseDocument {
   userId: ObjectId
   
-  // Knowledge base
-  farmKnowledge: {
-    autoPopulated: boolean
-    extendedKnowledge?: string
+  // Bot Configuration
+  botName: string
+  personality: 'friendly' | 'professional'
+  primaryGoal: 'product_info' | 'lead_generation'
+  responseStrategy: 'hybrid'
+  welcomeMessage: string
+  fallbackMessage: string
+  outOfSeasonMessage: string
+  integrationStyle: 'chat_bubble' | 'coming_soon'
+  widgetColor: string
+  
+  // Extended Knowledge
+  extendedKnowledge: {
+    businessOperations: {
+      farmersMarkets: string
+      farmTours: string
+      csaPrograms: string
+      pickYourOwn: string
+    }
+    productInfo: {
+      seasonalAvailability: string
+      productSamples: string
+      specialtyItems: string
+      storageHandling: string
+    }
+    businessTerms: {
+      paymentTerms: string
+      minimumOrders: string
+      deliveryOptions: string
+      pricingPolicy: string
+    }
+    farmStory: {
+      history: string
+      farmingPractices: string
+      sustainability: string
+      familyStory: string
+    }
   }
   
-  // Configuration
-  botName?: string
-  personality?: string
-  integrationStyle?: 'embed' | 'popup'
-  responseStrategy?: 'pricing' | 'sales' | 'info' | 'hybrid'
+  // Toggle States
+  enabledSections: {
+    businessOperations: {
+      farmersMarkets: boolean
+      farmTours: boolean
+      csaPrograms: boolean
+      pickYourOwn: boolean
+    }
+    productInfo: {
+      seasonalAvailability: boolean
+      productSamples: boolean
+      specialtyItems: boolean
+      storageHandling: boolean
+    }
+    businessTerms: {
+      paymentTerms: boolean
+      minimumOrders: boolean
+      deliveryOptions: boolean
+      pricingPolicy: boolean
+    }
+    farmStory: {
+      history: boolean
+      farmingPractices: boolean
+      sustainability: boolean
+      familyStory: boolean
+    }
+  }
   
-  // Deployment
-  isDeployed: boolean
-  integrationCode?: string
+  // Status
+  isActive: boolean
+}
+
+// Farm Knowledge Cache - aggregated data for fast chatbot access
+export interface FarmKnowledgeCache extends BaseDocument {
+  userId: ObjectId
+  
+  // Farm Profile
+  farmProfile: {
+    name: string
+    contact: {
+      email: string
+      phone?: string
+      website?: string
+    }
+    locations: string[]
+    story?: {
+      history?: string
+      farmingPractices?: string
+      sustainability?: string
+      familyStory?: string
+    }
+  }
+  
+  // Products & Crops
+  products: Array<{
+    commodity: string
+    varieties: Array<{
+      name: string
+      isOrganic: boolean
+      regions: string[]
+      seasonality: string
+      currentPrice?: string
+      packaging?: string[]
+    }>
+  }>
+  
+  // Business Information
+  businessInfo: {
+    certifications: string[]
+    services?: {
+      farmersMarkets?: string
+      farmTours?: string
+      csaPrograms?: string
+      pickYourOwn?: string
+    }
+    terms?: {
+      paymentTerms?: string
+      minimumOrders?: string
+      deliveryOptions?: string
+      pricingPolicy?: string
+    }
+    productInfo?: {
+      seasonalAvailability?: string
+      productSamples?: string
+      specialtyItems?: string
+      storageHandling?: string
+    }
+  }
+  
+  // Bot Configuration
+  botConfig: {
+    botName: string
+    personality: 'friendly' | 'professional'
+    primaryGoal: 'product_info' | 'lead_generation'
+    welcomeMessage: string
+    fallbackMessage: string
+    outOfSeasonMessage: string
+    widgetColor: string
+  }
+  
+  // Cache metadata
+  lastUpdated: Date
+  version: number
+}
+
+// Chat Message Types
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  timestamp: Date
+}
+
+export interface ChatRequest {
+  message: string
+  conversationHistory?: ChatMessage[]
+}
+
+export interface ChatResponse {
+  message: string
+  timestamp: Date
 }
 
 // Scraped Data (for future website scraping)

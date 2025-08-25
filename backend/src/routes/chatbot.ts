@@ -2,7 +2,8 @@ import { FastifyPluginAsync } from 'fastify'
 import { ObjectId } from 'mongodb'
 import database from '../config/database'
 import { authenticate, AuthenticatedRequest, requireTier } from '../middleware/auth'
-import { ChatbotConfig } from '../models/types'
+import { ChatbotConfig, ChatRequest, ChatResponse } from '../models/types'
+import conversationalAI from '../services/conversationalAI'
 
 const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
   
@@ -24,13 +25,13 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      const config = await db.collection<ChatbotConfig>('chatbotConfig').findOne({
+      const config = await db.collection('chatbotConfig').findOne({
         userId: userDoc._id
       })
       
       if (!config) {
-        // Create default config
-        const defaultConfig: Omit<ChatbotConfig, '_id'> = {
+        // Create default config - using old interface for compatibility
+        const defaultConfig = {
           userId: userDoc._id!,
           farmKnowledge: {
             autoPopulated: false
@@ -40,8 +41,8 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
           updatedAt: new Date()
         }
         
-        const result = await db.collection<ChatbotConfig>('chatbotConfig').insertOne(defaultConfig)
-        const createdConfig = await db.collection<ChatbotConfig>('chatbotConfig').findOne({
+        const result = await db.collection('chatbotConfig').insertOne(defaultConfig)
+        const createdConfig = await db.collection('chatbotConfig').findOne({
           _id: result.insertedId
         })
         
@@ -77,7 +78,7 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
       
       const { _id, userId, createdAt, ...allowedUpdates } = updateData
       
-      const result = await db.collection<ChatbotConfig>('chatbotConfig').updateOne(
+      const result = await db.collection('chatbotConfig').updateOne(
         { userId: userDoc._id },
         { 
           $set: {
@@ -88,7 +89,7 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
         { upsert: true }
       )
       
-      const updatedConfig = await db.collection<ChatbotConfig>('chatbotConfig').findOne({
+      const updatedConfig = await db.collection('chatbotConfig').findOne({
         userId: userDoc._id
       })
       
@@ -163,7 +164,7 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
       }
       
       // Update chatbot config with populated knowledge
-      await db.collection<ChatbotConfig>('chatbotConfig').updateOne(
+      await db.collection('chatbotConfig').updateOne(
         { userId: userDoc._id },
         { 
           $set: {
@@ -222,7 +223,7 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
       `.trim()
       
       // Update config as deployed
-      await db.collection<ChatbotConfig>('chatbotConfig').updateOne(
+      await db.collection('chatbotConfig').updateOne(
         { userId: userDoc._id },
         { 
           $set: {
@@ -247,6 +248,47 @@ const chatbotRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
+  // POST /api/chatbot/chat - Handle chat messages with AI
+  fastify.post('/chat', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({ error: 'User not found' })
+      }
+
+      const chatRequest = request.body as ChatRequest
+      
+      // Process chat with conversational AI
+      const response: ChatResponse = await conversationalAI.processChat(user.id, chatRequest)
+
+      reply.send(response)
+    } catch (error) {
+      console.error('Error processing chat:', error)
+      reply.status(500).send({ 
+        error: 'Failed to process chat message',
+        message: "I'm having trouble right now. Please try again in a moment.",
+        timestamp: new Date()
+      })
+    }
+  })
+
+  // POST /api/chatbot/rebuild-cache - Manually rebuild knowledge cache
+  fastify.post('/rebuild-cache', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    
+    try {
+      await conversationalAI.invalidateKnowledgeCache(user.id)
+      reply.send({ message: 'Knowledge cache rebuilt successfully' })
+    } catch (error) {
+      console.error('Error rebuilding cache:', error)
+      reply.status(500).send({ error: 'Failed to rebuild knowledge cache' })
+    }
+  })
+
   // Test chatbot (mock endpoint for now)
   fastify.post('/test', async (request, reply) => {
     const { message } = request.body as { message: string }

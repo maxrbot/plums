@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
@@ -12,8 +13,9 @@ import cropsRoutes from './routes/crops'
 import certificationsRoutes from './routes/certifications'
 import packagingRoutes from './routes/packaging'
 import priceSheetsRoutes from './routes/priceSheets'
-import contactsRoutes from './routes/contacts'
-import chatbotRoutes from './routes/chatbot'
+  import contactsRoutes from './routes/contacts'
+  import chatbotRoutes from './routes/chatbot'
+  import chatbotConfigRoutes from './routes/chatbotConfig'
 
 const fastify = Fastify({
   logger: {
@@ -48,8 +50,9 @@ async function registerRoutes() {
   await fastify.register(certificationsRoutes, { prefix: '/api/certifications' })
   await fastify.register(packagingRoutes, { prefix: '/api/packaging' })
   await fastify.register(priceSheetsRoutes, { prefix: '/api/price-sheets' })
-  await fastify.register(contactsRoutes, { prefix: '/api/contacts' })
-  await fastify.register(chatbotRoutes, { prefix: '/api/chatbot' })
+      await fastify.register(contactsRoutes, { prefix: '/api/contacts' })
+    await fastify.register(chatbotRoutes, { prefix: '/api/chatbot' })
+    await fastify.register(chatbotConfigRoutes, { prefix: '/api/chatbot-config' })
 }
 
 // Health check

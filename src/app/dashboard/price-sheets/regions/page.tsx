@@ -61,24 +61,27 @@ export default function GrowingRegions() {
       setError(null)
       const response = await regionsApi.getAll()
       
-      // Transform backend data to frontend format
+      // Backend now returns transformed data with 'id' field
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedRegions: GrowingRegion[] = response.regions.map((region: any) => ({
-        id: region._id,
-        name: region.name,
-        city: region.location?.city || '',
-        state: region.location?.state || '',
-        climate: '', // Not used in new structure
-        soilType: '', // Not used in new structure
-        deliveryZones: [], // Not used in new structure
-        status: 'active' as const,
-        createdAt: new Date(region.createdAt).toISOString().split('T')[0],
-        // Store additional data for editing
-        farmingTypes: region.farmingTypes || [],
-        acreage: region.acreage || '',
-        notes: region.notes || '',
-        location: region.location
-      }))
+      const transformedRegions: GrowingRegion[] = response.regions.map((region: any) => {
+        const regionId = region.id || region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
+        return {
+          id: regionId,
+          name: region.name || 'Unknown Region',
+          city: region.location?.city || '',
+          state: region.location?.state || '',
+          climate: '', // Not used in new structure
+          soilType: '', // Not used in new structure
+          deliveryZones: [], // Not used in new structure
+          status: 'active' as const,
+          createdAt: region.createdAt ? new Date(region.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          // Store additional data for editing
+          farmingTypes: region.farmingTypes || [],
+          acreage: region.acreage || '',
+          notes: region.notes || '',
+          location: region.location || {}
+        }
+      })
       
       setRegions(transformedRegions)
     } catch (err) {

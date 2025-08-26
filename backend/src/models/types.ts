@@ -90,24 +90,31 @@ export interface CropManagement extends BaseDocument {
   source?: 'manual' | 'scraped'
 }
 
+export interface GrowingRegionConfig {
+  regionId: string
+  regionName: string
+  seasonality: {
+    startMonth: number
+    endMonth: number
+    isYearRound: boolean
+  }
+}
+
 export interface CropVariation {
   id: string
   subtype?: string // "Blood Orange", "Navel Orange"
   variety?: string // "Cara Cara", "Valencia"
   isOrganic: boolean
-  growingRegions: ObjectId[] // References to GrowingRegion
-  seasonality?: string
+  growingRegions: GrowingRegionConfig[] // Array of region configurations
   targetPricing?: {
     minPrice?: number
     maxPrice?: number
     unit: string
-  }
-  orderRequirements?: {
-    minOrder?: number
-    orderUnit: string // "pallets", "cases", "dollars"
+    notes?: string
   }
   growingPractices?: string[]
-  certifications?: string[]
+  minOrder?: number
+  orderUnit?: string // "pallets", "cases", "dollars"
   notes?: string
 }
 
@@ -254,7 +261,12 @@ export interface ChatbotConfig extends BaseDocument {
       history: string
       farmingPractices: string
       sustainability: string
-      familyStory: string
+      familyCompanyStory: string
+    }
+    marketingInfo: {
+      marketAvailability: string
+      retailDistribution: string
+      frequentlyAskedQuestions: string
     }
   }
   
@@ -282,7 +294,12 @@ export interface ChatbotConfig extends BaseDocument {
       history: boolean
       farmingPractices: boolean
       sustainability: boolean
-      familyStory: boolean
+      familyCompanyStory: boolean
+    }
+    marketingInfo: {
+      marketAvailability: boolean
+      retailDistribution: boolean
+      frequentlyAskedQuestions: boolean
     }
   }
   

@@ -399,7 +399,12 @@ export const commodityOptions: CategoryOption[] = [
       {
         id: 'kiwi',
         name: 'Kiwi',
-        varieties: ['Hayward', 'Golden Kiwi', 'Baby Kiwi', 'Red Kiwi', 'Bruno', 'Saanichton', 'Arctic Beauty']
+        varieties: ['Hayward', 'Golden Kiwi', 'Red Kiwi', 'Bruno', 'Saanichton', 'Arctic Beauty']
+      },
+      {
+        id: 'kiwi-berry',
+        name: 'Kiwi Berry',
+        varieties: ['Hardy Kiwi', 'Anna', 'Ken\'s Red', 'Michigan State', 'Ananasnaya', 'Dumbarton Oaks', 'Issai']
       },
       {
         id: 'avocado',

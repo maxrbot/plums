@@ -1,7 +1,7 @@
 "use client"
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { 
   ChatBubbleLeftRightIcon, 
   Cog6ToothIcon,
@@ -11,7 +11,36 @@ import {
   CodeBracketIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
-import { chatbotApi } from '@/lib/api'
+import { chatbotApi, usersApi } from '@/lib/api'
+
+// Domain-specific knowledge gap examples
+const getKnowledgeGapsByDomain = (emailDomain: string) => {
+  if (emailDomain.includes('sumocitrus.com')) {
+    return [
+      { question: "When will Sumo Citrus be back in stores?", attempts: 12, status: 'unanswered' },
+      { question: "Why is my Sumo Citrus more expensive than regular mandarins?", attempts: 8, status: 'partial' },
+      { question: "Can I buy Sumo Citrus directly from you?", attempts: 6, status: 'unanswered' },
+      { question: "What makes Sumo Citrus different from other citrus?", attempts: 5, status: 'unanswered' },
+      { question: "Do you have Sumo Citrus in organic?", attempts: 4, status: 'partial' }
+    ]
+  } else if (emailDomain.includes('superfreshgrowers.com')) {
+    return [
+      { question: "What's your minimum order for mixed apple varieties?", attempts: 9, status: 'unanswered' },
+      { question: "Do you offer farm tours during harvest season?", attempts: 7, status: 'partial' },
+      { question: "Can you provide organic certification documents?", attempts: 6, status: 'unanswered' },
+      { question: "What's the difference between Autumn Glory and Cosmic Crisp?", attempts: 5, status: 'unanswered' },
+      { question: "Do you ship internationally?", attempts: 4, status: 'partial' }
+    ]
+  } else {
+    // Generic/default knowledge gaps
+    return [
+      { question: "What's your minimum order for mixed boxes?", attempts: 8, status: 'unanswered' },
+      { question: "Do you offer farm tours during harvest?", attempts: 5, status: 'unanswered' },
+      { question: "What's your policy on damaged goods?", attempts: 4, status: 'partial' },
+      { question: "Can you provide COA certificates?", attempts: 3, status: 'unanswered' }
+    ]
+  }
+}
 
 // Mock chatbot analytics data
 const mockChatbot = {
@@ -19,13 +48,7 @@ const mockChatbot = {
   conversations: 47,
   avgResponseTime: '2.3s',
   satisfaction: 94,
-  weeklyConversations: [12, 18, 15, 22, 19, 25, 31],
-  knowledgeGaps: [
-    { question: "What's your minimum order for mixed boxes?", attempts: 8, status: 'unanswered' },
-    { question: "Do you offer farm tours during harvest?", attempts: 5, status: 'unanswered' },
-    { question: "What's your policy on damaged goods?", attempts: 4, status: 'partial' },
-    { question: "Can you provide COA certificates?", attempts: 3, status: 'unanswered' }
-  ]
+  weeklyConversations: [12, 18, 15, 22, 19, 25, 31]
 }
 
 // Mock current chatbot configuration (would come from setup)
@@ -57,6 +80,29 @@ export default function Chatbot() {
     }
   ])
   const [inputMessage, setInputMessage] = useState('')
+  const [userEmail, setUserEmail] = useState('')
+  const [knowledgeGaps, setKnowledgeGaps] = useState(getKnowledgeGapsByDomain(''))
+
+  // Load user profile to get email domain
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const profile = await usersApi.getProfile()
+        const email = (profile as any)?.email || ''
+        setUserEmail(email)
+        
+        // Extract domain and set appropriate knowledge gaps
+        const domain = email.split('@')[1] || ''
+        setKnowledgeGaps(getKnowledgeGapsByDomain(domain))
+      } catch (error) {
+        console.error('Failed to load user profile:', error)
+        // Use default knowledge gaps if profile loading fails
+        setKnowledgeGaps(getKnowledgeGapsByDomain(''))
+      }
+    }
+
+    loadUserProfile()
+  }, [])
 
   // Real bot response using backend API
   const generateBotResponse = async (userMessage: string) => {
@@ -260,9 +306,18 @@ export default function Chatbot() {
 
               {/* Knowledge Gaps */}
               <div>
-                <h4 className="text-sm font-medium text-gray-900 mb-3">Knowledge Gaps</h4>
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-medium text-gray-900">Knowledge Gaps</h4>
+                  {userEmail && (
+                    <span className="text-xs text-gray-500">
+                      {userEmail.includes('@sumocitrus.com') ? 'Sumo Citrus' : 
+                       userEmail.includes('@superfreshgrowers.com') ? 'Superfresh Growers' : 
+                       'Generic'} Examples
+                    </span>
+                  )}
+                </div>
                 <div className="space-y-2">
-                  {mockChatbot.knowledgeGaps.map((item, index) => (
+                  {knowledgeGaps.map((item, index) => (
                     <div key={index} className="flex items-center justify-between text-sm">
                       <span className="text-gray-900 truncate">{item.question}</span>
                       <div className="flex items-center space-x-2">

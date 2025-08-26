@@ -52,7 +52,12 @@ const mockExtendedKnowledge = {
     history: "",
     farmingPractices: "",
     sustainability: "",
-    familyStory: ""
+    familyCompanyStory: ""
+  },
+  marketingInfo: {
+    marketAvailability: "",
+    retailDistribution: "",
+    frequentlyAskedQuestions: ""
   }
 }
 
@@ -105,7 +110,12 @@ export default function ChatbotSetup() {
       history: false,
       farmingPractices: false,
       sustainability: false,
-      familyStory: false
+      familyCompanyStory: false
+    },
+    marketingInfo: {
+      marketAvailability: false,
+      retailDistribution: false,
+      frequentlyAskedQuestions: false
     }
   })
 
@@ -135,7 +145,7 @@ export default function ChatbotSetup() {
     const filledFields = Object.values(section).filter(value => value.trim() !== '').length
     const totalFields = Object.values(section).length
     return acc + (filledFields / totalFields)
-  }, 0) / 4 * 100
+  }, 0) / 5 * 100
 
   const chatConfigCompletion = (() => {
     const requiredFields = [chatConfig.botName, chatConfig.welcomeMessage, chatConfig.fallbackMessage, chatConfig.outOfSeasonMessage]
@@ -773,29 +783,128 @@ export default function ChatbotSetup() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="text-sm font-medium text-gray-700">
-                        Family Story
+                        Family/Company Story
                       </label>
                       <button
                         type="button"
-                        onClick={() => handleSectionToggle('farmStory', 'familyStory', !enabledSections.farmStory.familyStory)}
+                        onClick={() => handleSectionToggle('farmStory', 'familyCompanyStory', !enabledSections.farmStory.familyCompanyStory)}
                         className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
-                          enabledSections.farmStory.familyStory ? 'bg-blue-600' : 'bg-gray-200'
+                          enabledSections.farmStory.familyCompanyStory ? 'bg-blue-600' : 'bg-gray-200'
                         }`}
                       >
                         <span
                           className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            enabledSections.farmStory.familyStory ? 'translate-x-5' : 'translate-x-0'
+                            enabledSections.farmStory.familyCompanyStory ? 'translate-x-5' : 'translate-x-0'
                           }`}
                         />
                       </button>
                     </div>
-                    {enabledSections.farmStory.familyStory && (
+                    {enabledSections.farmStory.familyCompanyStory && (
                       <textarea
-                        value={extendedKnowledge.farmStory.familyStory}
-                        onChange={(e) => handleExtendedKnowledgeChange('farmStory', 'familyStory', e.target.value)}
+                        value={extendedKnowledge.farmStory.familyCompanyStory}
+                        onChange={(e) => handleExtendedKnowledgeChange('farmStory', 'familyCompanyStory', e.target.value)}
                         rows={3}
                         className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                         placeholder="Family involvement, personal story, passion for farming..."
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Marketing Info */}
+              <div>
+                <h4 className="text-base font-medium text-gray-900 mb-4">Marketing & Customer Info</h4>
+                <div className="space-y-6">
+                  {/* Market Availability */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-700">
+                        Market Availability
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleSectionToggle('marketingInfo', 'marketAvailability', !enabledSections.marketingInfo?.marketAvailability)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                          enabledSections.marketingInfo?.marketAvailability ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            enabledSections.marketingInfo?.marketAvailability ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {enabledSections.marketingInfo?.marketAvailability && (
+                      <textarea
+                        value={extendedKnowledge.marketingInfo?.marketAvailability || ''}
+                        onChange={(e) => handleExtendedKnowledgeChange('marketingInfo', 'marketAvailability', e.target.value)}
+                        rows={3}
+                        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Seasonal availability, peak seasons, storage instructions, product identification tips..."
+                      />
+                    )}
+                  </div>
+
+                  {/* Retail Distribution */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-700">
+                        Retail Distribution
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleSectionToggle('marketingInfo', 'retailDistribution', !enabledSections.marketingInfo?.retailDistribution)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                          enabledSections.marketingInfo?.retailDistribution ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            enabledSections.marketingInfo?.retailDistribution ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {enabledSections.marketingInfo?.retailDistribution && (
+                      <textarea
+                        value={extendedKnowledge.marketingInfo?.retailDistribution || ''}
+                        onChange={(e) => handleExtendedKnowledgeChange('marketingInfo', 'retailDistribution', e.target.value)}
+                        rows={3}
+                        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Where customers can buy your products: store names, locations, online availability..."
+                      />
+                    )}
+                  </div>
+
+                  {/* Frequently Asked Questions */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label className="text-sm font-medium text-gray-700">
+                        Frequently Asked Questions
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => handleSectionToggle('marketingInfo', 'frequentlyAskedQuestions', !enabledSections.marketingInfo?.frequentlyAskedQuestions)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 ${
+                          enabledSections.marketingInfo?.frequentlyAskedQuestions ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            enabledSections.marketingInfo?.frequentlyAskedQuestions ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                    {enabledSections.marketingInfo?.frequentlyAskedQuestions && (
+                      <textarea
+                        value={extendedKnowledge.marketingInfo?.frequentlyAskedQuestions || ''}
+                        onChange={(e) => handleExtendedKnowledgeChange('marketingInfo', 'frequentlyAskedQuestions', e.target.value)}
+                        rows={4}
+                        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Common customer questions and answers about your products, quality, storage, availability, etc..."
                       />
                     )}
                   </div>

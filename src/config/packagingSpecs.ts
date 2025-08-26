@@ -86,6 +86,7 @@ export const commodityPrimaryPackages: Record<string, {
   
   // Tropical Fruits
   kiwi: { packageName: '7 lb Flat', type: 'weight', standardUnit: 7, unitType: 'lb' },
+  'kiwi-berry': { packageName: '1 lb Clamshell', type: 'weight', standardUnit: 1, unitType: 'lb' },
   avocado: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
   mango: { packageName: '10 lb Box', type: 'weight', standardUnit: 10, unitType: 'lb' },
   pineapple: { packageName: '8 ct Box', type: 'count', standardUnit: 8, unitType: 'ct' },
@@ -416,6 +417,36 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     usdaMapping: {
       commodity: 'kiwi',
       specifications: 'tray pack'
+    }
+  },
+
+  // Kiwi Berry packaging
+  {
+    id: 'kiwi-berry-clamshell-1lb',
+    type: 'clamshell',
+    name: '1 lb Clamshell',
+    sizes: ['1 lb'],
+    grades: ['Fancy', 'Choice', 'US No. 1'],
+    isStandard: true,
+    commodities: ['kiwi-berry'],
+    category: 'specialty',
+    description: 'Premium clamshell for kiwi berries (1 pound)',
+    usdaMapping: {
+      commodity: 'kiwi-berry'
+    }
+  },
+  {
+    id: 'kiwi-berry-basket-6oz',
+    type: 'basket',
+    name: '6 oz Basket',
+    sizes: ['6 oz'],
+    grades: ['Fancy', 'Choice'],
+    isStandard: false,
+    commodities: ['kiwi-berry'],
+    category: 'specialty',
+    description: 'Small basket for premium kiwi berries',
+    usdaMapping: {
+      commodity: 'kiwi-berry'
     }
   },
   {

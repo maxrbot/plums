@@ -29,7 +29,14 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         .sort({ createdAt: -1 })
         .toArray()
       
-      return { crops }
+      // Transform _id to id for frontend compatibility
+      const transformedCrops = crops.map(crop => ({
+        ...crop,
+        id: crop._id ? crop._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }))
+      
+      return { crops: transformedCrops }
       
     } catch (error) {
       console.error('Get crops error:', error)
@@ -75,7 +82,14 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      return { crop }
+      // Transform _id to id for frontend compatibility
+      const transformedCrop = {
+        ...crop,
+        id: crop._id ? crop._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { crop: transformedCrop }
       
     } catch (error) {
       console.error('Get crop error:', error)
@@ -115,7 +129,21 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         _id: result.insertedId
       })
       
-      return { crop: createdCrop }
+      if (!createdCrop) {
+        return reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to retrieve created crop'
+        })
+      }
+      
+      // Transform _id to id for frontend compatibility
+      const transformedCrop = {
+        ...createdCrop,
+        id: createdCrop._id ? createdCrop._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { crop: transformedCrop }
       
     } catch (error) {
       console.error('Create crop error:', error)
@@ -176,7 +204,21 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         _id: new ObjectId(id)
       })
       
-      return { crop: updatedCrop }
+      if (!updatedCrop) {
+        return reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to retrieve updated crop'
+        })
+      }
+      
+      // Transform _id to id for frontend compatibility
+      const transformedCrop = {
+        ...updatedCrop,
+        id: updatedCrop._id ? updatedCrop._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { crop: transformedCrop }
       
     } catch (error) {
       console.error('Update crop error:', error)

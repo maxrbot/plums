@@ -162,18 +162,23 @@ export default function NewPriceSheet() {
 
                 const seasonality = formatSeasonality(regionConfig.seasonality)
 
+                // Ensure all IDs are defined
+                const cropId = crop.id || `crop_${Date.now()}_${Math.random()}`
+                const variationId = variation.id || `var_${Date.now()}_${Math.random()}`
+                const regionId = regionConfig.regionId || `region_${Date.now()}_${Math.random()}`
+                
                 processedProducts.push({
-                  id: `${crop.id}-${variation.id}-${regionConfig.regionId}`,
+                  id: `${cropId}-${variationId}-${regionId}`,
                   name: productName,
                   region: region.name,
-                  commodity: crop.commodity.toLowerCase(),
+                  commodity: crop.commodity?.toLowerCase() || 'unknown',
                   variety: variation.variety,
                   subtype: variation.subtype,
                   isOrganic: variation.isOrganic,
                   seasonality,
-                  cropId: crop.id,
-                  variationId: variation.id,
-                  regionId: regionConfig.regionId
+                  cropId: cropId,
+                  variationId: variationId,
+                  regionId: regionId
                 })
               }
             })

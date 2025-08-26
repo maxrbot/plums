@@ -40,6 +40,7 @@ export default function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isGeneratingDemo, setIsGeneratingDemo] = useState(false)
 
   // Load contacts from API
   useEffect(() => {
@@ -61,6 +62,234 @@ export default function Contacts() {
       setError(err instanceof Error ? err.message : 'Failed to load contacts')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Demo contacts data
+  const demoContactsData = [
+    {
+      firstName: "Bill",
+      lastName: "Lasson", 
+      email: "bill@lassonfamilyfarms.com",
+      phone: "(802) 339-9940",
+      title: "Purchasing Manager",
+      company: "Lasson Family Farms",
+      industry: "Agriculture",
+      website: "lassonfamilyfarms.com",
+      address: "",
+      city: "Burlington",
+      state: "Vermont", 
+      zipCode: "",
+      country: "USA",
+      tags: ["new_customer"],
+      primaryCrops: ["apple", "apricot"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "cold" as const,
+      pricingTier: "standard" as const,
+      pricingAdjustment: 0,
+      specialTerms: "",
+      source: "manual" as const,
+      notes: ""
+    },
+    {
+      firstName: "Sarah",
+      lastName: "Chen",
+      email: "sarah@freshvalleyproduce.com", 
+      phone: "(559) 847-2156",
+      title: "Head Buyer",
+      company: "Fresh Valley Produce",
+      industry: "Food Distribution",
+      website: "freshvalleyproduce.com",
+      address: "",
+      city: "Fresno",
+      state: "California",
+      zipCode: "",
+      country: "USA", 
+      tags: ["premium"],
+      primaryCrops: ["lettuce", "carrot", "broccoli"],
+      preferredContactMethod: "phone" as const,
+      status: "active" as const,
+      relationshipStage: "warm" as const,
+      pricingTier: "premium" as const,
+      pricingAdjustment: 5,
+      specialTerms: "Net 15 payment terms",
+      source: "referral" as const,
+      notes: "Prefers organic options when available"
+    },
+    {
+      firstName: "Mike",
+      lastName: "Rodriguez",
+      email: "mrodriguez@coastalmarkets.com",
+      phone: "(831) 555-0123",
+      title: "Produce Director", 
+      company: "Coastal Markets",
+      industry: "Retail",
+      website: "coastalmarkets.com",
+      address: "",
+      city: "Salinas",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["volume"],
+      primaryCrops: ["strawberry", "lettuce", "spinach"],
+      preferredContactMethod: "email" as const,
+      status: "active" as const,
+      relationshipStage: "customer" as const,
+      pricingTier: "volume" as const,
+      pricingAdjustment: -10,
+      specialTerms: "Volume discounts apply",
+      source: "lead_form" as const,
+      notes: "Large volume buyer, seasonal contracts"
+    },
+    {
+      firstName: "Jennifer",
+      lastName: "Thompson",
+      email: "jen@organicharvest.coop",
+      phone: "(503) 782-4567",
+      title: "Sourcing Manager",
+      company: "Organic Harvest Co-op",
+      industry: "Organic Foods",
+      website: "organicharvest.coop",
+      address: "",
+      city: "Portland",
+      state: "Oregon",
+      zipCode: "",
+      country: "USA",
+      tags: ["organic", "premium"],
+      primaryCrops: ["apple", "pear", "cherry"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "hot" as const,
+      pricingTier: "premium" as const,
+      pricingAdjustment: 8,
+      specialTerms: "Organic certification required",
+      source: "manual" as const,
+      notes: "Only interested in certified organic produce"
+    },
+    {
+      firstName: "David",
+      lastName: "Park",
+      email: "dpark@metropolitanfoods.com",
+      phone: "(206) 445-8901",
+      title: "Category Manager",
+      company: "Metropolitan Foods",
+      industry: "Food Service",
+      website: "metropolitanfoods.com",
+      address: "",
+      city: "Seattle", 
+      state: "Washington",
+      zipCode: "",
+      country: "USA",
+      tags: ["foodservice"],
+      primaryCrops: ["potato", "onion", "carrot"],
+      preferredContactMethod: "phone" as const,
+      status: "active" as const,
+      relationshipStage: "warm" as const,
+      pricingTier: "standard" as const,
+      pricingAdjustment: 0,
+      specialTerms: "",
+      source: "csv_import" as const,
+      notes: "Supplies restaurants in Seattle metro area"
+    },
+    {
+      firstName: "Lisa",
+      lastName: "Williams",
+      email: "lwilliams@farmtotable.net",
+      phone: "(415) 892-3456",
+      title: "Procurement Specialist",
+      company: "Farm to Table Network",
+      industry: "Restaurant Supply",
+      website: "farmtotable.net",
+      address: "",
+      city: "San Francisco",
+      state: "California", 
+      zipCode: "",
+      country: "USA",
+      tags: ["premium", "local"],
+      primaryCrops: ["tomato", "pepper", "cucumber"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "cold" as const,
+      pricingTier: "premium" as const,
+      pricingAdjustment: 12,
+      specialTerms: "Local sourcing preferred",
+      source: "referral" as const,
+      notes: "Focuses on farm-to-table restaurants"
+    },
+    {
+      firstName: "Robert",
+      lastName: "Johnson",
+      email: "rjohnson@valleyprocessing.com",
+      phone: "(209) 334-7890",
+      title: "Raw Materials Manager",
+      company: "Valley Processing Co.",
+      industry: "Food Processing",
+      website: "valleyprocessing.com",
+      address: "",
+      city: "Modesto",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["processing", "volume"],
+      primaryCrops: ["tomato", "peach", "apricot"],
+      preferredContactMethod: "phone" as const,
+      status: "active" as const,
+      relationshipStage: "customer" as const,
+      pricingTier: "volume" as const,
+      pricingAdjustment: -15,
+      specialTerms: "Processing grade acceptable",
+      source: "manual" as const,
+      notes: "Large volume processor, flexible on quality grades"
+    },
+    {
+      firstName: "Amanda",
+      lastName: "Garcia",
+      email: "agarcia@freshstart.org",
+      phone: "(916) 567-1234",
+      title: "Food Program Director",
+      company: "Fresh Start Community",
+      industry: "Non-Profit",
+      website: "freshstart.org",
+      address: "",
+      city: "Sacramento",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["nonprofit", "community"],
+      primaryCrops: ["apple", "orange", "banana"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "warm" as const,
+      pricingTier: "standard" as const,
+      pricingAdjustment: -5,
+      specialTerms: "Non-profit discount",
+      source: "lead_form" as const,
+      notes: "Community food program, price-sensitive"
+    }
+  ]
+
+  // Generate demo contacts
+  const generateDemoContacts = async () => {
+    try {
+      setIsGeneratingDemo(true)
+      setError(null)
+
+      // Create all demo contacts
+      const createPromises = demoContactsData.map(contactData => 
+        contactsApi.create(contactData)
+      )
+
+      await Promise.all(createPromises)
+      
+      // Reload contacts to show the new ones
+      await loadContacts()
+      
+    } catch (err) {
+      console.error('Failed to generate demo contacts:', err)
+      setError(err instanceof Error ? err.message : 'Failed to generate demo contacts')
+    } finally {
+      setIsGeneratingDemo(false)
     }
   }
 
@@ -307,13 +536,24 @@ export default function Contacts() {
                 }
               </p>
               {contacts.length === 0 && (
-                <button
-                  onClick={() => setIsAddModalOpen(true)}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                >
-                  <PlusIcon className="h-4 w-4 mr-2" />
-                  Add Your First Contact
-                </button>
+                <div className="space-y-3">
+                  <button
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <PlusIcon className="h-4 w-4 mr-2" />
+                    Add Your First Contact
+                  </button>
+                  <div>
+                    <button
+                      onClick={generateDemoContacts}
+                      disabled={isGeneratingDemo}
+                      className="text-sm text-blue-600 hover:text-blue-800 underline disabled:text-gray-400 disabled:no-underline"
+                    >
+                      {isGeneratingDemo ? 'Generating contacts...' : 'Generate 8 Demo Contacts'}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           ) : (

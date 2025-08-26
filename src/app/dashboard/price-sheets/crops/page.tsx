@@ -262,16 +262,19 @@ export default function CropManagement() {
       setError(null)
       const response = await cropsApi.getAll()
       
-      // Transform backend data to frontend format
+      // Backend now returns transformed data with 'id' field
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedCrops: CropManagement[] = response.crops.map((crop: any) => ({
-        id: crop._id,
-        category: crop.category,
-        commodity: crop.commodity,
-        variations: crop.variations || [],
-        status: 'active' as const,
-        createdAt: new Date(crop.createdAt).toISOString().split('T')[0]
-      }))
+      const transformedCrops: CropManagement[] = response.crops.map((crop: any) => {
+        const cropId = crop.id || crop._id?.toString() || `temp_${Date.now()}_${Math.random()}`
+        return {
+          id: cropId,
+          category: crop.category || 'unknown',
+          commodity: crop.commodity || 'unknown',
+          variations: crop.variations || [],
+          status: 'active' as const,
+          createdAt: crop.createdAt ? new Date(crop.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]
+        }
+      })
       
       setCrops(transformedCrops)
     } catch (err) {
@@ -546,7 +549,8 @@ export default function CropManagement() {
             {/* Group crops by category */}
             {Object.entries(
               crops.reduce((acc, crop) => {
-                const categoryName = crop.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                // Safely handle undefined category
+                const categoryName = (crop.category || 'other').replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
                 if (!acc[categoryName]) acc[categoryName] = []
                 acc[categoryName].push(crop)
                 return acc

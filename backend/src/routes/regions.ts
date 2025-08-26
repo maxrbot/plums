@@ -31,7 +31,14 @@ const regionsRoutes: FastifyPluginAsync = async (fastify) => {
         .sort({ createdAt: -1 })
         .toArray()
       
-      return { regions }
+      // Transform _id to id for frontend compatibility
+      const transformedRegions = regions.map(region => ({
+        ...region,
+        id: region._id ? region._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }))
+      
+      return { regions: transformedRegions }
       
     } catch (error) {
       console.error('Get regions error:', error)
@@ -77,7 +84,21 @@ const regionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      return { region }
+      if (!region) {
+        return reply.status(404).send({
+          error: 'Region Not Found',
+          message: 'Growing region not found'
+        })
+      }
+      
+      // Transform _id to id for frontend compatibility
+      const transformedRegion = {
+        ...region,
+        id: region._id ? region._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { region: transformedRegion }
       
     } catch (error) {
       console.error('Get region error:', error)
@@ -117,7 +138,21 @@ const regionsRoutes: FastifyPluginAsync = async (fastify) => {
         _id: result.insertedId
       })
       
-      return { region: createdRegion }
+      if (!createdRegion) {
+        return reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to retrieve created region'
+        })
+      }
+      
+      // Transform _id to id for frontend compatibility
+      const transformedRegion = {
+        ...createdRegion,
+        id: createdRegion._id ? createdRegion._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { region: transformedRegion }
       
     } catch (error) {
       console.error('Create region error:', error)
@@ -179,7 +214,21 @@ const regionsRoutes: FastifyPluginAsync = async (fastify) => {
         _id: new ObjectId(id)
       })
       
-      return { region: updatedRegion }
+      if (!updatedRegion) {
+        return reply.status(500).send({
+          error: 'Internal Server Error',
+          message: 'Failed to retrieve updated region'
+        })
+      }
+      
+      // Transform _id to id for frontend compatibility
+      const transformedRegion = {
+        ...updatedRegion,
+        id: updatedRegion._id ? updatedRegion._id.toString() : undefined,
+        _id: undefined // Remove _id to avoid confusion
+      }
+      
+      return { region: transformedRegion }
       
     } catch (error) {
       console.error('Update region error:', error)

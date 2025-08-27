@@ -5,11 +5,13 @@ import Link from 'next/link'
 import {
   DocumentTextIcon,
   PlusIcon,
-  EyeIcon
+  EyeIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { getPackagingSpecs } from '../../../../config/packagingSpecs'
+import { commodityOptions } from '../../../../config/commodityOptions'
 import { cropsApi, regionsApi, priceSheetsApi } from '../../../../lib/api'
 import type { CropManagement, CropVariation } from '../../../../types'
 
@@ -79,6 +81,10 @@ export default function NewPriceSheet() {
   const [bulkLoading, setBulkLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
+  const [inSeasonOnly, setInSeasonOnly] = useState(false)
+  const [upcomingSeasonOnly, setUpcomingSeasonOnly] = useState(false)
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [showPriceInfoModal, setShowPriceInfoModal] = useState(false)
 
   // Helper functions to work with unified packaging system
   const getPackagingOptions = (commodity: string) => {
@@ -112,6 +118,92 @@ export default function NewPriceSheet() {
     const allGrades = options.flatMap(opt => opt.grades)
     return [...new Set(allGrades)] // Remove duplicates
   }
+
+  // Helper function to get available categories based on user's products
+  const getAvailableCategories = () => {
+    const userCommodities = new Set(products.map(p => p.commodity.toLowerCase()))
+    const availableCategories = commodityOptions
+      .filter(category => 
+        category.commodities.some(commodity => 
+          userCommodities.has(commodity.id)
+        )
+      )
+      .map(category => ({
+        id: category.id,
+        name: category.name
+      }))
+    
+    return availableCategories
+  }
+
+  // Helper function to check if a product is currently in season
+  const isProductInSeason = (product: ProcessedProduct): boolean => {
+    const currentMonth = new Date().getMonth() + 1 // JavaScript months are 0-based
+    
+    // Parse seasonality string (e.g., "Jan - Apr", "Oct - Apr", "Year-round")
+    const seasonality = product.seasonality
+    if (!seasonality || seasonality === 'Year-round') {
+      return true // Always in season
+    }
+    
+    // Extract start and end months from seasonality string
+    const seasonMatch = seasonality.match(/(\w{3})\s*-\s*(\w{3})/)
+    if (!seasonMatch) {
+      return true // If we can't parse, assume in season
+    }
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const startMonth = monthNames.indexOf(seasonMatch[1]) + 1
+    const endMonth = monthNames.indexOf(seasonMatch[2]) + 1
+    
+    if (startMonth === 0 || endMonth === 0) {
+      return true // If we can't find the months, assume in season
+    }
+    
+    // Handle seasons that cross year boundaries (e.g., Oct-Apr)
+    if (startMonth <= endMonth) {
+      // Normal season within same year (e.g., Mar-May)
+      return currentMonth >= startMonth && currentMonth <= endMonth
+    } else {
+      // Season crosses year boundary (e.g., Oct-Apr)
+      return currentMonth >= startMonth || currentMonth <= endMonth
+    }
+  }
+
+  // Helper function to check if a product is coming into season within next 2 months or less
+  const isProductUpcomingSeason = (product: ProcessedProduct): boolean => {
+    const currentMonth = new Date().getMonth() + 1 // JavaScript months are 0-based
+    
+    // Parse seasonality string (e.g., "Jan - Apr", "Oct - Apr", "Year-round")
+    const seasonality = product.seasonality
+    if (!seasonality || seasonality === 'Year-round') {
+      return false // Year-round products are not "upcoming"
+    }
+    
+    // Extract start and end months from seasonality string
+    const seasonMatch = seasonality.match(/(\w{3})\s*-\s*(\w{3})/)
+    if (!seasonMatch) {
+      return false // If we can't parse, assume not upcoming
+    }
+    
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    const startMonth = monthNames.indexOf(seasonMatch[1]) + 1
+    
+    if (startMonth === 0) {
+      return false // If we can't find the start month, assume not upcoming
+    }
+    
+    // Calculate months within 2 months from now (handling year wraparound)
+    const upcomingMonths = []
+    for (let i = 0; i <= 2; i++) {
+      let targetMonth = currentMonth + i
+      if (targetMonth > 12) targetMonth -= 12
+      upcomingMonths.push(targetMonth)
+    }
+    
+    // Check if the season starts within the next 2 months (including current month)
+    return upcomingMonths.includes(startMonth)
+  }
   
   // Real data state
   const [products, setProducts] = useState<ProcessedProduct[]>([])
@@ -125,6 +217,72 @@ export default function NewPriceSheet() {
     loadUserData()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Filter products based on "In Season Only" toggle and category
+  useEffect(() => {
+    if (products.length === 0) return
+
+    let filteredProducts = products
+
+    // Filter by category
+    if (selectedCategory !== 'all') {
+      const selectedCategoryData = commodityOptions.find(cat => cat.id === selectedCategory)
+      if (selectedCategoryData) {
+        const categoryCommmodityIds = selectedCategoryData.commodities.map(c => c.id)
+        filteredProducts = filteredProducts.filter(product => 
+          categoryCommmodityIds.includes(product.commodity.toLowerCase())
+        )
+      }
+    }
+
+    // Filter by season (OR logic when both are selected)
+    if (inSeasonOnly || upcomingSeasonOnly) {
+      filteredProducts = filteredProducts.filter(product => {
+        const inSeason = inSeasonOnly && isProductInSeason(product)
+        const upcoming = upcomingSeasonOnly && isProductUpcomingSeason(product)
+        
+        // If both filters are active, show products that match either condition
+        if (inSeasonOnly && upcomingSeasonOnly) {
+          return inSeason || upcoming
+        }
+        // If only one filter is active, show products that match that condition
+        return inSeason || upcoming
+      })
+    }
+
+    // Recreate product rows with filtered products
+    const updatedRows: ProductRow[] = filteredProducts.map((product, index) => {
+      const packagingOptions = getPackagingOptions(product.commodity)
+      const firstPackaging = packagingOptions[0]
+      
+      // Check if this product already has a row to preserve existing data
+      const existingRow = productRows.find(row => row.id === `${product.id}-main`)
+      
+      return {
+        id: `${product.id}-main`,
+        productId: index, // Use array index as unique productId
+        packageType: existingRow?.packageType || firstPackaging?.name || 'Standard Package',
+        countSize: existingRow?.countSize || (hasCountSize(product.commodity) ? (getCountSizeOptions(product.commodity)[0] || '') : ''),
+        grade: existingRow?.grade || getGradeOptions(product.commodity)[0] || 'US No. 1',
+        price: existingRow?.price || '',
+        marketPrice: existingRow?.marketPrice || '',
+        marketPriceUnit: existingRow?.marketPriceUnit || '',
+        marketPriceDate: existingRow?.marketPriceDate || '',
+        marketPriceLoading: existingRow?.marketPriceLoading || false,
+        availability: existingRow?.availability || 'Available',
+        isSelected: existingRow?.isSelected || false,
+        isPackStyleRow: false
+      }
+    })
+
+    // Also preserve any pack style rows for products that are still visible
+    const packStyleRows = productRows.filter(row => 
+      row.isPackStyleRow && 
+      filteredProducts.some(product => row.id.startsWith(product.id))
+    )
+
+    setProductRows([...updatedRows, ...packStyleRows])
+  }, [products, inSeasonOnly, upcomingSeasonOnly, selectedCategory]) // Simplified dependencies
 
   const loadUserData = async () => {
     try {
@@ -364,8 +522,11 @@ export default function NewPriceSheet() {
       setProductRows(prev => prev.map(r => 
         r.id === rowId ? { 
           ...r, 
-          marketPrice: 'Error',
+          marketPrice: 'Not available for this variety',
+          marketPriceUnit: '',
           marketPriceDate: '',
+          marketPriceSource: undefined,
+          marketPriceConfidence: undefined,
           marketPriceLoading: false
         } : r
       ))
@@ -710,25 +871,76 @@ export default function NewPriceSheet() {
                 Configure products, then refresh market prices for guidance. Products are pre-populated from your crop management data.
               </p>
             </div>
-            <button
-              onClick={loadAllMarketPrices}
-              disabled={bulkLoading}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {bulkLoading ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  🔄 Load All Market Prices
-                </>
-              )}
-            </button>
+            <div className="flex items-center space-x-4">
+              {/* Category Filter */}
+              <div className="flex items-center">
+                <label htmlFor="category-filter" className="text-sm text-gray-700 mr-2">
+                  Category:
+                </label>
+                <select
+                  id="category-filter"
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="all">All Categories</option>
+                  {getAvailableCategories().map(category => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* In Season Only Toggle */}
+              <div className="flex items-center">
+                <input
+                  id="in-season-toggle"
+                  type="checkbox"
+                  checked={inSeasonOnly}
+                  onChange={(e) => setInSeasonOnly(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="in-season-toggle" className="ml-2 text-sm text-gray-700">
+                  In Season Only
+                </label>
+              </div>
+
+              {/* Upcoming Season Toggle */}
+              <div className="flex items-center">
+                <input
+                  id="upcoming-season-toggle"
+                  type="checkbox"
+                  checked={upcomingSeasonOnly}
+                  onChange={(e) => setUpcomingSeasonOnly(e.target.checked)}
+                  className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+                />
+                <label htmlFor="upcoming-season-toggle" className="ml-2 text-sm text-gray-700">
+                  Upcoming Season
+                </label>
+              </div>
+              
+              {/* Load USDA Data Button */}
+              <button
+                onClick={loadAllMarketPrices}
+                disabled={bulkLoading}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {bulkLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-gray-500" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    🔄 Load USDA Data
+                  </>
+                )}
+              </button>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
@@ -751,22 +963,14 @@ export default function NewPriceSheet() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1">
                         <span>Price</span>
-                        <div className="relative group">
-                          <svg className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <button
+                          onClick={() => setShowPriceInfoModal(true)}
+                          className="flex items-center"
+                        >
+                          <svg className="w-3 h-3 text-gray-400 hover:text-gray-600 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-[9999] shadow-lg">
-                            <div className="text-center">
-                              <div className="font-medium">Market Price Guidance</div>
-                              <div className="text-gray-300 mt-1">
-                                • USDA &quot;mostly&quot; price when available<br/>
-                                • Estimated with variety/organic premiums<br/>
-                                • Date shows when USDA published data
-                              </div>
-                            </div>
-                            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
-                          </div>
-                        </div>
+                        </button>
                       </div>
                       <span className="text-xs text-gray-400 font-normal">USDA-LA</span>
                     </div>
@@ -821,6 +1025,18 @@ export default function NewPriceSheet() {
                           <div>
                             <div className="text-sm font-medium text-gray-900">
                               {product.commodity}{product.variety ? `, ${product.variety}` : ''}
+                            </div>
+                            <div className="flex items-center mt-0.5">
+                              <div className={`w-2 h-2 rounded-full mr-1.5 ${
+                                isProductInSeason(product) 
+                                  ? 'bg-green-400' 
+                                  : isProductUpcomingSeason(product)
+                                  ? 'bg-orange-400'
+                                  : 'bg-gray-300'
+                              }`}></div>
+                              <span className="text-xs text-gray-500">
+                                {product.seasonality || 'Year-round'}
+                              </span>
                             </div>
                             {product.isOrganic && (
                               <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 mt-1">
@@ -1000,6 +1216,54 @@ export default function NewPriceSheet() {
         isSaving={isSaving}
         hasSaved={hasSaved}
       />
+
+      {/* Price Information Modal */}
+      {showPriceInfoModal && (
+        <div className="fixed inset-0 bg-white bg-opacity-20 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Market Price Confidence Levels & Calculations</h3>
+              <button
+                onClick={() => setShowPriceInfoModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="p-6">
+              <div className="space-y-6">
+                <div>
+                  <p className="font-medium text-green-600 mb-2">🟢 High Confidence (USDA-Exact):</p>
+                  <p className="text-sm text-gray-700 ml-4">
+                    Exact USDA data match for well-known commodities (lettuce, strawberries, tomatoes, carrots, apples) with variety-specific and organic adjustments.
+                  </p>
+                </div>
+                <div>
+                  <p className="font-medium text-yellow-600 mb-2">🟡 Medium Confidence (USDA-Estimated):</p>
+                  <p className="text-sm text-gray-700 ml-4 mb-2">USDA base data with calculated adjustments:</p>
+                  <ul className="ml-8 text-sm text-gray-700 space-y-1">
+                    <li>• <span className="font-medium">Organic premiums:</span> 25-60% higher (varies by commodity)</li>
+                    <li>• <span className="font-medium">Variety adjustments:</span> ±25% based on market demand</li>
+                    <li>• <span className="font-medium">Examples:</span> Butterhead lettuce +25%, Organic strawberries +60%</li>
+                  </ul>
+                </div>
+                <div>
+                  <p className="font-medium text-gray-600 mb-2">⚪ Low Confidence (Calculated):</p>
+                  <p className="text-sm text-gray-700 ml-4">
+                    Estimated pricing based on commodity averages with standard market price ranges (±15% variation).
+                  </p>
+                </div>
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">Data Source:</span> USDA Market News Service - Los Angeles Terminal Market. 
+                    Prices represent wholesale "mostly" prices and should be used as guidance only.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

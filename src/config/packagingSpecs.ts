@@ -825,6 +825,21 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     }
   },
   {
+    id: 'mandarin-carton-40lb',
+    type: 'carton',
+    name: '40 lb Carton',
+    counts: ['64s', '80s', '88s', '105s', '120s', '138s'],
+    weight: '40 lbs',
+    grades: ['Fancy', 'Choice', 'Standard'],
+    isStandard: true,
+    commodities: ['mandarin'],
+    category: 'carton',
+    description: 'Large mandarin carton (40 pounds)',
+    usdaMapping: {
+      commodity: 'mandarins'
+    }
+  },
+  {
     id: 'minneola-carton-40lb',
     type: 'carton',
     name: '40 lb Carton',

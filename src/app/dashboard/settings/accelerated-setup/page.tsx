@@ -238,6 +238,88 @@ export default function AcceleratedSetup() {
         return varietySeasons.conventional || { start: 6, end: 8 }
       }
     }
+
+    // Suntreat specific citrus seasonality
+    if (analysisResults?.companyName === 'Suntreat') {
+      // Mandarin seasonality
+      if (commodity === 'mandarin') {
+        const mandarinSeasons: Record<string, { start: number; end: number }> = {
+          'sumo citrus': { start: 1, end: 4 }, // Jan-Apr
+          'gold nugget': { start: 3, end: 5 }, // Mar-May
+          'clementine': { start: 11, end: 12 }, // Nov-Dec
+          'lee nova': { start: 12, end: 1 }, // Dec-Jan (crosses year)
+          'murcott/tango': { start: 1, end: 5 }, // Jan-May
+        }
+        
+        const varietyKey = variety.toLowerCase()
+        const seasonData = mandarinSeasons[varietyKey]
+        if (seasonData) {
+          return seasonData
+        }
+      }
+
+      // Orange seasonality
+      if (commodity === 'orange') {
+        const orangeSeasons: Record<string, { start: number; end: number }> = {
+          'i\'m pink™ cara cara': { start: 12, end: 4 }, // Dec-Apr (crosses year)
+          'blood orange': { start: 1, end: 3 }, // Jan-Mar
+          'navel': { start: 10, end: 4 }, // Oct-Apr (crosses year)
+          'reserve heirloom navels': { start: 1, end: 5 }, // Jan-May
+          'import (chile) valencias': { start: 7, end: 9 }, // Jul-Sep
+          'rosy red valencia': { start: 5, end: 7 }, // May-Jul
+          'summer navels': { start: 4, end: 6 }, // Apr-Jun
+          'valencia': { start: 4, end: 10 }, // Apr-Oct
+        }
+        
+        const varietyKey = variety.toLowerCase()
+        const seasonData = orangeSeasons[varietyKey]
+        if (seasonData) {
+          return seasonData
+        }
+      }
+
+      // Grapefruit seasonality
+      if (commodity === 'grapefruit') {
+        const grapefruitSeasons: Record<string, { start: number; end: number }> = {
+          'melo gold': { start: 11, end: 1 }, // Nov-Jan (crosses year)
+          'oro blancos': { start: 12, end: 2 }, // Dec-Feb (crosses year)
+          'pummelos': { start: 12, end: 2 }, // Dec-Feb (crosses year)
+          'star ruby': { start: 3, end: 5 }, // Mar-May
+          'marsh ruby': { start: 6, end: 10 }, // Jun-Oct
+        }
+        
+        const varietyKey = variety.toLowerCase()
+        const seasonData = grapefruitSeasons[varietyKey]
+        if (seasonData) {
+          return seasonData
+        }
+      }
+
+      // Lemon seasonality (different grades have different seasons)
+      if (commodity === 'lemon') {
+        const lemonSeasons: Record<string, { start: number; end: number }> = {
+          'lemons (d1)': { start: 10, end: 4 }, // Oct-Apr (crosses year)
+          'lemons (d2)': { start: 1, end: 12 }, // Year Round
+          'lemons (d3)': { start: 10, end: 2 }, // Oct-Feb (crosses year)
+          'lemons (chile)': { start: 6, end: 9 }, // Jun-Sep
+        }
+        
+        const varietyKey = variety.toLowerCase()
+        const seasonData = lemonSeasons[varietyKey]
+        if (seasonData) {
+          return seasonData
+        }
+      }
+
+      // Other citrus seasonality
+      if (commodity === 'minneola') {
+        return { start: 1, end: 3 } // Jan-Mar
+      }
+      
+      if (commodity === 'lime') {
+        return { start: 9, end: 10 } // Sep-Oct
+      }
+    }
     
     // Default seasonality for other commodities
     const seasonMap: Record<string, { start: number; end: number }> = {
@@ -695,6 +777,98 @@ export default function AcceleratedSetup() {
           ],
           retailAvailability: 'Available at 15 major retail chains nationwide during season (January-April): Whole Foods, Albertsons, Target, Wegmans, Trader Joe\'s, Kroger, Publix, Meijer, Sam\'s Club, The Fresh Market, Stop & Shop, Sprouts, BJ\'s, Walmart, and Costco. Use the store finder on sumocitrus.com to locate specific store locations near you. Currently out of season - will return to stores January through April.',
           contact: 'info@sumocitrus.com',
+          confidence: {
+            companyName: 'high',
+            farmingMethods: 'high',
+            regions: 'high',
+            commodities: 'high',
+            story: 'high',
+            availability: 'high',
+            contact: 'medium'
+          }
+        }
+      } else if (companyUrl.includes('suntreat.com')) {
+        // Suntreat - California citrus company analysis
+        mockResults = {
+          companyName: 'Suntreat',
+          farmingMethods: ['Premium Quality Standards', '60+ Years Experience', 'Innovation & Reliability', 'Grower Partnerships'],
+          regions: ['Kern County, California', 'Fresno County, California', 'Central Valley, California'],
+          commodities: [
+            // Mandarin varieties
+            'Mandarins - Sumo Citrus',
+            'Mandarins - Gold Nugget',
+            'Mandarins - Clementine',
+            'Mandarins - Lee Nova',
+            'Mandarins - Murcott/Tango',
+            // Orange varieties
+            'Oranges - I\'m Pink™ Cara Cara',
+            'Oranges - Blood Orange',
+            'Oranges - Navel',
+            'Oranges - Reserve Heirloom Navels',
+            'Oranges - Import (Chile) Valencias',
+            'Oranges - Rosy Red Valencia',
+            'Oranges - Summer Navels',
+            'Oranges - Valencia',
+            // Grapefruit varieties
+            'Grapefruit - Melo Gold',
+            'Grapefruit - Oro Blancos',
+            'Grapefruit - Pummelos',
+            'Grapefruit - Star Ruby',
+            'Grapefruit - Marsh Ruby',
+            // Lemon varieties
+            'Lemons - Lemons (D1)',
+            'Lemons - Lemons (D2)',
+            'Lemons - Lemons (D3)',
+            'Lemons - Lemons (Chile)',
+            // Simple commodities
+            'Minneolas',
+            'Limes'
+          ],
+          brands: [
+            {
+              name: 'Suntreat',
+              category: 'Premium Citrus',
+              varieties: [
+                'Sumo Citrus® Mandarins (Premium)',
+                'I\'M PINK® Cara Cara Oranges (Signature)',
+                '5 Mandarin Varieties',
+                '8 Orange Varieties', 
+                '5 Grapefruit Varieties',
+                '4 Lemon Grades (including Chile)',
+                'Minneolas & Limes'
+              ]
+            }
+          ],
+          story: 'Established in 1958, Suntreat has over 60 years of experience partnering with California\'s finest citrus growers. Located in the heart of California\'s Central Valley, we\'ve built our business on innovation, reliability, and consistently great products. Our deep relationships with growers between southern Kern County and Fresno County ensure year-round availability of top-quality citrus.',
+          availability: 'Year-round citrus availability through strategic partnerships with premium California growers. Our groves span from southern Kern County to Fresno County, ensuring consistent supply of fresh, high-quality citrus throughout all seasons.',
+          retailAvailability: 'Available through major retail chains and food service distributors across the United States. Our premium citrus products, including signature Sumo Citrus® and I\'M PINK® Cara Cara oranges, are distributed nationwide through established retail partnerships.',
+          faqs: [
+            {
+              question: 'What makes Suntreat citrus different?',
+              answer: 'Our 60+ years of experience and deep partnerships with California\'s best growers ensure consistently high quality. We focus on innovation and reliability to deliver premium citrus year-round.'
+            },
+            {
+              question: 'Where are your groves located?',
+              answer: 'Our partner groves are strategically located between southern Kern County and Fresno County in California\'s Central Valley, the heart of premium citrus production.'
+            },
+            {
+              question: 'Do you grow Sumo Citrus?',
+              answer: 'Yes, we are proud partners in growing and distributing premium Sumo Citrus® mandarins, known for their exceptional sweetness and easy-peel characteristics.'
+            },
+            {
+              question: 'What is I\'M PINK® Cara Cara?',
+              answer: 'I\'M PINK® Cara Cara is our signature pink-fleshed navel orange variety, known for its sweet flavor and beautiful pink interior color.'
+            },
+            {
+              question: 'Do you offer organic options?',
+              answer: 'We work with select growers who maintain organic certifications and can provide organic citrus options based on seasonal availability and customer requirements.'
+            },
+            {
+              question: 'What grades of lemons do you offer?',
+              answer: 'We offer multiple lemon grades including D1, D2, and D3 classifications, as well as imported Chilean lemons to ensure year-round availability.'
+            }
+          ],
+          contact: 'info@suntreat.com',
           confidence: {
             companyName: 'high',
             farmingMethods: 'high',

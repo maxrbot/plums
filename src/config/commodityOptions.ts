@@ -158,6 +158,7 @@ export const commodityOptions: CategoryOption[] = [
           {
             id: 'beefsteak',
             name: 'Beefsteak',
+            
             varieties: ['Brandywine', 'Big Beef', 'Celebrity', 'Better Boy', 'Early Girl', 'Mortgage Lifter', 'German Johnson', 'Supersteak']
           },
           {
@@ -285,12 +286,12 @@ export const commodityOptions: CategoryOption[] = [
       {
         id: 'orange',
         name: 'Orange',
-        varieties: ['Navel', 'Valencia', 'Blood Orange', 'Cara Cara', 'Seville', 'Hamlin', 'Pineapple Orange', 'Jaffa']
+        varieties: ['I\'m Pink™ Cara Cara', 'Blood Orange', 'Navel', 'Reserve Heirloom Navels', 'Import (Chile) Valencias', 'Rosy Red Valencia', 'Summer Navels', 'Valencia', 'Cara Cara', 'Seville', 'Hamlin', 'Pineapple Orange', 'Jaffa']
       },
       {
         id: 'mandarin',
         name: 'Mandarin',
-        varieties: ['Sumo Citrus', 'Gold Nugget', 'Clementine', 'Lee Nova', 'Murcott', 'Tangerine', 'Satsuma', 'Honey Murcott', 'W. Murcott']
+        varieties: ['Sumo Citrus', 'Gold Nugget', 'Clementine', 'Lee Nova', 'Murcott/Tango', 'Tangerine', 'Satsuma', 'Honey Murcott', 'W. Murcott']
       },
       {
         id: 'minneola',
@@ -300,7 +301,7 @@ export const commodityOptions: CategoryOption[] = [
       {
         id: 'lemon',
         name: 'Lemon',
-        varieties: ['Eureka', 'Lisbon', 'Meyer', 'Ponderosa', 'Variegated Pink', 'Femminello', 'Villafranca', 'Genoa']
+        varieties: ['Lemons (D1)', 'Lemons (D2)', 'Lemons (D3)', 'Lemons (Chile)', 'Eureka', 'Lisbon', 'Meyer', 'Ponderosa', 'Variegated Pink', 'Femminello', 'Villafranca', 'Genoa']
       },
       {
         id: 'lime',
@@ -310,7 +311,7 @@ export const commodityOptions: CategoryOption[] = [
       {
         id: 'grapefruit',
         name: 'Grapefruit',
-        varieties: ['Ruby Red', 'Pink', 'White', 'Star Ruby', 'Flame', 'Marsh', 'Duncan', 'Oro Blanco', 'Melogold']
+        varieties: ['Melo Gold', 'Oro Blancos', 'Pummelos', 'Star Ruby', 'Marsh Ruby', 'Ruby Red', 'Pink', 'White', 'Flame', 'Marsh', 'Duncan']
       }
     ]
   },

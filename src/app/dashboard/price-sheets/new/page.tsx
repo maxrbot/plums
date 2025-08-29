@@ -229,6 +229,7 @@ export default function NewPriceSheet() {
       const selectedCategoryData = commodityOptions.find(cat => cat.id === selectedCategory)
       if (selectedCategoryData) {
         const categoryCommmodityIds = selectedCategoryData.commodities.map(c => c.id)
+        
         filteredProducts = filteredProducts.filter(product => 
           categoryCommmodityIds.includes(product.commodity.toLowerCase())
         )
@@ -869,6 +870,18 @@ export default function NewPriceSheet() {
               <h2 className="text-lg font-medium text-gray-900">Products and Pricing</h2>
               <p className="text-sm text-gray-600 mt-1">
                 Configure products, then refresh market prices for guidance. Products are pre-populated from your crop management data.
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                Showing {productRows.filter(row => !row.isPackStyleRow).length} products
+                {selectedCategory !== 'all' && (
+                  <span> in {commodityOptions.find(cat => cat.id === selectedCategory)?.name}</span>
+                )}
+                {(inSeasonOnly || upcomingSeasonOnly) && (
+                  <span>
+                    {inSeasonOnly && upcomingSeasonOnly ? ' (in season or upcoming)' : 
+                     inSeasonOnly ? ' (in season)' : ' (upcoming season)'}
+                  </span>
+                )}
               </p>
             </div>
             <div className="flex items-center space-x-4">

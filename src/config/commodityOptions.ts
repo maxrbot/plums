@@ -280,6 +280,38 @@ export const commodityOptions: CategoryOption[] = [
     ]
   },
   {
+    id: 'grapes',
+    name: 'Grapes',
+    commodities: [
+      {
+        id: 'table-grape',
+        name: 'Table Grape',
+        subtypes: [
+          {
+            id: 'green',
+            name: 'Green Grapes',
+            varieties: ['Sweet Globe', 'Ivory', 'Timpson', 'Autumn King', 'Thompson Seedless', 'Sugraone', 'Princess']
+          },
+          {
+            id: 'red',
+            name: 'Red Grapes',
+            varieties: ['Sweet Celebration', 'Allison', 'Timco', 'Passion Fire', 'Red Globe', 'Flame Seedless', 'Ruby Seedless']
+          },
+          {
+            id: 'black',
+            name: 'Black Grapes',
+            varieties: ['Sweet Sapphire', 'Summer Royal', 'Autumn Royal', 'Black Beauty', 'Midnight Beauty', 'Ribier']
+          },
+          {
+            id: 'specialty',
+            name: 'Specialty Grapes',
+            varieties: ['Cotton Candy', 'Candy Heart', 'Candy Snaps', 'Candy Dreams', 'Moon Drops', 'Witch Fingers']
+          }
+        ]
+      }
+    ]
+  },
+  {
     id: 'citrus-fruits',
     name: 'Citrus Fruits',
     commodities: [

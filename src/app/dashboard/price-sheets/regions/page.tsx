@@ -63,8 +63,9 @@ export default function GrowingRegions() {
       
       // Backend now returns transformed data with 'id' field
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedRegions: GrowingRegion[] = response.regions.map((region: any) => {
-        const regionId = region.id || region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
+      const transformedRegions: GrowingRegion[] = response.regions.map((region: any, index: number) => {
+        // Use placeId if available, otherwise fallback to _id, then generate unique ID
+        const regionId = region.location?.placeId || region.id || region._id?.toString() || `temp_${Date.now()}_${index}`
         return {
           id: regionId,
           name: region.name || 'Unknown Region',
@@ -118,8 +119,9 @@ export default function GrowingRegions() {
       const response = await regionsApi.create(regionData)
       
       // Add the new region to the list
+      const regionId = response.region.location?.placeId || response.region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
       const transformedRegion: GrowingRegion = {
-        id: response.region._id,
+        id: regionId,
         name: response.region.name,
         city: response.region.location?.city || '',
         state: response.region.location?.state || '',

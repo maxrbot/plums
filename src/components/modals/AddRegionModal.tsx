@@ -1,9 +1,10 @@
 "use client"
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useRef, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, MapPinIcon } from '@heroicons/react/24/outline'
 import { GrowingRegion } from '../../types'
+import { createPlacesAutocomplete, PlaceResult } from '../../lib/googlePlaces'
 
 interface AddRegionModalProps {
   isOpen: boolean
@@ -22,6 +23,49 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
   })
   
   const [showNotesInput, setShowNotesInput] = useState(false)
+  const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null)
+  const locationInputRef = useRef<HTMLInputElement>(null)
+
+  // Initialize Google Places autocomplete
+  useEffect(() => {
+    if (!isOpen) return
+
+    // Wait for the input to be rendered, then initialize autocomplete
+    const initAutocomplete = async () => {
+      // Wait for the input element to be available
+      let attempts = 0
+      const maxAttempts = 10
+      
+      while (!locationInputRef.current && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        attempts++
+      }
+
+      if (!locationInputRef.current) {
+        console.error('Input ref not available for Google Places autocomplete')
+        return
+      }
+      
+      try {
+        await createPlacesAutocomplete(
+          locationInputRef.current!,
+          (place: PlaceResult) => {
+            setSelectedPlace(place)
+            setFormData(prev => ({
+              ...prev,
+              location: place.formattedAddress,
+              name: prev.name || place.name // Auto-fill name if empty
+            }))
+          }
+        )
+      } catch (error) {
+        console.error('Failed to initialize Google Places:', error)
+      }
+    }
+
+    // Start initialization after a small delay
+    setTimeout(initAutocomplete, 50)
+  }, [isOpen])
 
   // Farming type options
   const farmingTypeOptions = [
@@ -57,8 +101,8 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
     // Transform the data to match the existing GrowingRegion interface
     const regionData = {
       name: formData.name,
-      city: formData.location, // Store location in city field for now
-      state: '', // Will be populated from Google Maps API later
+      city: selectedPlace?.city || '',
+      state: selectedPlace?.state || '',
       climate: '', // Removed climate field
       soilType: '', // Removed soil type field
       deliveryZones: [], // Remove delivery zones for now
@@ -67,7 +111,21 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
       // Include additional fields for API
       farmingTypes: formData.farmingTypes,
       acreage: formData.acreage,
-      notes: formData.notes
+      notes: formData.notes,
+      // Include Google Places data
+      location: selectedPlace ? {
+        placeId: selectedPlace.placeId,
+        formattedAddress: selectedPlace.formattedAddress,
+        city: selectedPlace.city,
+        state: selectedPlace.state,
+        country: selectedPlace.country,
+        coordinates: selectedPlace.coordinates
+      } : {
+        city: '',
+        state: '',
+        country: 'US',
+        formattedAddress: formData.location
+      }
     }
     onSave(regionData)
     handleClose()
@@ -83,6 +141,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
       status: 'active' as const
     })
     setShowNotesInput(false)
+    setSelectedPlace(null)
     onClose()
   }
 
@@ -165,6 +224,7 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         Location *
                       </label>
                       <input
+                        ref={locationInputRef}
                         type="text"
                         id="location"
                         required
@@ -172,9 +232,14 @@ export default function AddRegionModal({ isOpen, onClose, onSave }: AddRegionMod
                         onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                         className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                         placeholder="Start typing city, state..."
+                        autoComplete="off"
                       />
                       <p className="mt-1 text-xs text-gray-500">
-                        Google Maps integration coming soon
+                        {selectedPlace ? (
+                          <span className="text-green-600">✓ Location selected: {selectedPlace.city}, {selectedPlace.state}</span>
+                        ) : (
+                          'Start typing to search locations with Google Places'
+                        )}
                       </p>
                     </div>
                   </div>

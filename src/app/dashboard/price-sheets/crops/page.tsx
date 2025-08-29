@@ -193,6 +193,7 @@ export default function CropManagement() {
 
   // Helper function to format seasonality
   const formatSeasonality = (startMonth: number, endMonth: number): string => {
+    if (!startMonth || !endMonth || startMonth === 0 || endMonth === 0) return 'Not specified'
     return `${getMonthName(startMonth)} - ${getMonthName(endMonth)}`
   }
 
@@ -293,21 +294,25 @@ export default function CropManagement() {
       
       // Transform backend data to frontend format
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedRegions: GrowingRegion[] = response.regions.map((region: any) => ({
-        id: region._id,
-        name: region.name,
-        city: region.location?.city || '',
-        state: region.location?.state || '',
-        climate: '', // Not used in new structure
-        soilType: '', // Not used in new structure
-        deliveryZones: [], // Not used in new structure
-        status: 'active' as const,
-        createdAt: new Date(region.createdAt).toISOString().split('T')[0],
-        // Store additional data for editing
-        farmingTypes: region.farmingTypes || [],
-        acreage: region.acreage || '',
-        notes: region.notes || '',
-        location: region.location
+      const transformedRegions: GrowingRegion[] = response.regions.map((region: any, index: number) => {
+        // Use placeId if available, otherwise fallback to _id, then generate unique ID
+        const regionId = region.location?.placeId || region.id || region._id?.toString() || `temp_${Date.now()}_${index}`
+        return {
+          id: regionId,
+          name: region.name,
+          city: region.location?.city || '',
+          state: region.location?.state || '',
+          climate: '', // Not used in new structure
+          soilType: '', // Not used in new structure
+          deliveryZones: [], // Not used in new structure
+          status: 'active' as const,
+          createdAt: new Date(region.createdAt).toISOString().split('T')[0],
+          // Store additional data for editing
+          farmingTypes: region.farmingTypes || [],
+          acreage: region.acreage || '',
+          notes: region.notes || '',
+          location: region.location
+        }
       }))
       
       setRegions(transformedRegions)
@@ -355,6 +360,18 @@ export default function CropManagement() {
     try {
       setError(null)
       
+      console.log('🔄 handleUpdateCrop called with:', {
+        id: updatedCrop.id,
+        category: updatedCrop.category,
+        commodity: updatedCrop.commodity,
+        variationsCount: updatedCrop.variations?.length || 0
+      })
+      
+      // Validate that we have a valid ID
+      if (!updatedCrop.id) {
+        throw new Error('Cannot update crop: missing crop ID')
+      }
+      
       // Transform frontend data to backend format
       const cropData = {
         category: updatedCrop.category,
@@ -362,7 +379,10 @@ export default function CropManagement() {
         variations: updatedCrop.variations || []
       }
 
-      const response = await cropsApi.update(updatedCrop.id.toString(), cropData)
+      const cropId = updatedCrop.id.toString()
+      console.log('📡 Updating crop with ID:', cropId)
+      
+      const response = await cropsApi.update(cropId, cropData)
       
       // Update the crop in the list
       const transformedCrop: CropManagement = {
@@ -495,7 +515,16 @@ export default function CropManagement() {
                   <dt className="text-sm font-medium text-gray-500 truncate">Price Range</dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {metrics.totalProducts > 0 ? (
-                      `$${Math.min(...crops.flatMap(c => c.variations.map(v => v.targetPricing.minPrice))).toFixed(2)} - $${Math.max(...crops.flatMap(c => c.variations.map(v => v.targetPricing.maxPrice))).toFixed(2)}`
+                      (() => {
+                        const prices = crops.flatMap(c => c.variations
+                          .filter(v => v.targetPricing?.minPrice && v.targetPricing?.maxPrice)
+                          .map(v => ({ min: v.targetPricing.minPrice, max: v.targetPricing.maxPrice }))
+                        )
+                        if (prices.length === 0) return '$0'
+                        const minPrice = Math.min(...prices.map(p => p.min))
+                        const maxPrice = Math.max(...prices.map(p => p.max))
+                        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`
+                      })()
                     ) : '$0'}
                   </dd>
                   <dd className="text-xs text-gray-500 mt-1">
@@ -550,7 +579,8 @@ export default function CropManagement() {
             {Object.entries(
               crops.reduce((acc, crop) => {
                 // Safely handle undefined category
-                const categoryName = (crop.category || 'other').replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                const rawCategory = crop.category || 'other'
+                const categoryName = rawCategory.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
                 if (!acc[categoryName]) acc[categoryName] = []
                 acc[categoryName].push(crop)
                 return acc
@@ -568,20 +598,20 @@ export default function CropManagement() {
                 {/* Commodities within category */}
                 <div className="divide-y divide-gray-200">
                   {categorycrops.map((crop) => (
-                    <div key={crop.id} className="p-6">
+                    <div key={crop.id || 'unknown'} className="p-6">
                       {/* Commodity Header - Collapsible */}
                       <div className="flex items-center justify-between mb-4">
                         <button
-                          onClick={() => toggleCommodity(crop.id.toString())}
+                          onClick={() => toggleCommodity(crop.id?.toString() || 'unknown')}
                           className="flex items-center space-x-3 hover:bg-gray-50 rounded-md p-2 -ml-2 transition-colors"
                         >
-                          {collapsedCommodities.has(crop.id.toString()) ? (
+                          {collapsedCommodities.has(crop.id?.toString() || 'unknown') ? (
                             <ChevronUpIcon className="h-5 w-5 text-gray-400" />
                           ) : (
                             <ChevronDownIcon className="h-5 w-5 text-gray-400" />
                           )}
                           <h4 className="text-lg font-semibold text-gray-900 capitalize">
-                            {crop.commodity.replace('-', ' ')}
+                            {(crop.commodity || 'unknown').replace('-', ' ')}
                           </h4>
                           <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {crop.variations.length} variation{crop.variations.length !== 1 ? 's' : ''}
@@ -601,7 +631,7 @@ export default function CropManagement() {
                       </div>
                       
                       {/* Variations Table - Collapsible */}
-                      {!collapsedCommodities.has(crop.id.toString()) && (
+                      {!collapsedCommodities.has(crop.id?.toString() || 'unknown') && (
                         <div className="overflow-x-auto">
                           <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
@@ -631,7 +661,7 @@ export default function CropManagement() {
                               <tr key={index} className="hover:bg-gray-50">
                                 <td className="px-3 py-3 text-sm text-gray-900">
                                   <div className="font-medium">
-                                    {variation.subtype && (
+                                    {variation.subtype && typeof variation.subtype === 'string' && (
                                       <span className="text-gray-500 capitalize">{variation.subtype.replace('-', ' ')} • </span>
                                     )}
                                     <span className="capitalize">{variation.variety || 'Standard'}</span>
@@ -659,9 +689,11 @@ export default function CropManagement() {
                                   <div className="space-y-1">
                                     {variation.growingRegions.map((region, regionIndex) => (
                                       <div key={regionIndex} className="text-xs">
-                                        {region.seasonality.isYearRound 
+                                        {region.seasonality?.isYearRound 
                                           ? 'Year-round' 
-                                          : formatSeasonality(region.seasonality.startMonth, region.seasonality.endMonth)
+                                          : region.seasonality 
+                                            ? formatSeasonality(region.seasonality.startMonth, region.seasonality.endMonth)
+                                            : 'Not specified'
                                         }
                                       </div>
                                     ))}
@@ -669,14 +701,18 @@ export default function CropManagement() {
                                 </td>
                                 <td className="px-3 py-3 text-sm text-gray-900">
                                   <div className="font-medium">
-                                    ${variation.targetPricing.minPrice.toFixed(2)} - ${variation.targetPricing.maxPrice.toFixed(2)}
+                                    {variation.targetPricing?.minPrice && variation.targetPricing?.maxPrice ? (
+                                      `$${variation.targetPricing.minPrice.toFixed(2)} - $${variation.targetPricing.maxPrice.toFixed(2)}`
+                                    ) : (
+                                      'Not specified'
+                                    )}
                                   </div>
                                   <div className="text-xs text-gray-500">
-                                    per {variation.targetPricing.unit}
+                                    per {variation.targetPricing?.unit || 'unit'}
                                   </div>
                                 </td>
                                 <td className="px-3 py-3 text-sm text-gray-600">
-                                  {variation.minOrder} {variation.orderUnit}
+                                  {variation.minOrder || 0} {variation.orderUnit || 'units'}
                                 </td>
                               </tr>
                             ))}
@@ -703,12 +739,47 @@ export default function CropManagement() {
           setEditingCrop(null)
         }}
         onSave={(cropData) => {
+          console.log('💾 Modal onSave called with:', {
+            category: cropData.category,
+            commodity: cropData.commodity,
+            variationsCount: cropData.variations?.length || 0,
+            editingCrop: editingCrop ? { id: editingCrop.id, category: editingCrop.category, commodity: editingCrop.commodity } : null
+          })
+          
           if (editingCrop) {
             // Update existing crop
-            handleUpdateCrop(cropData)
+            console.log('📝 Using edit mode - updating existing crop')
+            const updatedCrop = {
+              ...editingCrop,
+              ...cropData
+            }
+            handleUpdateCrop(updatedCrop)
           } else {
-            // Add new crop
-            handleAddCrop(cropData)
+            // Check if this commodity already exists (should be an update, not create)
+            const existingCrop = crops.find(crop => 
+              crop.category === cropData.category && crop.commodity === cropData.commodity
+            )
+            
+            console.log('🔍 Checking for existing crop:', {
+              found: !!existingCrop,
+              existingId: existingCrop?.id,
+              category: cropData.category,
+              commodity: cropData.commodity
+            })
+            
+            if (existingCrop) {
+              // This is actually an update to an existing commodity
+              const updatedCrop = {
+                ...existingCrop,
+                variations: cropData.variations
+              }
+              console.log('🔄 Auto-detected existing crop - updating instead of creating')
+              handleUpdateCrop(updatedCrop)
+            } else {
+              // Truly new crop
+              console.log('✨ Creating new crop')
+              handleAddCrop(cropData)
+            }
           }
         }}
         availableRegions={regions}

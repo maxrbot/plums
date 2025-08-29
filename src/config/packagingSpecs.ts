@@ -66,8 +66,12 @@ export const commodityPrimaryPackages: Record<string, {
   raspberry: { packageName: '12x6oz Flat', type: 'weight', standardUnit: 4.5, unitType: 'lb' },
   blackberry: { packageName: '12x6oz Flat', type: 'weight', standardUnit: 4.5, unitType: 'lb' },
   
+  // Grapes
+  'table-grape': { packageName: '19 lb Box', type: 'weight', standardUnit: 19, unitType: 'lb' },
+  
   // Stone Fruits
   peach: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
+  nectarine: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
   plum: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
   cherry: { packageName: '20 lb Box', type: 'weight', standardUnit: 20, unitType: 'lb' },
   apricot: { packageName: '24 lb Box', type: 'weight', standardUnit: 24, unitType: 'lb' },
@@ -793,6 +797,36 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     }
   },
   {
+    id: 'nectarine-carton-25lb',
+    type: 'carton',
+    name: '25 lb Box',
+    counts: ['48s', '56s', '64s', '72s', '84s', '96s'],
+    weight: '25 lbs',
+    grades: ['Extra Fancy', 'Fancy', 'Choice'],
+    isStandard: true,
+    commodities: ['nectarine'],
+    category: 'carton',
+    description: 'Standard nectarine box (25 pounds)',
+    usdaMapping: {
+      commodity: 'nectarines'
+    }
+  },
+  {
+    id: 'nectarine-tray-12ct',
+    type: 'tray',
+    name: '12 ct Tray',
+    counts: ['12 ct'],
+    grades: ['Extra Fancy', 'Fancy'],
+    isStandard: true,
+    commodities: ['nectarine'],
+    category: 'specialty',
+    description: 'Premium nectarine tray pack',
+    usdaMapping: {
+      commodity: 'nectarines',
+      specifications: 'tray pack'
+    }
+  },
+  {
     id: 'apricot-carton-24lb',
     type: 'carton',
     name: '24 lb Carton',
@@ -882,6 +916,52 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     description: 'Plastic clamshell container for blackberries',
     usdaMapping: {
       commodity: 'blackberries'
+    }
+  },
+
+  // GRAPES
+  {
+    id: 'grape-box-19lb',
+    type: 'carton',
+    name: '19 lb Box',
+    sizes: ['19 lb'],
+    grades: ['Extra Fancy', 'Fancy', 'Choice'],
+    isStandard: true,
+    commodities: ['table-grape'],
+    category: 'carton',
+    description: 'Standard grape box (19 pounds)',
+    usdaMapping: {
+      commodity: 'grapes'
+    }
+  },
+  {
+    id: 'grape-clamshell',
+    type: 'clamshell',
+    name: 'Clamshell',
+    sizes: ['1 lb', '2 lb', '3 lb'],
+    grades: ['Extra Fancy', 'Fancy'],
+    isStandard: true,
+    commodities: ['table-grape'],
+    category: 'container',
+    description: 'Retail clamshell container for grapes',
+    usdaMapping: {
+      commodity: 'grapes',
+      specifications: 'clamshell'
+    }
+  },
+  {
+    id: 'grape-bag',
+    type: 'bag',
+    name: 'Retail Bag',
+    sizes: ['2 lb', '3 lb', '5 lb'],
+    grades: ['Extra Fancy', 'Fancy'],
+    isStandard: true,
+    commodities: ['table-grape'],
+    category: 'bag',
+    description: 'Perforated bag for retail grapes',
+    usdaMapping: {
+      commodity: 'grapes',
+      specifications: 'bagged'
     }
   },
 

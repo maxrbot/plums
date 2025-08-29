@@ -112,7 +112,10 @@ export default function AcceleratedSetup() {
       'cucumbers': 'cucumber',
       'squashes': 'squash',
       'melons': 'melon',
-      'avocados': 'avocado'
+      'avocados': 'avocado',
+      'citrus': 'citrus', // Already singular
+      'stone fruits': 'stone-fruit',
+      'grapes': 'grape'
     }
     
     commodity = pluralMap[commodity] || commodity.replace(/s$/, '')
@@ -134,6 +137,9 @@ export default function AcceleratedSetup() {
       'lime': 'citrus-fruits',
       'grapefruit': 'citrus-fruits',
       'mandarin': 'citrus-fruits',
+      'citrus': 'citrus-fruits',
+      'table-grape': 'grapes',
+      'stone-fruit': 'stone-fruits',
       'kiwi': 'tropical-fruits',
       'avocado': 'tropical-fruits',
       'mango': 'tropical-fruits'
@@ -141,9 +147,47 @@ export default function AcceleratedSetup() {
     
     const category = categoryMap[commodity] || 'other'
     
+    // For more specific commodity mapping based on variety
+    let finalCommodity = commodity
+    
+    // Map stone fruit varieties to specific commodities
+    if (commodity === 'stone-fruit' && variety) {
+      const varietyLower = variety.toLowerCase()
+      if (varietyLower.includes('peach') || varietyLower.includes('donut')) {
+        finalCommodity = 'peach'
+      } else if (varietyLower.includes('nectarine')) {
+        finalCommodity = 'nectarine'
+      } else if (varietyLower.includes('plum') || varietyLower.includes('pluot')) {
+        finalCommodity = 'plum'
+      } else if (varietyLower.includes('apricot')) {
+        finalCommodity = 'apricot'
+      }
+    }
+    
+    // Map citrus varieties to specific commodities
+    if (commodity === 'citrus' && variety) {
+      const varietyLower = variety.toLowerCase()
+      if (varietyLower.includes('orange')) {
+        finalCommodity = 'orange'
+      } else if (varietyLower.includes('mandarin')) {
+        finalCommodity = 'mandarin'
+      } else if (varietyLower.includes('lemon')) {
+        finalCommodity = 'lemon'
+      } else if (varietyLower.includes('grapefruit')) {
+        finalCommodity = 'grapefruit'
+      } else if (varietyLower.includes('lime')) {
+        finalCommodity = 'lime'
+      }
+    }
+    
+    // Map grape to table-grape (since Blossom Fruit grows table grapes)
+    if (commodity === 'grape') {
+      finalCommodity = 'table-grape'
+    }
+
     return {
       category,
-      commodity,
+      commodity: finalCommodity,
       variety: variety || 'Standard',
       isOrganic
     }
@@ -318,6 +362,72 @@ export default function AcceleratedSetup() {
       
       if (commodity === 'lime') {
         return { start: 9, end: 10 } // Sep-Oct
+      }
+    }
+
+    // Blossom Fruit International specific seasonality
+    if (analysisResults?.companyName === 'Blossom Fruit International') {
+      // Stone Fruits seasonality
+      if (commodity === 'peach') {
+        if (variety.toLowerCase().includes('donut')) {
+          return { start: 6, end: 8 } // Jun-Aug (shorter season for specialty)
+        }
+        return { start: 5, end: 9 } // May-Sep (standard peaches)
+      }
+      
+      if (commodity === 'nectarine') {
+        return { start: 5, end: 9 } // May-Sep
+      }
+      
+      if (commodity === 'plum') {
+        return { start: 6, end: 10 } // Jun-Oct
+      }
+      
+      if (commodity === 'apricot') {
+        return { start: 5, end: 8 } // May-Aug
+      }
+
+      // Citrus seasonality
+      if (commodity === 'orange') {
+        if (variety.toLowerCase().includes('valencia')) {
+          return { start: 3, end: 10 } // Mar-Oct
+        }
+        // Navel, Late Navel, Cara Cara, Blood
+        return { start: 11, end: 5 } // Nov-May (crosses year)
+      }
+      
+      if (commodity === 'mandarin') {
+        if (variety.toLowerCase().includes('stem') && variety.toLowerCase().includes('leaf')) {
+          return { start: 1, end: 3 } // Jan-Mar (shorter season)
+        }
+        return { start: 11, end: 4 } // Nov-Apr (standard mandarins)
+      }
+      
+      if (commodity === 'lemon') {
+        return { start: 1, end: 12 } // Year-round
+      }
+      
+      if (commodity === 'grapefruit') {
+        return { start: 10, end: 6 } // Oct-Jun (crosses year)
+      }
+      
+      if (commodity === 'lime') {
+        return { start: 1, end: 12 } // Year-round
+      }
+
+      // Grapes seasonality
+      if (commodity === 'table-grape') {
+        if (variety.toLowerCase().includes('specialty') || variety.toLowerCase().includes('candy')) {
+          return { start: 7, end: 10 } // Jul-Oct (specialty varieties)
+        }
+        if (variety.toLowerCase().includes('black')) {
+          return { start: 8, end: 12 } // Aug-Dec (black varieties)
+        }
+        if (variety.toLowerCase().includes('red')) {
+          return { start: 7, end: 11 } // Jul-Nov (red varieties)
+        }
+        // Green varieties
+        return { start: 6, end: 12 } // Jun-Dec (green varieties)
       }
     }
     
@@ -1000,6 +1110,122 @@ export default function AcceleratedSetup() {
             }
           ],
           contact: 'info@superfreshgrowers.com',
+          confidence: {
+            companyName: 'high',
+            farmingMethods: 'high',
+            regions: 'high',
+            commodities: 'high',
+            story: 'high',
+            availability: 'high',
+            contact: 'high'
+          }
+        }
+      } else if (companyUrl.includes('blossomfruitintl.com')) {
+        // Blossom Fruit International - Premium fruit distributor analysis
+        mockResults = {
+          companyName: 'Blossom Fruit International',
+          farmingMethods: ['Premium Quality Standards', 'Food Safety Certified', 'Global Supply Chain', 'Year-Round Programs'],
+          regions: ['Visalia, California', 'Central Valley, California', 'International Partners'],
+          commodities: [
+            // Stone Fruits
+            'Stone Fruits - White Flesh Peaches',
+            'Stone Fruits - Yellow Flesh Peaches',
+            'Stone Fruits - Donut Peaches',
+            'Stone Fruits - White Flesh Nectarines',
+            'Stone Fruits - Yellow Flesh Nectarines',
+            'Stone Fruits - Red Plums',
+            'Stone Fruits - Black Plums',
+            'Stone Fruits - Green Plums',
+            'Stone Fruits - Pluots',
+            'Stone Fruits - Apricots',
+            // Citrus
+            'Citrus - Navel Oranges',
+            'Citrus - Late Navel Oranges',
+            'Citrus - Cara Cara Oranges',
+            'Citrus - Blood Oranges',
+            'Citrus - Valencia Oranges',
+            'Citrus - Murcott Mandarins',
+            'Citrus - Tango Mandarins',
+            'Citrus - Clemenules Mandarins',
+            'Citrus - Stem & Leaf Mandarins',
+            'Citrus - Eureka Lemons',
+            'Citrus - Lisbon Lemons',
+            'Citrus - Ruby Red Grapefruit',
+            'Citrus - Limes',
+            // Grapes
+            'Grapes - Sweet Globe (Green)',
+            'Grapes - Ivory (Green)',
+            'Grapes - Timpson (Green)',
+            'Grapes - Autumn King (Green)',
+            'Grapes - Sweet Celebration (Red)',
+            'Grapes - Allison (Red)',
+            'Grapes - Timco (Red)',
+            'Grapes - Passion Fire (Red)',
+            'Grapes - Sweet Sapphire (Black)',
+            'Grapes - Summer Royal (Black)',
+            'Grapes - Autumn Royal (Black)',
+            'Grapes - Cotton Candy (Specialty)',
+            'Grapes - Candy Heart (Specialty)',
+            'Grapes - Candy Snaps (Specialty)',
+            'Grapes - Candy Dreams (Specialty)',
+
+          ],
+          brands: [
+            {
+              name: 'Blossom Stone Fruits',
+              category: 'Stone Fruits',
+              varieties: [
+                'White & Yellow Flesh Peaches (May-Sep)',
+                'Donut Peaches (Jun-Aug)',
+                'White & Yellow Flesh Nectarines (May-Sep)',
+                'Red, Black & Green Plums (Jun-Oct)',
+                'Premium Pluots (Jul-Sep)',
+                'Golden Apricots (May-Aug)'
+              ]
+            },
+            {
+              name: 'Blossom Citrus',
+              category: 'Citrus',
+              varieties: [
+                'Navel & Late Navel Oranges (Nov-May)',
+                'Cara Cara & Blood Oranges (Dec-Apr)',
+                'Valencia Oranges (Mar-Oct)',
+                'Murcott, Tango & Clemenules Mandarins (Nov-Apr)',
+                'Stem & Leaf Mandarins (Jan-Mar)',
+                'Eureka & Lisbon Lemons (Year-round)',
+                'Ruby Red Grapefruit (Oct-Jun)',
+                'Persian Limes (Year-round)'
+              ]
+            },
+            {
+              name: 'Blossom Grapes',
+              category: 'Grapes',
+              varieties: [
+                'Green Varieties: Sweet Globe, Ivory, Timpson, Autumn King (Jun-Dec)',
+                'Red Varieties: Sweet Celebration, Allison, Timco, Passion Fire (Jul-Nov)',
+                'Black Varieties: Sweet Sapphire, Summer Royal, Autumn Royal (Aug-Dec)',
+                'Specialty: Cotton Candy, Candy Heart, Candy Snaps, Candy Dreams (Jul-Oct)'
+              ]
+            }
+          ],
+          story: 'At Blossom Fruit International, every box we ship carries the story of a grower, a region, and a season. We celebrate nature\'s cycles and the work behind every harvest — bringing premium fruit from farm to table, year-round.',
+          availability: 'We supply premium-quality fresh fruit to the nation\'s leading retailers and wholesalers. In addition to our domestic programs, we export to a select group of international markets, always upholding the highest standards of freshness and food safety.',
+          retailAvailability: 'Available through leading retailers and wholesalers nationwide. Export programs available for select international markets.',
+          faqs: [
+            {
+              question: 'What makes Blossom Fruit International different?',
+              answer: 'We focus on premium quality and maintain the highest standards of freshness and food safety across all our programs.'
+            },
+            {
+              question: 'Do you offer year-round programs?',
+              answer: 'Yes, we provide year-round fruit programs through our domestic and international partnerships.'
+            },
+            {
+              question: 'What regions do you serve?',
+              answer: 'We supply to leading retailers and wholesalers nationwide, plus select international markets.'
+            }
+          ],
+          contact: 'info@blossomfruitintl.com',
           confidence: {
             companyName: 'high',
             farmingMethods: 'high',

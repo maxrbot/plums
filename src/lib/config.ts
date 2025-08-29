@@ -5,6 +5,11 @@ export const config = {
     timeout: 10000,
   },
   
+  // Google Places API
+  googlePlaces: {
+    apiKey: process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY || '',
+  },
+  
   // AI Configuration (for future Claude integration)
   ai: {
     model: 'claude-3-sonnet-20240229',

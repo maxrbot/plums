@@ -4,7 +4,7 @@ import { Fragment, useState, useEffect, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, SparklesIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { CropManagement, CropVariation, GrowingRegion } from '../../types'
-import { getCategoryNames, getCommodityNames, getVarietiesByCommodity, getSubtypesByCommodity, getVarietiesBySubtype, hasSubtypes } from '../../config/commodityOptions'
+import { getCategoryNames, getCommodityNames, getVarietiesByCommodity, getSubtypesByCommodity, getVarietiesBySubtype, hasSubtypes, commodityOptions } from '../../config/commodityOptions'
 
 interface AddVariationModalProps {
   isOpen: boolean
@@ -61,6 +61,8 @@ export default function AddVariationModal({
     commodity: '',
     variations: [] as Omit<CropVariation, 'id'>[]
   })
+  
+
 
   const [showAdditionalInputs, setShowAdditionalInputs] = useState(false)
   const [showAddVariationForm, setShowAddVariationForm] = useState(false)
@@ -79,7 +81,34 @@ export default function AddVariationModal({
 
   // Get available options
   const categories = getCategoryNames()
-  const commodities = formData.category ? getCommodityNames(formData.category) : []
+  
+  // Get all commodities (flattened from all categories) or filtered by category
+  const getAllCommodities = () => {
+    const allCommodities: { id: string; name: string; categoryName: string; categoryId: string }[] = []
+    
+    commodityOptions.forEach(category => {
+      category.commodities.forEach(commodity => {
+        allCommodities.push({
+          id: commodity.id,
+          name: commodity.name,
+          categoryName: category.name,
+          categoryId: category.id
+        })
+      })
+    })
+    
+    return allCommodities.sort((a, b) => a.name.localeCompare(b.name))
+  }
+  
+  // Filter commodities based on selected category (if any)
+  const allCommodities = getAllCommodities()
+  const filteredCommodities = formData.category 
+    ? allCommodities.filter(c => c.categoryId === formData.category)
+    : allCommodities
+
+
+  
+
   
   // Check if commodity has hierarchical structure
   const commodityHasSubtypes = (formData.category && formData.commodity) ? hasSubtypes(formData.category, formData.commodity) : false
@@ -94,6 +123,27 @@ export default function AddVariationModal({
       getVarietiesBySubtype(formData.category, formData.commodity, currentVariation.subtype) :
       getVarietiesByCommodity(formData.category, formData.commodity)
     ) : []
+
+  // Simple commodity selection handler
+  const handleCommodityChange = (commodityId: string) => {
+    if (!commodityId) {
+      // Clearing selection
+      setFormData(prev => ({ ...prev, commodity: '' }))
+      return
+    }
+
+    // Find the commodity info
+    const selectedCommodity = allCommodities.find(c => c.id === commodityId)
+    
+    if (selectedCommodity) {
+      // Always set both category and commodity
+      setFormData(prev => ({
+        ...prev,
+        category: selectedCommodity.categoryId,
+        commodity: commodityId
+      }))
+    }
+  }
 
   // Helper function to find existing crop by category and commodity
   const findExistingCrop = useCallback((category: string, commodity: string): CropManagement | undefined => {
@@ -127,12 +177,8 @@ export default function AddVariationModal({
     }
   }, [existingCrop, isEditMode])
 
-  // Reset dependent fields when category changes (but preserve variations if they exist)
-  useEffect(() => {
-    if (formData.category && formData.variations.length === 0) {
-      setFormData(prev => ({ ...prev, commodity: '' }))
-    }
-  }, [formData.category, formData.variations.length])
+  // Note: Removed useEffect that was resetting commodity when category changed
+  // This was interfering with auto-population from commodity selection
 
   // Handle selection of commodity that already has existing variations
   useEffect(() => {
@@ -248,6 +294,7 @@ export default function AddVariationModal({
 
     // Reset current variation
     setCurrentVariation({
+      subtype: '',
       variety: '',
       isOrganic: false,
       growingRegions: [],
@@ -269,16 +316,17 @@ export default function AddVariationModal({
   }
 
   const toggleGrowingRegion = (region: GrowingRegion) => {
+    const regionId = region.id || region.name
     const regionConfig = {
-      regionId: region.id.toString(),
+      regionId: regionId.toString(),
       regionName: region.name,
       seasonality: { startMonth: 0, endMonth: 0, isYearRound: false }
     }
 
     setCurrentVariation(prev => ({
       ...prev,
-      growingRegions: prev.growingRegions.some(r => r.regionId === region.id.toString())
-        ? prev.growingRegions.filter(r => r.regionId !== region.id.toString())
+      growingRegions: prev.growingRegions.some(r => r.regionId === regionId.toString())
+        ? prev.growingRegions.filter(r => r.regionId !== regionId.toString())
         : [...prev.growingRegions, regionConfig]
     }))
   }
@@ -370,24 +418,33 @@ export default function AddVariationModal({
                     <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                       <div>
                         <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                          Category *
+                          Category
                           {formData.variations.length > 0 && (
                             <span className="text-xs text-gray-500 ml-2">(locked - variations added)</span>
                           )}
                         </label>
                         <select
                           id="category"
-                          required
                           disabled={formData.variations.length > 0}
                           value={formData.category}
-                          onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                          onChange={(e) => {
+                            const newCategory = e.target.value
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              category: newCategory,
+                              commodity: '' // Reset commodity when category changes manually
+                            }))
+                          }}
                           className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                         >
-                          <option value="">Select category</option>
-                          {categories.map(category => (
-                            <option key={category.id} value={category.id}>{category.name}</option>
+                          <option value="">All categories</option>
+                          {categories.map((category, index) => (
+                            <option key={`category-${category.id}-${index}`} value={category.id}>{category.name}</option>
                           ))}
                         </select>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Leave blank to see all commodities
+                        </p>
                       </div>
 
                       <div>
@@ -400,22 +457,31 @@ export default function AddVariationModal({
                         <select
                           id="commodity"
                           required
-                          disabled={!formData.category || formData.variations.length > 0}
+                          disabled={formData.variations.length > 0}
                           value={formData.commodity}
-                          onChange={(e) => setFormData(prev => ({ ...prev, commodity: e.target.value }))}
+                          onChange={(e) => handleCommodityChange(e.target.value)}
                           className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-500"
                         >
-                          <option value="">{formData.category ? 'Select commodity' : 'Select category first'}</option>
-                          {commodities.map(commodity => {
-                            const hasExisting = commodityHasExistingVariations(formData.category, commodity.id)
-                            const existingCount = hasExisting ? findExistingCrop(formData.category, commodity.id)?.variations.length || 0 : 0
+                          <option value="">Select commodity</option>
+                          {filteredCommodities.map((commodity, index) => {
+                            const hasExisting = commodityHasExistingVariations(commodity.categoryId, commodity.id)
+                            const existingCount = hasExisting ? findExistingCrop(commodity.categoryId, commodity.id)?.variations.length || 0 : 0
+                            
                             return (
-                              <option key={commodity.id} value={commodity.id}>
-                                {commodity.name}{hasExisting ? ` (${existingCount} variation${existingCount !== 1 ? 's' : ''})` : ''}
+                              <option key={`commodity-${commodity.id}-${index}`} value={commodity.id}>
+                                {commodity.name}
+                                {!formData.category && ` (${commodity.categoryName})`}
+                                {hasExisting ? ` - ${existingCount} variation${existingCount !== 1 ? 's' : ''}` : ''}
                               </option>
                             )
                           })}
                         </select>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {formData.category 
+                            ? `Showing ${filteredCommodities.length} commodities in ${categories.find(c => c.id === formData.category)?.name}`
+                            : `Showing all ${filteredCommodities.length} commodities`
+                          }
+                        </p>
                       </div>
                     </div>
                   )}
@@ -426,7 +492,7 @@ export default function AddVariationModal({
                       <h4 className="text-sm font-medium text-gray-900 mb-3">Current Variations ({formData.variations.length})</h4>
                       <div className="space-y-2">
                         {formData.variations.map((variation, index) => (
-                          <div key={index} className="flex items-center justify-between bg-white rounded-md p-3 border">
+                          <div key={`variation-${variation.variety}-${variation.isOrganic}-${index}`} className="flex items-center justify-between bg-white rounded-md p-3 border">
                             <div className="flex items-center space-x-3">
                               <span className="text-sm font-medium text-gray-900">
                                 {variation.variety} ({variation.isOrganic ? 'Organic' : 'Conventional'})
@@ -477,8 +543,8 @@ export default function AddVariationModal({
                               className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                             >
                               <option value="">Select type</option>
-                              {subtypes.map(subtype => (
-                                <option key={subtype.id} value={subtype.id}>{subtype.name}</option>
+                              {subtypes.map((subtype, index) => (
+                                <option key={`subtype-${subtype.id}-${formData.commodity}-${index}`} value={subtype.id}>{subtype.name}</option>
                               ))}
                             </select>
                           </div>
@@ -498,8 +564,8 @@ export default function AddVariationModal({
                               className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                             >
                               <option value="">Select variety</option>
-                              {varieties.map(variety => (
-                                <option key={variety} value={variety}>{variety}</option>
+                              {varieties.map((variety, index) => (
+                                <option key={`${variety}-${index}-${currentVariation.subtype || 'direct'}`} value={variety}>{variety}</option>
                               ))}
                             </select>
                           </div>
@@ -540,12 +606,13 @@ export default function AddVariationModal({
                           Growing Regions *
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {availableRegions.map(region => {
-                            const isSelected = currentVariation.growingRegions.some(r => r.regionId === region.id.toString())
-                            const regionConfig = currentVariation.growingRegions.find(r => r.regionId === region.id.toString())
+                          {availableRegions.filter(region => region.id || region.name).map((region, index) => {
+                            const regionId = region.id || region.name
+                            const isSelected = currentVariation.growingRegions.some(r => r.regionId === regionId.toString())
+                            const regionConfig = currentVariation.growingRegions.find(r => r.regionId === regionId.toString())
                             
                             return (
-                              <div key={region.id} className="relative">
+                              <div key={`region-${regionId}`} className="relative">
                                 <label className={`block p-3 border-2 rounded-lg cursor-pointer transition-all ${
                                   isSelected 
                                     ? 'border-blue-500 bg-green-50' 
@@ -579,7 +646,7 @@ export default function AddVariationModal({
                                         <div className="grid grid-cols-6 gap-1">
                                           {months.map(month => (
                                             <button
-                                              key={month.value}
+                                              key={`month-${month.value}-${regionConfig.regionId}`}
                                               type="button"
                                               onClick={() => {
                                                 const currentStart = regionConfig.seasonality.startMonth
@@ -786,8 +853,8 @@ export default function AddVariationModal({
                               </h5>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                              {getAvailableCertifications().map(cert => (
-                                <label key={cert} className="flex items-center">
+                              {getAvailableCertifications().map((cert, index) => (
+                                <label key={`cert-${cert}-${index}`} className="flex items-center">
                                   <input
                                     type="checkbox"
                                     checked={currentVariation.growingPractices.includes(cert)}

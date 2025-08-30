@@ -10,9 +10,12 @@ import {
   CheckIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
-  RocketLaunchIcon
+  RocketLaunchIcon,
+  DocumentTextIcon,
+  EyeIcon
 } from '@heroicons/react/24/outline'
 import { useUser } from '@/contexts/UserContext'
+import TemplatePreviewModal from '@/components/modals/TemplatePreviewModal'
 
 // Mock user data - this would come from backend
 const initialUserData = {
@@ -53,16 +56,26 @@ const initialUserData = {
     status: 'active',
     nextBilling: '2024-04-15',
     amount: '$100/month'
+  },
+  
+  // Pricesheet Preferences
+  pricesheetSettings: {
+    defaultTemplate: 'classic' as 'classic' | 'premium' | 'compact',
+    showMarketPrices: true,
+    groupByRegion: true,
+    includeSeasonality: true,
+    companyLogo: null as string | null
   }
 }
 
 export default function Settings() {
   const { user, loading, updateUser } = useUser()
   const [userData, setUserData] = useState(initialUserData)
-  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'notifications' | 'subscription'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'notifications' | 'pricesheet' | 'subscription'>('profile')
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   // Update form data when user data loads
   useEffect(() => {
@@ -108,7 +121,20 @@ export default function Settings() {
           status: 'active',
           nextBilling: user.billing.nextBillingDate || '2024-02-15',
           amount: '$100/month' // Default amount
-        }
+        },
+        
+        // Pricesheet Preferences (load from user data or use defaults)
+        pricesheetSettings: (() => {
+          const savedSettings = user.preferences?.pricesheet
+          console.log('📥 Loading pricesheet settings from user:', savedSettings)
+          return savedSettings || {
+            defaultTemplate: 'classic' as 'classic' | 'premium' | 'compact',
+            showMarketPrices: true,
+            groupByRegion: true,
+            includeSeasonality: true,
+            companyLogo: null as string | null
+          }
+        })()
       })
     }
   }, [user])
@@ -129,6 +155,14 @@ export default function Settings() {
         [field]: value
       }
     })
+    setHasChanges(true)
+  }
+
+  const updateUserData = (field: string, value: any) => {
+    setUserData(prev => ({
+      ...prev,
+      [field]: value
+    }))
     setHasChanges(true)
   }
 
@@ -159,9 +193,19 @@ export default function Settings() {
             email: userData.emailNotifications.newContacts,
             priceAlerts: userData.emailNotifications.priceSheetOpens,
             marketUpdates: userData.emailNotifications.weeklyReports
+          },
+          pricesheet: userData.pricesheetSettings || {
+            defaultTemplate: 'classic',
+            showMarketPrices: true,
+            groupByRegion: true,
+            includeSeasonality: true,
+            companyLogo: null
           }
         }
       }
+      
+      console.log('💾 Saving pricesheet settings:', userData.pricesheetSettings)
+      console.log('📤 Full user data being saved:', updatedUserData)
       
       await updateUser(updatedUserData)
       setHasChanges(false)
@@ -179,6 +223,7 @@ export default function Settings() {
     { id: 'profile', name: 'Profile', icon: UserIcon },
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
     { id: 'notifications', name: 'Notifications', icon: BellIcon },
+    { id: 'pricesheet', name: 'Price Sheets', icon: DocumentTextIcon },
     { id: 'subscription', name: 'Subscription', icon: ShieldCheckIcon }
   ]
 
@@ -261,7 +306,7 @@ export default function Settings() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'profile' | 'company' | 'notifications' | 'subscription')}
+                onClick={() => setActiveTab(tab.id as 'profile' | 'company' | 'notifications' | 'pricesheet' | 'subscription')}
                 className={`flex items-center space-x-2 py-2 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
@@ -661,8 +706,221 @@ export default function Settings() {
             </div>
           </div>
         )}
+
+        {activeTab === 'pricesheet' && (
+          <div className="p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-medium text-gray-900">Price Sheet Settings</h3>
+              <button
+                onClick={() => setShowTemplatePreview(true)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <EyeIcon className="h-4 w-4 mr-2" />
+                View Your Pricesheet Style
+              </button>
+            </div>
+            
+            {/* Template Selection */}
+            <div className="mb-8">
+              <h4 className="text-base font-medium text-gray-900 mb-4">Default Template</h4>
+              <p className="text-sm text-gray-600 mb-6">Choose your preferred price sheet layout. This will be applied when you preview price sheets.</p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Classic Template */}
+                <div className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                  userData.pricesheetSettings?.defaultTemplate === 'classic' 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultTemplate: 'classic' })}
+                >
+                  <div className="aspect-w-16 aspect-h-10 mb-3">
+                    <div className="bg-white border border-gray-200 rounded p-2 text-xs">
+                      <div className="bg-gray-100 h-2 mb-1 rounded"></div>
+                      <div className="space-y-1">
+                        <div className="flex space-x-1">
+                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
+                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
+                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
+                        </div>
+                        <div className="flex space-x-1">
+                          <div className="bg-gray-100 h-1 flex-1 rounded"></div>
+                          <div className="bg-gray-100 h-1 flex-1 rounded"></div>
+                          <div className="bg-gray-100 h-1 flex-1 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <h5 className="font-medium text-gray-900">Classic Table</h5>
+                  <p className="text-sm text-gray-500 mt-1">Clean table format, grouped by region</p>
+                  {userData.pricesheetSettings?.defaultTemplate === 'classic' && (
+                    <div className="absolute top-2 right-2">
+                      <CheckIcon className="h-5 w-5 text-blue-600" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Premium Template */}
+                <div className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                  userData.pricesheetSettings?.defaultTemplate === 'premium' 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultTemplate: 'premium' })}
+                >
+                  <div className="aspect-w-16 aspect-h-10 mb-3">
+                    <div className="bg-white border border-gray-200 rounded p-2 text-xs">
+                      <div className="bg-gradient-to-r from-blue-100 to-green-100 h-2 mb-1 rounded"></div>
+                      <div className="space-y-1">
+                        <div className="bg-gray-100 h-3 w-3/4 rounded mb-1"></div>
+                        <div className="flex space-x-1">
+                          <div className="bg-green-200 h-1 w-1/4 rounded"></div>
+                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <h5 className="font-medium text-gray-900">Premium Catalog</h5>
+                  <p className="text-sm text-gray-500 mt-1">Card-based layout, visual focus</p>
+                  {userData.pricesheetSettings?.defaultTemplate === 'premium' && (
+                    <div className="absolute top-2 right-2">
+                      <CheckIcon className="h-5 w-5 text-blue-600" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Compact Template */}
+                <div className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                  userData.pricesheetSettings?.defaultTemplate === 'compact' 
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+                onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultTemplate: 'compact' })}
+                >
+                  <div className="aspect-w-16 aspect-h-10 mb-3">
+                    <div className="bg-white border border-gray-200 rounded p-2 text-xs">
+                      <div className="bg-gray-100 h-1 mb-1 rounded"></div>
+                      <div className="space-y-0.5">
+                        <div className="flex space-x-0.5">
+                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
+                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
+                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
+                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
+                        </div>
+                        <div className="flex space-x-0.5">
+                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
+                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
+                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
+                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <h5 className="font-medium text-gray-900">Compact List</h5>
+                  <p className="text-sm text-gray-500 mt-1">Dense format, more data visible</p>
+                  {userData.pricesheetSettings?.defaultTemplate === 'compact' && (
+                    <div className="absolute top-2 right-2">
+                      <CheckIcon className="h-5 w-5 text-blue-600" />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Display Options */}
+            <div className="border-t border-gray-200 pt-6">
+              <h4 className="text-base font-medium text-gray-900 mb-4">Display Options</h4>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900">Show Market Prices</label>
+                    <p className="text-sm text-gray-500">Display USDA market prices alongside your prices</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={userData.pricesheetSettings?.showMarketPrices || false}
+                    onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, showMarketPrices: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900">Group by Region</label>
+                    <p className="text-sm text-gray-500">Organize products by growing region</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={userData.pricesheetSettings?.groupByRegion || false}
+                    onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, groupByRegion: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div>
+                    <label className="text-sm font-medium text-gray-900">Include Seasonality</label>
+                    <p className="text-sm text-gray-500">Show seasonal availability indicators</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={userData.pricesheetSettings?.includeSeasonality || false}
+                    onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, includeSeasonality: e.target.checked })}
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Company Branding */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h4 className="text-base font-medium text-gray-900 mb-4">Company Branding</h4>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Company Logo
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-shrink-0">
+                    {userData.pricesheetSettings?.companyLogo ? (
+                      <img
+                        src={userData.pricesheetSettings.companyLogo}
+                        alt="Company logo"
+                        className="h-12 w-12 object-contain border border-gray-200 rounded"
+                      />
+                    ) : (
+                      <div className="h-12 w-12 bg-gray-100 border border-gray-200 rounded flex items-center justify-center">
+                        <span className="text-gray-400 text-xs">Logo</span>
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                      Upload Logo
+                    </button>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
+      {/* Template Preview Modal */}
+      <TemplatePreviewModal
+        isOpen={showTemplatePreview}
+        onClose={() => setShowTemplatePreview(false)}
+        template={userData.pricesheetSettings?.defaultTemplate || 'classic'}
+        settings={{
+          showMarketPrices: userData.pricesheetSettings?.showMarketPrices || true,
+          groupByRegion: userData.pricesheetSettings?.groupByRegion || true,
+          includeSeasonality: userData.pricesheetSettings?.includeSeasonality || true,
+          companyLogo: userData.pricesheetSettings?.companyLogo || null
+        }}
+        companyName={userData.companyName || 'Your Company'}
+      />
 
     </>
   )

@@ -22,6 +22,22 @@ const availableTags = [
   { id: 'new_customer', name: 'New Customer', color: 'bg-yellow-100 text-yellow-800' }
 ]
 
+// Industry options
+const industryOptions = [
+  'CPG (Consumer Packaged Goods)',
+  'Retail',
+  'Food Service',
+  'Restaurant',
+  'Grocery Chain',
+  'Distributor',
+  'Wholesaler',
+  'Food Processor',
+  'Catering',
+  'Institutional (Schools/Hospitals)',
+  'Export',
+  'Other'
+]
+
 export default function AddContactModal({ isOpen, onClose, onSave }: AddContactModalProps) {
   const [availableCrops, setAvailableCrops] = useState<string[]>([])
   const [isLoadingCrops, setIsLoadingCrops] = useState(false)
@@ -354,35 +370,21 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
                         <h4 className="text-sm font-medium text-gray-900 mb-4">Business Details</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label htmlFor="pricingTier" className="block text-sm font-medium text-gray-700 mb-1">
-                              Pricing Tier
+                            <label htmlFor="industry" className="block text-sm font-medium text-gray-700 mb-1">
+                              Industry
                             </label>
                             <select
-                              id="pricingTier"
-                              value={formData.pricingTier}
-                              onChange={(e) => setFormData(prev => ({ ...prev, pricingTier: e.target.value as 'premium' | 'standard' | 'volume' | 'new_prospect' }))}
+                              id="industry"
+                              value={formData.industry}
+                              onChange={(e) => setFormData(prev => ({ ...prev, industry: e.target.value }))}
                               className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                             >
-                              <option value="new_prospect">New Prospect</option>
-                              <option value="standard">Standard</option>
-                              <option value="volume">Volume</option>
-                              <option value="premium">Premium</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label htmlFor="relationshipStage" className="block text-sm font-medium text-gray-700 mb-1">
-                              Relationship Stage
-                            </label>
-                            <select
-                              id="relationshipStage"
-                              value={formData.relationshipStage}
-                              onChange={(e) => setFormData(prev => ({ ...prev, relationshipStage: e.target.value as 'cold' | 'warm' | 'hot' | 'customer' }))}
-                              className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                            >
-                              <option value="cold">Cold</option>
-                              <option value="warm">Warm</option>
-                              <option value="hot">Hot</option>
-                              <option value="customer">Customer</option>
+                              <option value="">Select industry...</option>
+                              {industryOptions.map((industry) => (
+                                <option key={industry} value={industry}>
+                                  {industry}
+                                </option>
+                              ))}
                             </select>
                           </div>
                         </div>

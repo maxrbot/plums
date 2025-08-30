@@ -31,6 +31,7 @@ interface PricesheetSettings {
   deliveryMethod: 'email' | 'sms' | 'both'
   globalAdjustment: number // percentage adjustment for all items
   cropAdjustments: CropAdjustment[]
+  showDiscountStrikethrough: boolean // whether to show strikethrough for discounts
 }
 
 interface ContactDetailsModalProps {
@@ -46,7 +47,8 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
   const [pricesheetSettings, setPricesheetSettings] = useState<PricesheetSettings>({
     deliveryMethod: 'email',
     globalAdjustment: 0,
-    cropAdjustments: []
+    cropAdjustments: [],
+    showDiscountStrikethrough: true
   })
   const [isLoadingCrops, setIsLoadingCrops] = useState(false)
   const [globalAdjustmentEnabled, setGlobalAdjustmentEnabled] = useState(false)
@@ -63,7 +65,8 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
       const existingSettings = contact.pricesheetSettings || {
         deliveryMethod: contact.preferredContactMethod === 'phone' ? 'sms' : 'email',
         globalAdjustment: contact.pricingAdjustment || 0,
-        cropAdjustments: []
+        cropAdjustments: [],
+        showDiscountStrikethrough: true
       }
       
       setPricesheetSettings(existingSettings)
@@ -212,6 +215,14 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
     setPricesheetSettings(prev => ({
       ...prev,
       deliveryMethod: method
+    }))
+    setHasUnsavedChanges(true)
+  }
+
+  const updateShowDiscountStrikethrough = (show: boolean) => {
+    setPricesheetSettings(prev => ({
+      ...prev,
+      showDiscountStrikethrough: show
     }))
     setHasUnsavedChanges(true)
   }
@@ -550,7 +561,21 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                             <h4 className="text-sm font-medium text-gray-900">Individual Crop Adjustments</h4>
                             <p className="text-xs text-gray-500">Override global adjustment for specific crops</p>
                           </div>
-                          <div className="relative">
+                          <div className="flex items-center space-x-3">
+                            {/* Show Discount Strikethrough Toggle */}
+                            <div className="flex items-center space-x-2">
+                              <label className="text-xs text-gray-700">Show discount strikethrough:</label>
+                              <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={pricesheetSettings.showDiscountStrikethrough}
+                                  onChange={(e) => updateShowDiscountStrikethrough(e.target.checked)}
+                                  className="sr-only peer"
+                                />
+                                <div className="w-7 h-4 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-3 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600"></div>
+                              </label>
+                            </div>
+                            <div className="relative">
                             <button
                               onClick={() => setShowCropDropdown(!showCropDropdown)}
                               className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
@@ -649,6 +674,7 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                                 )}
                               </div>
                             )}
+                            </div>
                           </div>
                         </div>
 

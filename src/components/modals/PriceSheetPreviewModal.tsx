@@ -14,6 +14,7 @@ interface PriceSheetProduct {
   basePrice: number
   adjustedPrice: number
   availability: string
+  showStrikethrough?: boolean // whether to show strikethrough for discounts
 }
 
 interface PriceSheetPreviewModalProps {
@@ -135,10 +136,19 @@ export default function PriceSheetPreviewModal({
                               </div>
                             </div>
                             <div className="text-right">
-                              <span className="text-lg font-semibold text-gray-900">{formatPrice(product.adjustedPrice)}</span>
-                              {product.adjustedPrice !== product.basePrice && (
-                                <div className="text-xs text-gray-500 line-through">
-                                  {formatPrice(product.basePrice)}
+                              <div className="flex items-center justify-end space-x-2">
+                                {product.showStrikethrough && product.adjustedPrice < product.basePrice && (
+                                  <span className="text-sm text-red-500 line-through">
+                                    {formatPrice(product.basePrice)}
+                                  </span>
+                                )}
+                                <span className="text-lg font-semibold text-gray-900">
+                                  {formatPrice(product.adjustedPrice)}
+                                </span>
+                              </div>
+                              {product.adjustedPrice < product.basePrice && product.showStrikethrough && (
+                                <div className="text-xs text-green-600 font-medium">
+                                  Save {formatPrice(product.basePrice - product.adjustedPrice)}
                                 </div>
                               )}
                             </div>

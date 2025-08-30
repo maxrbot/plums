@@ -236,6 +236,61 @@ export default function SendPriceSheets() {
     }
   }
 
+  const handlePreviewContact = async (contact: Contact) => {
+    if (!selectedPriceSheet) return
+    
+    try {
+      setIsLoadingPreview(true)
+      
+      // Get the selected price sheet
+      const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
+      if (!selectedSheet) return
+      
+      // Load the products for this price sheet
+      const response = await priceSheetsApi.getProducts(selectedPriceSheet)
+      const products = response.products || []
+      
+      // Apply contact-specific pricing adjustments
+      const adjustedProducts = products.map(product => {
+        let adjustedPrice = product.price
+        const pricesheetSettings = contact.pricesheetSettings || {}
+        
+        // Apply global adjustment if exists
+        if (pricesheetSettings.globalAdjustment) {
+          adjustedPrice = adjustedPrice * (1 + pricesheetSettings.globalAdjustment / 100)
+        }
+        
+        // Apply individual crop adjustments if exists
+        const cropAdjustments = pricesheetSettings.cropAdjustments || []
+        const cropAdjustment = cropAdjustments.find(adj => 
+          adj.cropId === product.cropId && adj.variationId === product.variationId
+        )
+        if (cropAdjustment) {
+          adjustedPrice = product.price * (1 + cropAdjustment.adjustment / 100)
+        }
+        
+        return {
+          id: product._id,
+          productName: product.productName || `${product.commodity} ${product.variety}`,
+          region: product.regionName || 'Unknown Region',
+          packageType: product.packageType,
+          basePrice: product.price,
+          adjustedPrice: adjustedPrice,
+          availability: product.availability || 'Available',
+          showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustedPrice < product.price
+        }
+      })
+      
+      setPreviewPriceSheet(selectedSheet)
+      setPreviewProducts(adjustedProducts)
+      setIsPreviewModalOpen(true)
+    } catch (error) {
+      console.error('Failed to load preview:', error)
+    } finally {
+      setIsLoadingPreview(false)
+    }
+  }
+
   const generateAIEmail = () => {
     const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
     const contactCount = selectedContacts.length
@@ -440,7 +495,8 @@ sales@markethunt.com | (555) 123-4567`
                 {/* Column Headers */}
                 <div className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                   <div className="flex-1">Contact Information</div>
-                  <div className="text-center w-20">Pricing</div>
+                  <div className="text-center w-32">Pricing Status</div>
+                  <div className="text-center w-20">Preview</div>
                   <div className="w-32 ml-4 text-center">Custom Note</div>
                 </div>
               </div>
@@ -478,23 +534,51 @@ sales@markethunt.com | (555) 123-4567`
                           </div>
                         </div>
                         
-                        {/* Discount Column */}
+                        {/* Enhanced Pricing Status Column */}
+                        <div className="text-center w-32">
+                          {(() => {
+                            const pricesheetSettings = contact.pricesheetSettings || {}
+                            const hasGlobalAdjustment = (pricesheetSettings.globalAdjustment || 0) !== 0
+                            const hasIndividualAdjustments = (pricesheetSettings.cropAdjustments || []).length > 0
+                            const hasCustomPricing = hasGlobalAdjustment || hasIndividualAdjustments
+                            
+                            if (hasCustomPricing) {
+                              return (
+                                <div>
+                                  <div className="flex items-center justify-center space-x-1">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                    <span className="text-xs font-medium text-red-700">Custom</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {hasGlobalAdjustment && `Global: ${pricesheetSettings.globalAdjustment > 0 ? '+' : ''}${pricesheetSettings.globalAdjustment}%`}
+                                    {hasGlobalAdjustment && hasIndividualAdjustments && <br />}
+                                    {hasIndividualAdjustments && `${pricesheetSettings.cropAdjustments.length} crops`}
+                                  </div>
+                                </div>
+                              )
+                            } else {
+                              return (
+                                <div>
+                                  <div className="flex items-center justify-center space-x-1">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <span className="text-xs font-medium text-green-700">Standard</span>
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">Base pricing</div>
+                                </div>
+                              )
+                            }
+                          })()}
+                        </div>
+
+                        {/* Preview Column */}
                         <div className="text-center w-20">
-                          <div className={`text-sm font-medium ${
-                            contact.pricingAdjustment < 0 ? 'text-green-600' :
-                            contact.pricingAdjustment > 0 ? 'text-red-600' :
-                            'text-gray-500'
-                          }`}>
-                            {contact.pricingAdjustment !== 0 ? (
-                              `${contact.pricingAdjustment > 0 ? '+' : ''}${contact.pricingAdjustment}%`
-                            ) : (
-                              'Base'
-                            )}
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {contact.pricingAdjustment < 0 ? 'Discount' : 
-                             contact.pricingAdjustment > 0 ? 'Premium' : 'Standard'}
-                          </div>
+                          <button
+                            onClick={() => handlePreviewContact(contact)}
+                            className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                            title="Preview pricesheet for this contact"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
                         </div>
                         
                         {/* Custom Note Column */}

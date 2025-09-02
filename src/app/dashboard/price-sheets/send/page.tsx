@@ -120,7 +120,15 @@ export default function SendPriceSheets() {
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
   const [contactNotes, setContactNotes] = useState<Record<string, string>>({})
   const [emailContent, setEmailContent] = useState('')
+  const [emailSubject, setEmailSubject] = useState('')
   const [isEmailGenerated, setIsEmailGenerated] = useState(false)
+  
+  // Step 3: Enhancement state
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [customMessage, setCustomMessage] = useState('')
+  const [isDragOver, setIsDragOver] = useState(false)
+  const [isStep3Collapsed, setIsStep3Collapsed] = useState(false)
+  const [step3HasContent, setStep3HasContent] = useState(false)
 
   // Preview modal state
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
@@ -293,34 +301,160 @@ export default function SendPriceSheets() {
     }
   }
 
-  const generateAIEmail = () => {
-    const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
-    const contactCount = selectedContacts.length
+  // File handling functions
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
     
-    // Mock AI-generated email
-    const aiEmail = `Subject: Fresh ${selectedSheet?.title || 'Price Sheet'} - Premium Quality Produce Available
+    const files = Array.from(e.dataTransfer.files)
+    const validFiles = files.filter(file => 
+      file.type.startsWith('image/') || 
+      file.type === 'application/pdf' ||
+      file.type.includes('document')
+    )
+    
+    const newFiles = [...attachedFiles, ...validFiles]
+    handleFilesChange(newFiles)
+  }
 
-Dear Valued Customer,
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const files = Array.from(e.target.files)
+      const newFiles = [...attachedFiles, ...files]
+      handleFilesChange(newFiles)
+    }
+  }
 
-I hope this message finds you well! I'm excited to share our latest price sheet featuring the freshest, highest-quality produce from our farms.
+  const removeFile = (index: number) => {
+    const newFiles = attachedFiles.filter((_, i) => i !== index)
+    handleFilesChange(newFiles)
+  }
 
-🌱 What's New This Week:
-• ${selectedSheet?.productsCount || 5} premium products with competitive pricing
-• Volume discounts available for qualifying orders
-• Peak season availability on select items
+  // Check if step 3 has content and update state
+  const checkStep3Content = () => {
+    const hasContent = customMessage.trim().length > 0 || attachedFiles.length > 0
+    setStep3HasContent(hasContent)
+    return hasContent
+  }
 
+  // Handle step 3 actions
+  const handleSkipStep3 = () => {
+    setIsStep3Collapsed(true)
+  }
+
+  const handleSaveStep3 = () => {
+    if (checkStep3Content()) {
+      setIsStep3Collapsed(true)
+    }
+  }
+
+  const handleEditStep3 = () => {
+    setIsStep3Collapsed(false)
+  }
+
+  // Update content check when inputs change
+  const handleCustomMessageChange = (value: string) => {
+    setCustomMessage(value)
+    setTimeout(checkStep3Content, 0) // Check after state update
+  }
+
+  const handleFilesChange = (newFiles: File[]) => {
+    setAttachedFiles(newFiles)
+    setTimeout(checkStep3Content, 0) // Check after state update
+  }
+
+  // Analyze price sheet for smart content generation
+  const analyzePriceSheet = async (priceSheetId: string) => {
+    try {
+      const response = await priceSheetsApi.getProducts(priceSheetId)
+      const products = response.products || []
+      
+      const analysis = {
+        totalProducts: products.length,
+        availableItems: products.filter(p => p.availability === 'Available').length,
+        newCropItems: products.filter(p => p.availability === 'New Crop').length,
+        preOrderItems: products.filter(p => p.availability === 'Pre-order').length,
+        limitedItems: products.filter(p => p.availability === 'Limited').length,
+        organicItems: products.filter(p => p.isOrganic).length,
+        topProducts: products.slice(0, 3).map(p => p.productName || `${p.commodity} ${p.variety}`),
+        regions: [...new Set(products.map(p => p.regionName).filter(Boolean))]
+      }
+      
+      return analysis
+    } catch (error) {
+      console.error('Error analyzing price sheet:', error)
+      return null
+    }
+  }
+
+  const generateAIEmail = async () => {
+    const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
+    const analysis = await analyzePriceSheet(selectedPriceSheet)
+    
+    // Build dynamic content based on analysis
+    let availabilityHighlights = ''
+    if (analysis) {
+      const highlights = []
+      if (analysis.availableItems > 0) highlights.push(`${analysis.availableItems} items ready for immediate delivery`)
+      if (analysis.newCropItems > 0) highlights.push(`${analysis.newCropItems} fresh harvest items just picked`)
+      if (analysis.preOrderItems > 0) highlights.push(`${analysis.preOrderItems} items available for pre-order`)
+      if (analysis.limitedItems > 0) highlights.push(`${analysis.limitedItems} limited availability items`)
+      
+      availabilityHighlights = highlights.length > 0 ? `\n🌱 This Week's Highlights:\n• ${highlights.join('\n• ')}` : ''
+    }
+
+    // Build attachments section
+    const attachmentsSection = attachedFiles.length > 0 
+      ? `\n📸 I've attached ${attachedFiles.length} photo${attachedFiles.length !== 1 ? 's' : ''} showing:\n• ${attachedFiles.map(f => f.name.replace(/\.[^/.]+$/, "")).join('\n• ')}\n`
+      : ''
+
+    // Custom message section
+    const customMessageSection = customMessage.trim() 
+      ? `\n💬 Special Note:\n${customMessage}\n`
+      : ''
+    
+    // Generate subject line based on price sheet name
+    const subjectLine = selectedSheet?.name || 'Price Sheet'
+    
+    // Enhanced AI-generated email with smart content
+    const aiEmail = `Dear [FIRST_NAME],
+
+I hope this message finds you well! I'm excited to share our latest price sheet featuring ${analysis?.totalProducts || selectedSheet?.productsCount || 5} premium products from our farms.${availabilityHighlights}${customMessageSection}${attachmentsSection}
 Our team has carefully curated this selection based on current market conditions and seasonal availability. Each product meets our strict quality standards and is harvested at optimal freshness.
 
-${contactCount > 1 ? 'Please note that pricing may be customized based on your established tier and order history.' : ''}
+[CUSTOM_PRICING_NOTE]
 
-I'm here to answer any questions about availability, minimum orders, or special requirements. Don't hesitate to reach out if you'd like to discuss any items in detail.
+[CUSTOM_NOTE]
+
+I'm here to answer any questions about availability, minimum orders, or special requirements for [COMPANY_NAME]. Don't hesitate to reach out if you'd like to discuss any items in detail.
 
 Looking forward to serving you with the best produce available!
 
 Best regards,
-The AcreList Team
-sales@acrelist.com | (555) 123-4567`
+[SENDER_NAME]
+[SENDER_EMAIL] | [SENDER_PHONE]
 
+---
+Personalization Preview:
+• [FIRST_NAME] = Contact's first name
+• [COMPANY_NAME] = Contact's company
+• [PRICING_TIER] = Custom/Standard pricing
+• [DELIVERY_METHOD] = Email/SMS preference
+• [CUSTOM_PRICING_NOTE] = Pricing adjustment details
+• [CUSTOM_NOTE] = Individual contact note
+• [SENDER_NAME] = Your name from settings`
+
+    setEmailSubject(subjectLine)
     setEmailContent(aiEmail)
     setIsEmailGenerated(true)
   }
@@ -647,31 +781,181 @@ sales@acrelist.com | (555) 123-4567`
           </div>
         )}
 
-        {/* Step 3: Send */}
+        {/* Step 3: Enhance Your Message */}
         {selectedPriceSheet && selectedContacts.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
-              <h2 className="text-lg font-medium text-gray-900">Send Price Sheets</h2>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-3">
+                <div className="flex-shrink-0 w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+                <div>
+                  <h2 className="text-lg font-medium text-gray-900">Enhance Your Message</h2>
+                </div>
+              </div>
+              
+              {isStep3Collapsed && (
+                <button
+                  onClick={handleEditStep3}
+                  className="text-sm font-medium text-orange-600 hover:text-orange-500"
+                >
+                  Edit
+                </button>
+              )}
             </div>
+            
+            {/* Collapsed Content Summary */}
+            {isStep3Collapsed && step3HasContent && (
+              <div className="ml-11 mb-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
+                {customMessage && (
+                  <div className="mb-3">
+                    <p className="text-sm font-medium text-gray-700 mb-1">Custom Message:</p>
+                    <p className="text-sm text-gray-600 italic">"{customMessage.length > 100 ? customMessage.substring(0, 100) + '...' : customMessage}"</p>
+                  </div>
+                )}
+                {attachedFiles.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-1">Attached Files ({attachedFiles.length}):</p>
+                    <div className="flex flex-wrap gap-2">
+                      {attachedFiles.map((file, index) => (
+                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-orange-300 text-xs text-gray-700">
+                          {file.type.startsWith('image/') ? '📷' : file.type === 'application/pdf' ? '📄' : '📎'}
+                          <span className="ml-1">{file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name}</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {!isStep3Collapsed && (
+              <>
+                <p className="text-sm text-gray-600 mb-6 ml-11">
+                  Add photos, documents, and custom messaging to make your price sheet more compelling.
+                </p>
 
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
-              <h3 className="text-sm font-medium text-green-800 mb-2">Ready to Send</h3>
-              <div className="text-sm text-green-700">
-                <p className="mb-1">
-                  <strong>Price Sheet:</strong> {priceSheets.find(s => s._id === selectedPriceSheet)?.title}
-                </p>
-                <p className="mb-1">
-                  <strong>Recipients:</strong> {selectedContacts.length} contacts
-                </p>
-                <p className="mb-1">
-                  <strong>Custom Notes:</strong> {Object.keys(contactNotes).length} contacts have personalized notes
-                </p>
-                <p>
-                  <strong>Dynamic Pricing:</strong> Prices will be automatically adjusted based on each contact&apos;s tier
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Custom Message Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  What would you like to emphasize?
+                </label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => handleCustomMessageChange(e.target.value)}
+                  rows={4}
+                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm"
+                  placeholder="e.g., 'Just harvested our first strawberries of the season' or 'Limited quantities - first come, first served'"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This will be included in your personalized email message.
                 </p>
               </div>
+
+              {/* File Attachments */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Attach Photos & Documents
+                </label>
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                    isDragOver 
+                      ? 'border-orange-400 bg-orange-50' 
+                      : 'border-gray-300 hover:border-gray-400'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    multiple
+                    accept="image/*,.pdf,.doc,.docx"
+                    onChange={handleFileSelect}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="space-y-2">
+                    <div className="mx-auto h-12 w-12 text-gray-400">
+                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                      </svg>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      <span className="font-medium text-orange-600">Click to upload</span> or drag and drop
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      Photos, PDFs, or documents (Max 10MB each)
+                    </p>
+                  </div>
+                </div>
+
+                {/* Attached Files List */}
+                {attachedFiles.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <p className="text-sm font-medium text-gray-700">Attached Files:</p>
+                    {attachedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                        <div className="flex items-center space-x-2">
+                          <div className="flex-shrink-0">
+                            {file.type.startsWith('image/') ? (
+                              <span className="text-green-600">📷</span>
+                            ) : file.type === 'application/pdf' ? (
+                              <span className="text-red-600">📄</span>
+                            ) : (
+                              <span className="text-blue-600">📎</span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
+                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeFile(index)}
+                          className="text-gray-400 hover:text-red-600 transition-colors"
+                        >
+                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+            
+            {/* Action Buttons - Bottom Right */}
+            <div className="flex justify-end space-x-2 mt-6">
+              <button
+                onClick={handleSkipStep3}
+                className="text-sm font-medium text-gray-600 hover:text-gray-500"
+              >
+                Skip
+              </button>
+              {step3HasContent && (
+                <button
+                  onClick={handleSaveStep3}
+                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200"
+                >
+                  Save & Continue
+                </button>
+              )}
+            </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Step 4: Send */}
+        {selectedPriceSheet && selectedContacts.length > 0 && isStep3Collapsed && (
+          <div className="bg-white shadow rounded-lg p-6">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">4</div>
+              <h2 className="text-lg font-medium text-gray-900">Send</h2>
+            </div>
+            <p className="text-sm text-gray-600 mb-6 ml-11">
+              Dynamic pricing and personalized messages will be applied automatically for each contact.
+            </p>
 
             {/* AI Email Generation */}
             <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
@@ -697,15 +981,37 @@ sales@acrelist.com | (555) 123-4567`
                       AI-generated email ready to send. Edit as needed before sending.
                     </p>
                   </div>
-                  <textarea
-                    value={emailContent}
-                    onChange={(e) => setEmailContent(e.target.value)}
-                    rows={12}
-                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm font-mono"
-                  />
+                  
+                  {/* Subject Line */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Subject
+                    </label>
+                    <input
+                      type="text"
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                      placeholder="Enter email subject..."
+                    />
+                  </div>
+                  
+                  {/* Email Body */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Message
+                    </label>
+                    <textarea
+                      value={emailContent}
+                      onChange={(e) => setEmailContent(e.target.value)}
+                      rows={12}
+                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm font-mono"
+                      placeholder="Enter email message..."
+                    />
+                  </div>
                   <div className="mt-3 flex items-center justify-between">
                     <p className="text-xs text-gray-500">
-                      Custom notes will be automatically added to each recipient&apos;s email.
+                      Placeholders will be automatically replaced with each contact's specific information.
                     </p>
                     <button
                       onClick={generateAIEmail}
@@ -724,7 +1030,7 @@ sales@acrelist.com | (555) 123-4567`
 
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                Each contact will receive a personalized email with their optimized pricing and custom notes.
+                Ready to send to {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} with personalized pricing and messages.
               </div>
               <div className="flex items-center space-x-3">
                 <button

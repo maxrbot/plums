@@ -75,7 +75,7 @@ interface PreviewProduct {
 }
 
 export default function NewPriceSheet() {
-  const [priceSheetTitle, setPriceSheetTitle] = useState(`MarketHunt Price Sheet - ${new Date().toLocaleDateString()}`)
+  const [priceSheetTitle, setPriceSheetTitle] = useState(`AcreList Price Sheet - ${new Date().toLocaleDateString()}`)
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)

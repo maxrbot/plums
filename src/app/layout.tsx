@@ -13,12 +13,12 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MarketHunt - Get Discovered by Premium Buyers",
+  title: "AcreList - Get Discovered by Premium Buyers",
   description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
   keywords: ["agriculture", "supplier tools", "price sheets", "AI chatbot", "agricultural business", "farming", "premium buyers", "sales"],
-  authors: [{ name: "MarketHunt" }],
+  authors: [{ name: "AcreList" }],
   openGraph: {
-    title: "MarketHunt - Get Discovered by Premium Buyers",
+    title: "AcreList - Get Discovered by Premium Buyers",
     description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
     type: "website",
   },

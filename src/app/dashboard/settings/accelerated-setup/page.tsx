@@ -1292,7 +1292,7 @@ export default function AcceleratedSetup() {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">AI-Powered Data Import</h2>
             <p className="text-gray-600">
               Our advanced AI will analyze your website and automatically extract your company information, 
-              farming methods, regions, and more to populate your MarketHunt profile.
+              farming methods, regions, and more to populate your AcreList profile.
             </p>
           </div>
 

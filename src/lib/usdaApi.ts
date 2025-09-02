@@ -239,7 +239,7 @@ export async function fetchUsdaPrice(request: UsdaPriceRequest): Promise<UsdaPri
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'MarketHunt/1.0'
+        'User-Agent': 'AcreList/1.0'
       },
       signal: controller.signal
     })

@@ -168,7 +168,7 @@ export default function ThemePreview() {
             <div className={`w-64 h-96 ${theme.sidebar} shadow-lg rounded-lg overflow-hidden`}>
               {/* Logo */}
               <div className="h-16 flex items-center justify-center border-b border-opacity-20 border-white">
-                <span className="text-2xl font-bold text-white">MarketHunt</span>
+                <span className="text-2xl font-bold text-white">AcreList</span>
               </div>
               
               {/* Navigation */}

@@ -316,8 +316,8 @@ I'm here to answer any questions about availability, minimum orders, or special 
 Looking forward to serving you with the best produce available!
 
 Best regards,
-The MarketHunt Team
-sales@markethunt.com | (555) 123-4567`
+The AcreList Team
+sales@acrelist.com | (555) 123-4567`
 
     setEmailContent(aiEmail)
     setIsEmailGenerated(true)

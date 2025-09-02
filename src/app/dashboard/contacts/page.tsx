@@ -12,7 +12,9 @@ import {
   DocumentArrowUpIcon,
   StarIcon,
   BuildingOfficeIcon,
-  CurrencyDollarIcon
+  CurrencyDollarIcon,
+  ShoppingBagIcon,
+  CubeIcon
 } from '@heroicons/react/24/outline'
 import { Contact, ContactTag } from '../../../types'
 import AddContactModal from '../../../components/modals/AddContactModal'
@@ -65,58 +67,8 @@ export default function Contacts() {
     }
   }
 
-  // Demo contacts data
+  // Demo contacts data - 4 Retail, 3 CPG, 1 Food Service
   const demoContactsData = [
-    {
-      firstName: "Bill",
-      lastName: "Lasson", 
-      email: "bill@lassonfamilyfarms.com",
-      phone: "(802) 339-9940",
-      title: "Purchasing Manager",
-      company: "Lasson Family Farms",
-      industry: "Agriculture",
-      website: "lassonfamilyfarms.com",
-      address: "",
-      city: "Burlington",
-      state: "Vermont", 
-      zipCode: "",
-      country: "USA",
-      tags: ["new_customer"],
-      primaryCrops: ["apple", "apricot"],
-      preferredContactMethod: "email" as const,
-      status: "prospect" as const,
-      relationshipStage: "cold" as const,
-      pricingTier: "standard" as const,
-      pricingAdjustment: 0,
-      specialTerms: "",
-      source: "manual" as const,
-      notes: ""
-    },
-    {
-      firstName: "Sarah",
-      lastName: "Chen",
-      email: "sarah@freshvalleyproduce.com", 
-      phone: "(559) 847-2156",
-      title: "Head Buyer",
-      company: "Fresh Valley Produce",
-      industry: "Food Distribution",
-      website: "freshvalleyproduce.com",
-      address: "",
-      city: "Fresno",
-      state: "California",
-      zipCode: "",
-      country: "USA", 
-      tags: ["premium"],
-      primaryCrops: ["lettuce", "carrot", "broccoli"],
-      preferredContactMethod: "phone" as const,
-      status: "active" as const,
-      relationshipStage: "warm" as const,
-      pricingTier: "premium" as const,
-      pricingAdjustment: 5,
-      specialTerms: "Net 15 payment terms",
-      source: "referral" as const,
-      notes: "Prefers organic options when available"
-    },
     {
       firstName: "Mike",
       lastName: "Rodriguez",
@@ -143,14 +95,39 @@ export default function Contacts() {
       notes: "Large volume buyer, seasonal contracts"
     },
     {
+      firstName: "Sarah",
+      lastName: "Chen",
+      email: "sarah@freshmarket.com", 
+      phone: "(559) 847-2156",
+      title: "Head Buyer",
+      company: "Fresh Market Chain",
+      industry: "Retail",
+      website: "freshmarket.com",
+      address: "",
+      city: "Fresno",
+      state: "California",
+      zipCode: "",
+      country: "USA", 
+      tags: ["premium"],
+      primaryCrops: ["lettuce", "carrot", "broccoli"],
+      preferredContactMethod: "phone" as const,
+      status: "active" as const,
+      relationshipStage: "warm" as const,
+      pricingTier: "premium" as const,
+      pricingAdjustment: 5,
+      specialTerms: "Net 15 payment terms",
+      source: "referral" as const,
+      notes: "Prefers organic options when available"
+    },
+    {
       firstName: "Jennifer",
       lastName: "Thompson",
-      email: "jen@organicharvest.coop",
+      email: "jen@organicmarkets.com",
       phone: "(503) 782-4567",
       title: "Sourcing Manager",
-      company: "Organic Harvest Co-op",
-      industry: "Organic Foods",
-      website: "organicharvest.coop",
+      company: "Organic Markets Co-op",
+      industry: "Retail",
+      website: "organicmarkets.com",
       address: "",
       city: "Portland",
       state: "Oregon",
@@ -166,6 +143,106 @@ export default function Contacts() {
       specialTerms: "Organic certification required",
       source: "manual" as const,
       notes: "Only interested in certified organic produce"
+    },
+    {
+      firstName: "Bill",
+      lastName: "Lasson", 
+      email: "bill@supervalue.com",
+      phone: "(802) 339-9940",
+      title: "Purchasing Manager",
+      company: "SuperValue Grocery",
+      industry: "Retail",
+      website: "supervalue.com",
+      address: "",
+      city: "Burlington",
+      state: "Vermont", 
+      zipCode: "",
+      country: "USA",
+      tags: ["new_customer"],
+      primaryCrops: ["apple", "apricot"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "cold" as const,
+      pricingTier: "standard" as const,
+      pricingAdjustment: 0,
+      specialTerms: "",
+      source: "manual" as const,
+      notes: "Regional grocery chain expanding produce selection"
+    },
+    {
+      firstName: "Robert",
+      lastName: "Johnson",
+      email: "rjohnson@healthyfoods.com",
+      phone: "(209) 334-7890",
+      title: "Raw Materials Manager",
+      company: "Healthy Foods CPG",
+      industry: "CPG (Consumer Packaged Goods)",
+      website: "healthyfoods.com",
+      address: "",
+      city: "Modesto",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["processing", "volume"],
+      primaryCrops: ["tomato", "peach", "apricot"],
+      preferredContactMethod: "phone" as const,
+      status: "active" as const,
+      relationshipStage: "customer" as const,
+      pricingTier: "volume" as const,
+      pricingAdjustment: -15,
+      specialTerms: "Processing grade acceptable",
+      source: "manual" as const,
+      notes: "Large CPG manufacturer, flexible on quality grades"
+    },
+    {
+      firstName: "Lisa",
+      lastName: "Williams",
+      email: "lwilliams@naturalbrand.com",
+      phone: "(415) 892-3456",
+      title: "Procurement Specialist",
+      company: "Natural Brand Foods",
+      industry: "CPG (Consumer Packaged Goods)",
+      website: "naturalbrand.com",
+      address: "",
+      city: "San Francisco",
+      state: "California", 
+      zipCode: "",
+      country: "USA",
+      tags: ["premium", "organic"],
+      primaryCrops: ["tomato", "pepper", "cucumber"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "warm" as const,
+      pricingTier: "premium" as const,
+      pricingAdjustment: 12,
+      specialTerms: "Organic sourcing preferred",
+      source: "referral" as const,
+      notes: "Premium CPG brand focused on natural ingredients"
+    },
+    {
+      firstName: "Amanda",
+      lastName: "Garcia",
+      email: "agarcia@freshcpg.com",
+      phone: "(916) 567-1234",
+      title: "Ingredient Sourcing Director",
+      company: "Fresh CPG Solutions",
+      industry: "CPG (Consumer Packaged Goods)",
+      website: "freshcpg.com",
+      address: "",
+      city: "Sacramento",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["cpg", "volume"],
+      primaryCrops: ["apple", "orange", "strawberry"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "hot" as const,
+      pricingTier: "standard" as const,
+      pricingAdjustment: 0,
+      specialTerms: "Long-term contracts preferred",
+      source: "lead_form" as const,
+      notes: "CPG company developing new fruit-based products"
     },
     {
       firstName: "David",
@@ -191,81 +268,6 @@ export default function Contacts() {
       specialTerms: "",
       source: "csv_import" as const,
       notes: "Supplies restaurants in Seattle metro area"
-    },
-    {
-      firstName: "Lisa",
-      lastName: "Williams",
-      email: "lwilliams@farmtotable.net",
-      phone: "(415) 892-3456",
-      title: "Procurement Specialist",
-      company: "Farm to Table Network",
-      industry: "Restaurant Supply",
-      website: "farmtotable.net",
-      address: "",
-      city: "San Francisco",
-      state: "California", 
-      zipCode: "",
-      country: "USA",
-      tags: ["premium", "local"],
-      primaryCrops: ["tomato", "pepper", "cucumber"],
-      preferredContactMethod: "email" as const,
-      status: "prospect" as const,
-      relationshipStage: "cold" as const,
-      pricingTier: "premium" as const,
-      pricingAdjustment: 12,
-      specialTerms: "Local sourcing preferred",
-      source: "referral" as const,
-      notes: "Focuses on farm-to-table restaurants"
-    },
-    {
-      firstName: "Robert",
-      lastName: "Johnson",
-      email: "rjohnson@valleyprocessing.com",
-      phone: "(209) 334-7890",
-      title: "Raw Materials Manager",
-      company: "Valley Processing Co.",
-      industry: "Food Processing",
-      website: "valleyprocessing.com",
-      address: "",
-      city: "Modesto",
-      state: "California",
-      zipCode: "",
-      country: "USA",
-      tags: ["processing", "volume"],
-      primaryCrops: ["tomato", "peach", "apricot"],
-      preferredContactMethod: "phone" as const,
-      status: "active" as const,
-      relationshipStage: "customer" as const,
-      pricingTier: "volume" as const,
-      pricingAdjustment: -15,
-      specialTerms: "Processing grade acceptable",
-      source: "manual" as const,
-      notes: "Large volume processor, flexible on quality grades"
-    },
-    {
-      firstName: "Amanda",
-      lastName: "Garcia",
-      email: "agarcia@freshstart.org",
-      phone: "(916) 567-1234",
-      title: "Food Program Director",
-      company: "Fresh Start Community",
-      industry: "Non-Profit",
-      website: "freshstart.org",
-      address: "",
-      city: "Sacramento",
-      state: "California",
-      zipCode: "",
-      country: "USA",
-      tags: ["nonprofit", "community"],
-      primaryCrops: ["apple", "orange", "banana"],
-      preferredContactMethod: "email" as const,
-      status: "prospect" as const,
-      relationshipStage: "warm" as const,
-      pricingTier: "standard" as const,
-      pricingAdjustment: -5,
-      specialTerms: "Non-profit discount",
-      source: "lead_form" as const,
-      notes: "Community food program, price-sensitive"
     }
   ]
 
@@ -347,8 +349,8 @@ export default function Contacts() {
 
   // Calculate stats
   const totalContacts = contacts.length
-  const activeContacts = contacts.filter(c => c.status === 'active').length
-  const totalLifetimeValue = contacts.reduce((sum, c) => sum + (c.lifetimeValue || 0), 0)
+  const retailContacts = contacts.filter(c => c.industry === 'Retail').length
+  const cpgContacts = contacts.filter(c => c.industry === 'CPG (Consumer Packaged Goods)').length
 
   return (
     <>
@@ -376,7 +378,7 @@ export default function Contacts() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -397,29 +399,13 @@ export default function Contacts() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <EnvelopeIcon className="h-6 w-6 text-green-600" />
+                <ShoppingBagIcon className="h-6 w-6 text-purple-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Active Contacts</dt>
-                  <dd className="text-lg font-medium text-gray-900">{activeContacts}</dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CurrencyDollarIcon className="h-6 w-6 text-green-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total LTV</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Retail Buyers</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    ${(totalLifetimeValue / 1000).toFixed(0)}K
+                    {retailContacts}
                   </dd>
                 </dl>
               </div>
@@ -431,13 +417,13 @@ export default function Contacts() {
           <div className="p-5">
             <div className="flex items-center">
               <div className="flex-shrink-0">
-                <StarIcon className="h-6 w-6 text-yellow-600" />
+                <CubeIcon className="h-6 w-6 text-orange-600" />
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Premium Tier</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">CPG Buyers</dt>
                   <dd className="text-lg font-medium text-gray-900">
-                    {contacts.filter(c => c.pricingTier === 'premium').length}
+                    {cpgContacts}
                   </dd>
                 </dl>
               </div>

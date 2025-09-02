@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { 
   ChartBarIcon, 
   DocumentTextIcon, 
@@ -14,14 +15,15 @@ import LoginModal from '@/components/modals/LoginModal'
 // Mock dashboard data
 const mockProducts = [
   { name: 'Organic Strawberries', variety: 'Albion', price: '$4.50/lb', trend: '+12%', sheets: 8, lastSent: '2 days ago', region: 'Central Valley' },
+  { name: 'Cherry Tomatoes', variety: 'Sweet 100', price: '$5.25/lb', trend: '+15%', sheets: 6, lastSent: '1 day ago', region: 'Central Valley' },
   { name: 'Romaine Lettuce', variety: 'Hearts', price: '$2.25/head', trend: '+8%', sheets: 5, lastSent: '1 week ago', region: 'Salinas Valley' },
   { name: 'Beefsteak Tomatoes', variety: 'Heirloom', price: '$3.75/lb', trend: '-3%', sheets: 3, lastSent: '3 days ago', region: 'Central Valley' }
 ]
 
 const mockBuyerActivity = [
-  { buyer: 'Fresh Market Co.', action: 'Downloaded your strawberry sheet', time: '2 min ago', status: 'hot' },
-  { buyer: 'Valley Distributors', action: 'Opened price sheet (3rd time)', time: '8 min ago', status: 'hot' },
-  { buyer: 'Organic Plus', action: 'Requested updated pricing', time: '15 min ago', status: 'warm' }
+  { buyer: 'Kettle and Fire', action: 'Downloaded your 8/29/25 Price Sheet', time: '2 min ago', status: 'hot' },
+  { buyer: 'Whole Foods Market', action: 'Opened price sheet (3rd time)', time: '8 min ago', status: 'hot' },
+  { buyer: 'Serenity Kids', action: 'Requested updated pricing', time: '15 min ago', status: 'warm' }
 ]
 
 export default function Home() {
@@ -38,7 +40,13 @@ export default function Home() {
         <nav className="flex items-center justify-between p-4 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="text-2xl font-bold text-lime-500">MarketHunt</span>
+              <Image 
+                src="/acrelist-logo.png" 
+                alt="AcreList" 
+                width={160} 
+                height={40}
+                className="h-10 w-auto"
+              />
             </Link>
           </div>
           <div className="flex gap-x-8">
@@ -76,7 +84,7 @@ export default function Home() {
               <span className="text-lime-500">24/7 Sales Machine</span>
             </h1>
             <p className="mt-6 text-xl leading-8 text-gray-600 max-w-3xl mx-auto">
-              See how MarketHunt puts your agricultural products in front of premium buyers. 
+              See how AcreList puts your agricultural products in front of premium buyers. 
               Real-time insights, professional price sheets, and buyer engagement - all in one dashboard.
             </p>
           </div>
@@ -175,11 +183,11 @@ export default function Home() {
                   {/* Quick Stats */}
                   <div className="mt-6 grid grid-cols-2 gap-3">
                     <div className="bg-lime-50 p-3 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-lime-600">23</p>
-                      <p className="text-xs text-lime-700">Active Buyers</p>
+                      <p className="text-2xl font-bold text-lime-600">29</p>
+                      <p className="text-xs text-lime-700">Active Customers</p>
                     </div>
                     <div className="bg-cyan-50 p-3 rounded-lg text-center">
-                      <p className="text-2xl font-bold text-cyan-600">89%</p>
+                      <p className="text-2xl font-bold text-cyan-600">82%</p>
                       <p className="text-xs text-cyan-700">Open Rate</p>
                     </div>
                   </div>
@@ -257,7 +265,7 @@ export default function Home() {
               Trusted by agricultural suppliers nationwide
             </h2>
             <p className="text-gray-600">
-              Join hundreds of farms already using MarketHunt to connect with premium buyers
+              Join hundreds of farms already using AcreList to connect with premium buyers
             </p>
           </div>
           
@@ -271,7 +279,7 @@ export default function Home() {
               <p className="text-sm text-gray-600">Price Sheets Sent</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-green-600">89%</p>
+              <p className="text-3xl font-bold text-green-600">82%</p>
               <p className="text-sm text-gray-600">Open Rate</p>
             </div>
             <div className="text-center">
@@ -308,12 +316,12 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-6 py-8 lg:px-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <span className="text-xl font-bold text-lime-500">MarketHunt</span>
+              <span className="text-xl font-bold text-lime-500">AcreList</span>
               <span className="text-gray-400">•</span>
               <span className="text-sm text-gray-600">Your Farm&apos;s Command Center</span>
             </div>
             <p className="text-sm text-gray-500">
-              © 2024 MarketHunt. All rights reserved.
+              © 2024 AcreList. All rights reserved.
             </p>
           </div>
         </div>

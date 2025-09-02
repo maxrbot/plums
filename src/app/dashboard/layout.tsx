@@ -1,6 +1,7 @@
 "use client"
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { 
   HomeIcon, 
@@ -62,9 +63,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 shadow-lg">
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center justify-center border-b border-slate-700">
-            <Link href="/" className="text-2xl font-bold text-lime-400">
-              MarketHunt
+          <div className="flex h-16 items-center justify-center border-b border-slate-700 px-4">
+            <Link href="/" className="flex items-center">
+              <Image 
+                src="/acrelist-logo-removebg.png" 
+                alt="AcreList" 
+                width={180} 
+                height={45}
+                className="h-12 w-auto"
+              />
             </Link>
           </div>
 

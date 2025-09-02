@@ -90,7 +90,7 @@ export default function PriceSheetPreviewModal({
                     <div className="flex items-center space-x-4">
                       <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
                       <div className="text-sm text-gray-500">
-                        MarketHunt • sales@markethunt.com • (555) 123-4567
+                        AcreList • sales@acrelist.com • (555) 123-4567
                       </div>
                     </div>
                     <button

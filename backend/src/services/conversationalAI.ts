@@ -48,7 +48,9 @@ export class ConversationalAIService {
   private buildSystemPrompt(knowledgeCache: FarmKnowledgeCache): string {
     const { farmProfile, products, businessInfo, botConfig } = knowledgeCache
 
-    let prompt = `You are ${botConfig.botName}, an AI assistant for ${farmProfile.name}. `
+    let prompt = `CRITICAL INSTRUCTION: You are having a conversation. Only answer the user's most recent question. Do not repeat or re-answer previous questions in the conversation.
+
+You are ${botConfig.botName}, an AI assistant for ${farmProfile.name}. `
     
     // Personality
     if (botConfig.personality === 'friendly') {
@@ -135,6 +137,20 @@ export class ConversationalAIService {
       if (businessInfo.productInfo.storageHandling) prompt += `Storage & Handling: ${businessInfo.productInfo.storageHandling}\n`
     }
 
+    // Marketing Information
+    if (businessInfo.marketingInfo) {
+      prompt += `\nMARKETING INFORMATION:\n`
+      if (businessInfo.marketingInfo.retailDistribution) prompt += `Retail Distribution: ${businessInfo.marketingInfo.retailDistribution}\n`
+      if (businessInfo.marketingInfo.marketAvailability) prompt += `Market Availability: ${businessInfo.marketingInfo.marketAvailability}\n`
+    }
+
+    // Frequently Asked Questions (separate section for prominence)
+    if (businessInfo.marketingInfo?.frequentlyAskedQuestions) {
+      prompt += `\nFREQUENTLY ASKED QUESTIONS:\n`
+      prompt += `${businessInfo.marketingInfo.frequentlyAskedQuestions}\n`
+      prompt += `Use these FAQ answers when relevant to user questions.\n`
+    }
+
     // Response Guidelines
     prompt += `\nRESPONSE GUIDELINES:\n`
     prompt += `- Always respond as ${botConfig.botName} representing ${farmProfile.name}\n`
@@ -150,8 +166,10 @@ export class ConversationalAIService {
       prompt += `- Offer to connect with the sales team when appropriate\n`
     }
     
-    prompt += `- Keep responses conversational and helpful\n`
-    prompt += `- Stay in character as the farm's AI assistant\n`
+    prompt += `- You are ${botConfig.botName} having a natural conversation\n`
+    prompt += `- Answer ONLY the current question - nothing else\n`
+    prompt += `- Be brief and conversational\n`
+    prompt += `- Never repeat information from previous responses\n`
 
     return prompt
   }

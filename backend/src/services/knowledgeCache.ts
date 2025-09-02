@@ -312,6 +312,21 @@ export class KnowledgeCacheService {
       businessInfo.productInfo = productInfo
     }
 
+    // Marketing Info
+    const marketingInfo: any = {}
+    if (enabledSections.marketingInfo.retailDistribution && extendedKnowledge.marketingInfo.retailDistribution) {
+      marketingInfo.retailDistribution = extendedKnowledge.marketingInfo.retailDistribution
+    }
+    if (enabledSections.marketingInfo.marketAvailability && extendedKnowledge.marketingInfo.marketAvailability) {
+      marketingInfo.marketAvailability = extendedKnowledge.marketingInfo.marketAvailability
+    }
+    if (enabledSections.marketingInfo.frequentlyAskedQuestions && extendedKnowledge.marketingInfo.frequentlyAskedQuestions) {
+      marketingInfo.frequentlyAskedQuestions = extendedKnowledge.marketingInfo.frequentlyAskedQuestions
+    }
+    if (Object.keys(marketingInfo).length > 0) {
+      businessInfo.marketingInfo = marketingInfo
+    }
+
     return businessInfo
   }
 

@@ -1,66 +1,124 @@
-import { ChartBarIcon, EyeIcon, UserGroupIcon, ArrowTrendingUpIcon, PaperAirplaneIcon, ClockIcon } from '@heroicons/react/24/outline'
+'use client'
+
+import { ChartBarIcon, EyeIcon, UserGroupIcon, ArrowTrendingUpIcon, PaperAirplaneIcon, ClockIcon, DevicePhoneMobileIcon, ComputerDesktopIcon, ShareIcon } from '@heroicons/react/24/outline'
+import { useUser } from '@/contexts/UserContext'
 
 // Mock analytics data
 const mockAnalytics = {
   totalViews: 1247,
   totalContacts: 89,
   engagementRate: 78,
-  avgViewsPerDay: 45
+  avgViewsPerDay: 45,
+  forwardRate: 12,
+  avgViewTime: '2m 34s'
 }
 
-// Mock recent price sheet sends (most recent first)
-const mockRecentSends = [
-  {
-    id: '1',
-    title: 'Spring Strawberries & Lettuce - March 2024',
-    sentDate: '2024-03-15T09:30:00Z',
-    sentTo: 12,
-    opens: 8,
-    openRate: 67,
-    status: 'sent',
-    regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas']
-  },
-  {
-    id: '2',
-    title: 'Organic Tomato Collection',
-    sentDate: '2024-03-14T14:15:00Z',
-    sentTo: 8,
-    opens: 6,
-    openRate: 75,
-    status: 'sent',
-    regions: ['Central Valley - Fresno']
-  },
-  {
-    id: '3',
-    title: 'Weekly Mixed Vegetables',
-    sentDate: '2024-03-13T08:45:00Z',
-    sentTo: 15,
-    opens: 11,
-    openRate: 73,
-    status: 'sent',
-    regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas']
-  },
-  {
-    id: '4',
-    title: 'Premium Bell Peppers & Cucumbers',
-    sentDate: '2024-03-12T16:20:00Z',
-    sentTo: 6,
-    opens: 4,
-    openRate: 67,
-    status: 'sent',
-    regions: ['Central Valley - Fresno']
-  },
-  {
-    id: '5',
-    title: 'End of Season Citrus Special',
-    sentDate: '2024-03-11T11:00:00Z',
-    sentTo: 9,
-    opens: 5,
-    openRate: 56,
-    status: 'sent',
-    regions: ['Central Valley - Fresno']
+// Mock timing optimization data
+const mockTimingData = {
+  bestSendTime: '9:00 AM',
+  bestSendDay: 'Tuesday',
+  peakEngagementHour: '10:00 AM',
+  hourlyEngagement: [
+    { hour: '6 AM', rate: 15 },
+    { hour: '7 AM', rate: 28 },
+    { hour: '8 AM', rate: 45 },
+    { hour: '9 AM', rate: 78 },
+    { hour: '10 AM', rate: 85 },
+    { hour: '11 AM', rate: 72 },
+    { hour: '12 PM', rate: 58 },
+    { hour: '1 PM', rate: 42 },
+    { hour: '2 PM', rate: 65 },
+    { hour: '3 PM', rate: 71 },
+    { hour: '4 PM', rate: 68 },
+    { hour: '5 PM', rate: 35 }
+  ],
+  dailyEngagement: [
+    { day: 'Mon', rate: 65 },
+    { day: 'Tue', rate: 85 },
+    { day: 'Wed', rate: 78 },
+    { day: 'Thu', rate: 72 },
+    { day: 'Fri', rate: 58 },
+    { day: 'Sat', rate: 25 },
+    { day: 'Sun', rate: 18 }
+  ]
+}
+
+// Mock format preference data
+const mockFormatData = {
+  emailViews: 68,
+  mobileViews: 32,
+  desktopViews: 45,
+  pdfDownloads: 23,
+  webViews: 77,
+  avgTimeByFormat: {
+    email: '1m 45s',
+    mobile: '2m 12s',
+    desktop: '3m 28s'
   }
-]
+}
+
+// Generate realistic price sheet names with current dates
+const generateRecentSends = (companyName: string = 'AgriFarm Co.') => {
+  const baseDate = new Date('2025-09-03T09:30:00Z') // Start from 9/3/2025
+  
+  return [
+    {
+      id: '1',
+      title: `${companyName} Price Sheet - 9/3/2025`,
+      sentDate: new Date(baseDate).toISOString(),
+      sentTo: 12,
+      opens: 8,
+      openRate: 67,
+      forwardRate: 15,
+      status: 'sent',
+      regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas']
+    },
+    {
+      id: '2',
+      title: `${companyName} Price Sheet - 9/2/2025`,
+      sentDate: new Date(baseDate.getTime() - 24 * 60 * 60 * 1000).toISOString(),
+      sentTo: 8,
+      opens: 6,
+      openRate: 75,
+      forwardRate: 12,
+      status: 'sent',
+      regions: ['Central Valley - Fresno']
+    },
+    {
+      id: '3',
+      title: `${companyName} Price Sheet - 9/1/2025`,
+      sentDate: new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+      sentTo: 15,
+      opens: 11,
+      openRate: 73,
+      forwardRate: 18,
+      status: 'sent',
+      regions: ['Central Valley - Fresno', 'Salinas Valley - Salinas']
+    },
+    {
+      id: '4',
+      title: `${companyName} Price Sheet - 8/31/2025`,
+      sentDate: new Date(baseDate.getTime() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+      sentTo: 6,
+      opens: 4,
+      openRate: 67,
+      forwardRate: 8,
+      status: 'sent',
+      regions: ['Central Valley - Fresno']
+    },
+    {
+      id: '5',
+      title: `${companyName} Price Sheet - 8/30/2025`,
+      sentDate: new Date(baseDate.getTime() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+      sentTo: 9,
+      opens: 5,
+      openRate: 56,
+      forwardRate: 5,
+      status: 'sent',
+      regions: ['Central Valley - Fresno']
+    }
+  ]
+}
 
 // Helper function to get relative time
 const getTimeAgo = (date: Date) => {
@@ -79,6 +137,12 @@ const getTimeAgo = (date: Date) => {
 }
 
 export default function Analytics() {
+  const { user } = useUser()
+  
+  // Get company name from user profile, fallback to default
+  const companyName = user?.profile?.companyName || 'AgriFarm Co.'
+  const mockRecentSends = generateRecentSends(companyName)
+
   return (
     <>
       {/* Header */}
@@ -154,6 +218,8 @@ export default function Analytics() {
             </div>
           </div>
         </div>
+
+
       </div>
 
       {/* Recent Price Sheet Activity */}
@@ -215,11 +281,123 @@ export default function Analytics() {
                       </div>
                       <div className="text-xs text-gray-500">Open Rate</div>
                     </div>
+                    
+                    {/* Forward Rate */}
+                    <div className="text-center">
+                      <div className={`font-medium ${
+                        send.forwardRate >= 15 ? 'text-purple-600' :
+                        send.forwardRate >= 10 ? 'text-indigo-600' :
+                        'text-gray-600'
+                      }`}>
+                        {send.forwardRate}%
+                      </div>
+                      <div className="text-xs text-gray-500">Forward Rate</div>
+                    </div>
                   </div>
                 </div>
               </div>
             )
           })}
+        </div>
+      </div>
+
+      {/* Timing Optimization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Optimal Send Times</h3>
+            <p className="text-sm text-gray-500">When your customers are most engaged</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-6 mb-6">
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">{mockTimingData.bestSendTime}</div>
+                <div className="text-sm text-gray-600">Best Send Time</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">{mockTimingData.bestSendDay}</div>
+                <div className="text-sm text-gray-600">Best Send Day</div>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-gray-900">Engagement by Day</h4>
+              {mockTimingData.dailyEngagement.map((item) => (
+                <div key={item.day} className="flex items-center justify-between">
+                  <span className="text-sm text-gray-600 w-12">{item.day}</span>
+                  <div className="flex-1 mx-3">
+                    <div className="bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-500 h-2 rounded-full" 
+                        style={{ width: `${item.rate}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium text-gray-900 w-8">{item.rate}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900">Format Performance</h3>
+            <p className="text-sm text-gray-500">How customers prefer to view your sheets</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <DevicePhoneMobileIcon className="h-6 w-6 text-blue-600" />
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">{mockFormatData.mobileViews}%</div>
+                  <div className="text-xs text-gray-600">Mobile Views</div>
+                </div>
+              </div>
+              <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                <ComputerDesktopIcon className="h-6 w-6 text-green-600" />
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">{mockFormatData.desktopViews}%</div>
+                  <div className="text-xs text-gray-600">Desktop Views</div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Email Format</span>
+                  <span className="text-gray-900">{mockFormatData.emailViews}%</span>
+                </div>
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div className="bg-purple-500 h-2 rounded-full" style={{ width: `${mockFormatData.emailViews}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">Avg. time: {mockFormatData.avgTimeByFormat.email}</div>
+              </div>
+              
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Web View</span>
+                  <span className="text-gray-900">{mockFormatData.webViews}%</span>
+                </div>
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${mockFormatData.webViews}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">Avg. time: {mockFormatData.avgTimeByFormat.desktop}</div>
+              </div>
+              
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">PDF Downloads</span>
+                  <span className="text-gray-900">{mockFormatData.pdfDownloads}%</span>
+                </div>
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div className="bg-green-500 h-2 rounded-full" style={{ width: `${mockFormatData.pdfDownloads}%` }}></div>
+                </div>
+                <div className="text-xs text-gray-500 mt-1">Highest engagement format</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -5,7 +5,9 @@ import {
   PaperAirplaneIcon,
   EyeIcon,
   CheckIcon,
-  MagnifyingGlassIcon
+  MagnifyingGlassIcon,
+  EnvelopeIcon,
+  DevicePhoneMobileIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
@@ -339,6 +341,45 @@ sales@acrelist.com | (555) 123-4567`
     new_prospect: contacts.filter(c => c.pricingTier === 'new_prospect').length
   }
 
+  // Helper function to render delivery method
+  const renderDeliveryMethod = (contact: Contact) => {
+    const pricesheetSettings = contact.pricesheetSettings || {}
+    const deliveryMethod = pricesheetSettings.deliveryMethod || 
+      (contact.preferredContactMethod === 'phone' ? 'sms' : 'email')
+
+    switch (deliveryMethod) {
+      case 'email':
+        return (
+          <div className="flex items-center space-x-1 text-xs text-gray-500">
+            <EnvelopeIcon className="h-3 w-3" />
+            <span>Email</span>
+          </div>
+        )
+      case 'sms':
+        return (
+          <div className="flex items-center space-x-1 text-xs text-gray-500">
+            <DevicePhoneMobileIcon className="h-3 w-3" />
+            <span>SMS</span>
+          </div>
+        )
+      case 'both':
+        return (
+          <div className="flex items-center space-x-1 text-xs text-gray-500">
+            <EnvelopeIcon className="h-3 w-3" />
+            <DevicePhoneMobileIcon className="h-3 w-3" />
+            <span>Email & SMS</span>
+          </div>
+        )
+      default:
+        return (
+          <div className="flex items-center space-x-1 text-xs text-gray-500">
+            <EnvelopeIcon className="h-3 w-3" />
+            <span>Email</span>
+          </div>
+        )
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -528,6 +569,9 @@ sales@acrelist.com | (555) 123-4567`
                               </span>
                             </div>
                             <p className="text-sm text-gray-500">{contact.company}</p>
+                            <div className="mt-1">
+                              {renderDeliveryMethod(contact)}
+                            </div>
                             {contactNotes[contact.id] && (
                               <p className="text-xs text-blue-600 mt-1 italic">Note: {contactNotes[contact.id]}</p>
                             )}

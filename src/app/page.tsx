@@ -8,9 +8,10 @@ import {
   DocumentTextIcon, 
   ArrowTrendingUpIcon,
   CurrencyDollarIcon,
-  ChatBubbleLeftRightIcon
+  PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
 import LoginModal from '@/components/modals/LoginModal'
+import AIAssistantModal from '@/components/modals/AIAssistantModal'
 
 // Mock dashboard data
 const mockProducts = [
@@ -28,9 +29,29 @@ const mockBuyerActivity = [
 
 export default function Home() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const [modalMode, setModalMode] = useState<'login' | 'signup'>('login')
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false)
 
   const handleLogin = async (email: string, password: string) => {
     // This will be handled by the LoginModal component
+  }
+
+  const [hideToggle, setHideToggle] = useState(false)
+
+  const openSignupModal = () => {
+    setModalMode('signup')
+    setHideToggle(true) // Hide toggle for signup-focused CTAs
+    setIsLoginModalOpen(true)
+  }
+
+  const openLoginModal = () => {
+    setModalMode('login')
+    setHideToggle(false) // Show toggle for login button
+    setIsLoginModalOpen(true)
+  }
+
+  const openAIModal = () => {
+    setIsAIModalOpen(true)
   }
 
   return (
@@ -50,25 +71,20 @@ export default function Home() {
             </Link>
           </div>
           <div className="flex gap-x-8">
-            <Link href="#dashboard" className="text-sm font-medium text-gray-700 hover:text-lime-600">
-              See Dashboard
-            </Link>
-            <Link href="#features" className="text-sm font-medium text-gray-700 hover:text-lime-600">
-              Features
-            </Link>
-            <Link href="#pricing" className="text-sm font-medium text-gray-700 hover:text-lime-600">
-              Pricing
-            </Link>
+            {/* Removed navigation links to focus on interest generation */}
           </div>
           <div className="flex lg:flex-1 lg:justify-end gap-x-4">
             <button 
-              onClick={() => setIsLoginModalOpen(true)}
+              onClick={openLoginModal}
               className="text-sm font-medium text-gray-700 hover:text-lime-600"
             >
               Login
             </button>
-            <Link href="/dashboard" className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600">
-              Start Free Trial
+            <Link 
+              href="/demo"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
+            >
+              Watch Demo
             </Link>
           </div>
         </nav>
@@ -198,12 +214,12 @@ export default function Home() {
 
           {/* CTA */}
           <div className="text-center mt-12">
-            <Link
-              href="/dashboard"
+            <button
+              onClick={openSignupModal}
               className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
             >
               Build Your Dashboard
-            </Link>
+            </button>
             <p className="mt-4 text-sm text-gray-600">
               Free 14-day trial • No credit card required • Setup in 5 minutes
             </p>
@@ -219,7 +235,7 @@ export default function Home() {
               Tools to help you sell
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              Professional price sheets, AI sales assistance, and analytics that turn inquiries into contracts.
+              Generate dynamic price sheets, manage customer outreach, and track engagement to turn inquiries into contracts.
             </p>
           </div>
           
@@ -228,19 +244,19 @@ export default function Home() {
               <div className="mx-auto h-16 w-16 rounded-full bg-lime-100 flex items-center justify-center mb-6">
                 <DocumentTextIcon className="h-8 w-8 text-lime-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Smart Price Sheets</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Dynamic Price Sheets</h3>
               <p className="text-gray-600">
-                Professional, branded pricing that showcases your quality, certifications, and story. Stop competing on price alone.
+                Generate personalized, professional price sheets with custom pricing, branding, and product details that showcase your farm's unique value.
               </p>
             </div>
             
             <div className="text-center">
               <div className="mx-auto h-16 w-16 rounded-full bg-cyan-100 flex items-center justify-center mb-6">
-                <ChatBubbleLeftRightIcon className="h-8 w-8 text-cyan-600" />
+                <PaperAirplaneIcon className="h-8 w-8 text-cyan-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">AI Sales Assistant</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Send & Manage Outreach</h3>
               <p className="text-gray-600">
-                24/7 AI SDR that handles basic inquiries, qualifies leads, and frees your team to close the big contracts.
+                Distribute price sheets to your customer base, manage contact preferences, and track delivery status all in one place.
               </p>
             </div>
             
@@ -248,9 +264,9 @@ export default function Home() {
               <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
                 <ChartBarIcon className="h-8 w-8 text-green-600" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Analytics</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Engagement Analytics</h3>
               <p className="text-gray-600">
-                See which buyers are interested, track engagement, and turn insights into revenue. Be the farm that procurement managers bookmark.
+                Track which customers are viewing your price sheets, monitor engagement patterns, and identify hot leads to prioritize your sales efforts.
               </p>
             </div>
           </div>
@@ -299,12 +315,12 @@ export default function Home() {
           <p className="text-xl text-gray-300 mb-8">
             Start your free trial today. No credit card required.
           </p>
-          <Link
-            href="/dashboard"
+          <button
+            onClick={openSignupModal}
             className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-slate-800 bg-lime-400 hover:bg-lime-300"
           >
             Start Free Trial
-          </Link>
+          </button>
           <p className="mt-4 text-sm text-gray-400">
             14-day free trial • Cancel anytime • Setup in 5 minutes
           </p>
@@ -320,9 +336,17 @@ export default function Home() {
               <span className="text-gray-400">•</span>
               <span className="text-sm text-gray-600">Your Farm&apos;s Command Center</span>
             </div>
-            <p className="text-sm text-gray-500">
-              © 2024 AcreList. All rights reserved.
-            </p>
+            <div className="flex items-center space-x-6">
+              <button 
+                onClick={openAIModal}
+                className="text-sm text-gray-500 hover:text-lime-600 underline"
+              >
+                Looking for the AcreList Sales Assistant?
+              </button>
+              <p className="text-sm text-gray-500">
+                © 2024 AcreList. All rights reserved.
+              </p>
+            </div>
           </div>
         </div>
       </footer>
@@ -330,8 +354,20 @@ export default function Home() {
       {/* Login Modal */}
       <LoginModal
         isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
+        onClose={() => {
+          setIsLoginModalOpen(false)
+          // Reset states when modal closes
+          setHideToggle(false)
+        }}
         onLogin={handleLogin}
+        initialMode={modalMode}
+        hideToggle={hideToggle}
+      />
+
+      {/* AI Assistant Modal */}
+      <AIAssistantModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
       />
     </div>
   )

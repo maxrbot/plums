@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
@@ -8,16 +8,36 @@ interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
   onLogin: (email: string, password: string) => Promise<void>
+  initialMode?: 'login' | 'signup'
+  hideToggle?: boolean
 }
 
-export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'login', hideToggle = false }: LoginModalProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
-  const [isRegisterMode, setIsRegisterMode] = useState(false)
+  const [isRegisterMode, setIsRegisterMode] = useState(initialMode === 'signup')
   const [companyName, setCompanyName] = useState('')
   const [contactName, setContactName] = useState('')
+
+  // Sync isRegisterMode with initialMode prop changes
+  useEffect(() => {
+    setIsRegisterMode(initialMode === 'signup')
+  }, [initialMode])
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setIsRegisterMode(initialMode === 'signup')
+      setEmail('')
+      setPassword('')
+      setCompanyName('')
+      setContactName('')
+      setError('')
+      setIsLoading(false)
+    }
+  }, [isOpen, initialMode])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -94,6 +114,8 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
     setContactName('')
     setError('')
     setIsLoading(false)
+    // Reset to initial mode when closing
+    setIsRegisterMode(initialMode === 'signup')
   }
 
   const handleClose = () => {
@@ -236,18 +258,20 @@ export default function LoginModal({ isOpen, onClose, onLogin }: LoginModalProps
                       </button>
                     </form>
 
-                    <div className="mt-6 text-center">
-                      <p className="text-sm text-gray-600">
-                        {isRegisterMode ? 'Already have an account?' : "Don't have an account?"}{' '}
-                        <button
-                          type="button"
-                          onClick={toggleMode}
-                          className="font-medium text-lime-600 hover:text-lime-500"
-                        >
-                          {isRegisterMode ? 'Sign in' : 'Create one'}
-                        </button>
-                      </p>
-                    </div>
+                    {!hideToggle && (
+                      <div className="mt-6 text-center">
+                        <p className="text-sm text-gray-600">
+                          {isRegisterMode ? 'Already have an account?' : "Don't have an account?"}{' '}
+                          <button
+                            type="button"
+                            onClick={toggleMode}
+                            className="font-medium text-lime-600 hover:text-lime-500"
+                          >
+                            {isRegisterMode ? 'Sign in' : 'Create one'}
+                          </button>
+                        </p>
+                      </div>
+                    )}
 
                     {isRegisterMode && (
                       <div className="mt-4 text-center">

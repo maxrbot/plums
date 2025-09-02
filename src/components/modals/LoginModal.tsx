@@ -20,6 +20,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
   const [isRegisterMode, setIsRegisterMode] = useState(initialMode === 'signup')
   const [companyName, setCompanyName] = useState('')
   const [contactName, setContactName] = useState('')
+  const [inviteCode, setInviteCode] = useState('')
+  const [isInviteVerified, setIsInviteVerified] = useState(false)
+  const [inviteError, setInviteError] = useState('')
+  const [showCelebration, setShowCelebration] = useState(false)
 
   // Sync isRegisterMode with initialMode prop changes
   useEffect(() => {
@@ -36,6 +40,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
       setContactName('')
       setError('')
       setIsLoading(false)
+      setInviteCode('')
+      setIsInviteVerified(false)
+      setInviteError('')
+      setShowCelebration(false)
     }
   }, [isOpen, initialMode])
 
@@ -107,6 +115,22 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     }
   }
 
+  const handleInviteSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setInviteError('')
+    
+    if (inviteCode.toLowerCase() === 'early2025') {
+      setShowCelebration(true)
+    } else {
+      setInviteError('Invalid invite code. Please check your code and try again.')
+    }
+  }
+
+  const handleContinueFromCelebration = () => {
+    setShowCelebration(false)
+    setIsInviteVerified(true)
+  }
+
   const resetForm = () => {
     setEmail('')
     setPassword('')
@@ -114,6 +138,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     setContactName('')
     setError('')
     setIsLoading(false)
+    setInviteCode('')
+    setIsInviteVerified(false)
+    setInviteError('')
+    setShowCelebration(false)
     // Reset to initial mode when closing
     setIsRegisterMode(initialMode === 'signup')
   }
@@ -169,7 +197,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                 <div className="sm:flex sm:items-start">
                   <div className="w-full mt-3 text-center sm:ml-0 sm:mt-0 sm:text-left">
                     <Dialog.Title as="h3" className="text-2xl font-semibold leading-6 text-gray-900 mb-6">
-                      {isRegisterMode ? 'Create Account' : 'Welcome Back'}
+                      {isRegisterMode ? (isInviteVerified ? 'Create Account' : 'Join AcreList') : 'Welcome Back'}
                     </Dialog.Title>
 
                     {error && (
@@ -178,38 +206,102 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                       </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                      {isRegisterMode && (
-                        <>
-                          <div>
-                            <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
-                              Company Name
-                            </label>
-                            <input
-                              type="text"
-                              id="companyName"
-                              value={companyName}
-                              onChange={(e) => setCompanyName(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
-                              placeholder="Your Company"
-                            />
+                    {isRegisterMode && !isInviteVerified ? (
+                      showCelebration ? (
+                        /* Celebration Screen */
+                        <div className="text-center py-8">
+                          <div className="mx-auto h-20 w-20 rounded-full bg-gradient-to-r from-lime-400 to-green-500 flex items-center justify-center mb-6 animate-pulse">
+                            <span className="text-3xl">🎉</span>
                           </div>
+                          <h4 className="text-2xl font-bold text-gray-900 mb-2">You're In!</h4>
+                          <p className="text-lg text-lime-600 font-medium mb-2">Welcome to AcreList Early Access</p>
+                          <p className="text-sm text-gray-600 mb-8">
+                            You're joining an exclusive group of forward-thinking farmers transforming their sales process.
+                          </p>
+                          <button
+                            onClick={handleContinueFromCelebration}
+                            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 shadow-lg transform transition-all duration-200 hover:scale-105"
+                          >
+                            Continue to Sign Up
+                            <span className="ml-2">→</span>
+                          </button>
+                        </div>
+                      ) : (
+                        /* Invite Code Form */
+                        <form onSubmit={handleInviteSubmit} className="space-y-4">
+                        <div className="text-center mb-6">
+                          <div className="mx-auto h-12 w-12 rounded-full bg-lime-100 flex items-center justify-center mb-4">
+                            <span className="text-lime-600 font-semibold text-lg">🔑</span>
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">Early Access Required</h4>
+                          <p className="text-sm text-gray-600">
+                            AcreList is currently in early access. Please enter your invite code to continue.
+                          </p>
+                        </div>
 
-                          <div>
-                            <label htmlFor="contactName" className="block text-sm font-medium text-gray-700 mb-1">
-                              Your Name
-                            </label>
-                            <input
-                              type="text"
-                              id="contactName"
-                              value={contactName}
-                              onChange={(e) => setContactName(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
-                              placeholder="John Doe"
-                            />
+                        {inviteError && (
+                          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                            <p className="text-sm text-red-600">{inviteError}</p>
                           </div>
-                        </>
-                      )}
+                        )}
+
+                        <div>
+                          <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
+                            Invite Code
+                          </label>
+                          <input
+                            type="text"
+                            id="inviteCode"
+                            value={inviteCode}
+                            onChange={(e) => setInviteCode(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                            placeholder="Enter your invite code"
+                            required
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500"
+                        >
+                          Verify Invite Code
+                        </button>
+                        </form>
+                      )
+                    ) : (
+                      /* Main Form */
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        {isRegisterMode && (
+                          <>
+                            <div>
+                              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+                                Company Name
+                              </label>
+                              <input
+                                type="text"
+                                id="companyName"
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                                placeholder="Your Company"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="contactName" className="block text-sm font-medium text-gray-700 mb-1">
+                                Your Name
+                              </label>
+                              <input
+                                type="text"
+                                id="contactName"
+                                value={contactName}
+                                onChange={(e) => setContactName(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                                placeholder="John Doe"
+                              />
+                            </div>
+                          </>
+                        )}
 
                       <div>
                         <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -256,9 +348,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                           isRegisterMode ? 'Create Account' : 'Sign In'
                         )}
                       </button>
-                    </form>
+                      </form>
+                    )}
 
-                    {!hideToggle && (
+                    {!hideToggle && !(isRegisterMode && !isInviteVerified) && (
                       <div className="mt-6 text-center">
                         <p className="text-sm text-gray-600">
                           {isRegisterMode ? 'Already have an account?' : "Don't have an account?"}{' '}
@@ -273,7 +366,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                       </div>
                     )}
 
-                    {isRegisterMode && (
+                    {isRegisterMode && isInviteVerified && (
                       <div className="mt-4 text-center">
                         <p className="text-xs text-gray-500">
                           By creating an account, you agree to our Terms of Service and Privacy Policy.

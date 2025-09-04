@@ -423,8 +423,8 @@ export default function SendPriceSheets() {
       ? `\n💬 Special Note:\n${customMessage}\n`
       : ''
     
-    // Generate subject line based on price sheet name
-    const subjectLine = selectedSheet?.name || 'Price Sheet'
+    // Generate subject line based on price sheet title
+    const subjectLine = selectedSheet?.title || selectedSheet?.name || 'Price Sheet'
     
     // Enhanced AI-generated email with smart content
     const aiEmail = `Dear [FIRST_NAME],

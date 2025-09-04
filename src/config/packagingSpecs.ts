@@ -1203,6 +1203,60 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     usdaMapping: {
       commodity: 'dragon fruit'
     }
+  },
+
+  // ROOT VEGETABLES - GARLIC
+  {
+    id: 'garlic-box-30lb',
+    type: 'carton',
+    name: '30 lb Box',
+    grades: ['US No. 1', 'US No. 2', 'Premium'],
+    isStandard: true,
+    commodities: ['garlic'],
+    category: 'carton',
+    description: 'Standard garlic box (30 pounds)',
+    usdaMapping: {
+      commodity: 'garlic'
+    }
+  },
+  {
+    id: 'garlic-bag-10lb',
+    type: 'bag',
+    name: '10 lb Bag',
+    grades: ['US No. 1', 'US No. 2'],
+    isStandard: true,
+    commodities: ['garlic'],
+    category: 'bag',
+    description: 'Mesh bag for garlic (10 pounds)',
+    usdaMapping: {
+      commodity: 'garlic'
+    }
+  },
+  {
+    id: 'garlic-bag-5lb',
+    type: 'bag',
+    name: '5 lb Bag',
+    grades: ['US No. 1', 'US No. 2'],
+    isStandard: true,
+    commodities: ['garlic'],
+    category: 'bag',
+    description: 'Mesh bag for garlic (5 pounds)',
+    usdaMapping: {
+      commodity: 'garlic'
+    }
+  },
+  {
+    id: 'garlic-mesh-3ct',
+    type: 'bag',
+    name: '3 ct Mesh',
+    grades: ['Premium', 'US No. 1'],
+    isStandard: true,
+    commodities: ['garlic'],
+    category: 'specialty',
+    description: '2-3 bulbs per mesh pack',
+    usdaMapping: {
+      commodity: 'garlic'
+    }
   }
 ]
 
@@ -1214,8 +1268,42 @@ export function getPackagingSpecs(commodityId: string, includeCustom: boolean = 
   
   // TODO: Add custom packaging from database when includeCustom is true
   // This will be implemented when we integrate with the backend
+  // For now, custom packaging needs to be loaded separately and merged
   
   return specs
+}
+
+// Async version that loads custom packaging from API
+export async function getPackagingSpecsWithCustom(commodityId: string): Promise<PackagingSpec[]> {
+  const standardSpecs = standardPackagingSpecs.filter(spec => 
+    spec.commodities.includes(commodityId)
+  )
+  
+  try {
+    // Import the API here to avoid circular dependencies
+    const { packagingApi } = await import('../lib/api')
+    const response = await packagingApi.getAll()
+    
+    // Transform custom packaging to PackagingSpec format
+    const customSpecs: PackagingSpec[] = response.packaging
+      .filter((pkg: any) => pkg.commodities && pkg.commodities.includes(commodityId))
+      .map((pkg: any) => ({
+        id: pkg._id,
+        type: 'bag', // Default type, could be stored in DB
+        name: pkg.name,
+        grades: ['Premium', 'US No. 1'], // Default grades, could be stored in DB
+        isStandard: false,
+        commodities: pkg.commodities || [],
+        category: pkg.category || 'specialty',
+        description: pkg.description || '',
+        createdBy: pkg.userId
+      }))
+    
+    return [...standardSpecs, ...customSpecs]
+  } catch (error) {
+    console.error('Failed to load custom packaging:', error)
+    return standardSpecs
+  }
 }
 
 export function getStandardPackaging(commodityId: string): PackagingSpec[] {

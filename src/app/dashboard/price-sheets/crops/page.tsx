@@ -9,10 +9,14 @@ import {
   MapPinIcon,
   CheckCircleIcon,
   ChevronDownIcon,
-  ChevronUpIcon
+  ChevronUpIcon,
+  DocumentArrowUpIcon,
+  CloudArrowUpIcon,
+  CogIcon
 } from '@heroicons/react/24/outline'
 import type { CropManagement, GrowingRegion } from '../../../../types'
 import { Breadcrumbs, AddVariationModal } from '../../../../components/ui'
+import CropImportModal from '../../../../components/modals/CropImportModal'
 import { cropsApi, regionsApi } from '../../../../lib/api'
 
 // Mock crop data with new structure
@@ -184,6 +188,8 @@ export default function CropManagement() {
   const [error, setError] = useState<string | null>(null)
   const [editingCrop, setEditingCrop] = useState<CropManagement | null>(null)
   const [collapsedCommodities, setCollapsedCommodities] = useState<Set<string>>(new Set())
+  const [showImportDropdown, setShowImportDropdown] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
 
   // Helper function to get month name
   const getMonthName = (monthNumber: number): string => {
@@ -413,6 +419,54 @@ export default function CropManagement() {
     setIsModalOpen(true)
   }
 
+  const handleImportCrops = async (importData: any[]) => {
+    try {
+      // Transform CSV data to CropManagement format
+      const transformedCrops = importData.map((row, index) => {
+        const crop: CropManagement = {
+          id: `imported_${Date.now()}_${index}`,
+          category: row.category || 'other',
+          commodity: row.commodity,
+          variations: [{
+            id: `var_${Date.now()}_${index}`,
+            variety: row.variety,
+            isOrganic: row.is_organic === 'true' || row.is_organic === '1',
+            growingRegions: row.region_name ? [{
+              regionId: `region_${Date.now()}_${index}`,
+              regionName: row.region_name,
+              seasonality: {
+                startMonth: parseInt(row.season_start_month) || 1,
+                endMonth: parseInt(row.season_end_month) || 12,
+                isYearRound: !row.season_start_month && !row.season_end_month
+              }
+            }] : [],
+            targetPricing: {
+              minPrice: parseFloat(row.min_price) || 0,
+              maxPrice: parseFloat(row.max_price) || 0,
+              unit: row.price_unit || 'lb',
+              notes: row.notes || ''
+            },
+            growingPractices: row.is_organic === 'true' ? ['USDA Organic'] : [],
+            minOrder: parseInt(row.min_order) || 1,
+            orderUnit: row.order_unit || 'case',
+            notes: row.notes || ''
+          }]
+        }
+        return crop
+      })
+
+      // Add to existing crops
+      setCrops(prevCrops => [...prevCrops, ...transformedCrops])
+      
+      // TODO: Save to backend via API
+      console.log('Imported crops:', transformedCrops)
+      
+    } catch (error) {
+      console.error('Import error:', error)
+      throw new Error('Failed to import crops')
+    }
+  }
+
   return (
     <>
       {/* Header */}
@@ -429,13 +483,128 @@ export default function CropManagement() {
             <h1 className="text-3xl font-bold text-gray-900">Crop Management</h1>
             <p className="mt-2 text-gray-600">Set up your crop catalog, varieties, and growing seasons.</p>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Crop
-          </button>
+          <div className="flex items-center space-x-3">
+            {/* Import Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowImportDropdown(!showImportDropdown)}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+              >
+                <CloudArrowUpIcon className="h-4 w-4 mr-2" />
+                Import Crops
+                <ChevronDownIcon className="h-4 w-4 ml-2" />
+              </button>
+              
+              {showImportDropdown && (
+                <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-300 rounded-md shadow-lg z-10">
+                  <div className="py-1">
+                    <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Quick Import
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsImportModalOpen(true)
+                        setShowImportDropdown(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <DocumentArrowUpIcon className="h-4 w-4 mr-3 text-green-500" />
+                      <div className="text-left">
+                        <div className="font-medium">Upload CSV File</div>
+                        <div className="text-xs text-gray-500">Import from spreadsheet or export</div>
+                      </div>
+                    </button>
+                    
+                    <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide border-t border-gray-200 mt-1">
+                      ERP Systems (Live Inventory)
+                    </div>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement Famous Software ERP integration
+                        alert('Famous Software ERP integration coming soon!')
+                        setShowImportDropdown(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <CogIcon className="h-4 w-4 mr-3 text-green-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Famous Software ERP</div>
+                        <div className="text-xs text-gray-500">Live inventory & pricing data</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement Produce Pro ERP integration
+                        alert('Produce Pro ERP integration coming soon!')
+                        setShowImportDropdown(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <CogIcon className="h-4 w-4 mr-3 text-blue-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Produce Pro ERP</div>
+                        <div className="text-xs text-gray-500">Modern API-based integration</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement FreshByte integration
+                        alert('FreshByte ERP integration coming soon!')
+                        setShowImportDropdown(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <CogIcon className="h-4 w-4 mr-3 text-purple-600" />
+                      <div className="text-left">
+                        <div className="font-medium">FreshByte ERP</div>
+                        <div className="text-xs text-gray-500">Growing distributor base</div>
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement RedLine Solutions integration
+                        alert('RedLine Solutions integration coming soon!')
+                        setShowImportDropdown(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <CogIcon className="h-4 w-4 mr-3 text-red-600" />
+                      <div className="text-left">
+                        <div className="font-medium">RedLine Solutions</div>
+                        <div className="text-xs text-gray-500">Cooler inventory tracking</div>
+                      </div>
+                    </button>
+                    
+                    <div className="px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wide border-t border-gray-200 mt-1">
+                      File Import (All Sizes)
+                    </div>
+                    <button
+                      onClick={() => {
+                        // TODO: Implement daily file watch
+                        alert('Automated file import coming soon!')
+                        setShowImportDropdown(false)
+                      }}
+                      className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <CogIcon className="h-4 w-4 mr-3 text-orange-600" />
+                      <div className="text-left">
+                        <div className="font-medium">Daily File Import</div>
+                        <div className="text-xs text-gray-500">Auto-watch CSV/EDI/XML exports</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+            >
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Crop
+            </button>
+          </div>
         </div>
       </div>
 
@@ -786,6 +955,13 @@ export default function CropManagement() {
         existingCrops={crops}
         existingCrop={editingCrop || undefined}
         isEditMode={!!editingCrop}
+      />
+
+      {/* Import Modal */}
+      <CropImportModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportCrops}
       />
     </>
   )

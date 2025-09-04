@@ -81,11 +81,20 @@ export interface Supplier {
 
 export interface PriceSheet {
   _id: ObjectId;
-  name: string;
-  supplierId: ObjectId;
-  status: 'draft' | 'active' | 'inactive';
+  title: string;
+  name?: string; // Keep for backward compatibility
+  supplierId?: ObjectId;
+  userId: ObjectId;
+  status: 'draft' | 'sent' | 'archived';
+  productIds: ObjectId[];
+  productsCount: number;
+  totalValue?: number;
+  sentTo?: ObjectId[];
+  sentAt?: Date;
+  notes?: string;
   createdAt: Date;
-  last_updated: Date;
+  updatedAt: Date;
+  last_updated?: Date; // Keep for backward compatibility
 }
 
 export interface PriceSheetProduct {

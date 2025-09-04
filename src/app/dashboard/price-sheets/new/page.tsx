@@ -12,7 +12,7 @@ import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { getPackagingSpecs } from '../../../../config/packagingSpecs'
 import { commodityOptions } from '../../../../config/commodityOptions'
-import { cropsApi, regionsApi, priceSheetsApi } from '../../../../lib/api'
+import { cropsApi, regionsApi, priceSheetsApi, packagingApi } from '../../../../lib/api'
 import type { CropManagement, CropVariation } from '../../../../types'
 
 // Interface for processed product data from user's crops
@@ -86,10 +86,17 @@ export default function NewPriceSheet() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [showPriceInfoModal, setShowPriceInfoModal] = useState(false)
 
+  // State for custom packaging
+  const [customPackaging, setCustomPackaging] = useState<Record<string, any[]>>({})
+
   // Helper functions to work with unified packaging system
   const getPackagingOptions = (commodity: string) => {
-    const specs = getPackagingSpecs(commodity)
-    return specs.map(spec => ({
+    const standardSpecs = getPackagingSpecs(commodity)
+    const customSpecs = customPackaging[commodity] || []
+    
+    const allSpecs = [...standardSpecs, ...customSpecs]
+    
+    return allSpecs.map(spec => ({
       id: spec.id,
       type: spec.type,
       name: spec.name,
@@ -97,7 +104,8 @@ export default function NewPriceSheet() {
       hasSizes: !!spec.sizes?.length,
       counts: spec.counts || [],
       sizes: spec.sizes || [],
-      grades: spec.grades || ['US No. 1']
+      grades: spec.grades || ['US No. 1'],
+      isStandard: spec.isStandard
     }))
   }
 
@@ -290,14 +298,43 @@ export default function NewPriceSheet() {
       setError(null)
       setIsLoading(true)
 
-      // Load crops and regions in parallel
-      const [cropsRes, regionsRes] = await Promise.all([
+      // Load crops, regions, and custom packaging in parallel
+      const [cropsRes, regionsRes, packagingRes] = await Promise.all([
         cropsApi.getAll(),
-        regionsApi.getAll()
+        regionsApi.getAll(),
+        packagingApi.getAll().catch(err => {
+          console.warn('Failed to load custom packaging:', err)
+          return { packaging: [] }
+        })
       ])
 
       const crops = cropsRes.crops || []
       const userRegions = regionsRes.regions || []
+      const customPackagingData = packagingRes.packaging || []
+
+      // Organize custom packaging by commodity
+      const packagingByCommodity: Record<string, any[]> = {}
+      customPackagingData.forEach((pkg: any) => {
+        if (pkg.commodities && Array.isArray(pkg.commodities)) {
+          pkg.commodities.forEach((commodity: string) => {
+            if (!packagingByCommodity[commodity]) {
+              packagingByCommodity[commodity] = []
+            }
+            packagingByCommodity[commodity].push({
+              id: pkg._id,
+              type: 'bag', // Default type
+              name: pkg.name,
+              grades: ['Premium', 'US No. 1'], // Default grades
+              isStandard: false,
+              commodities: pkg.commodities,
+              category: pkg.category || 'specialty',
+              description: pkg.description || ''
+            })
+          })
+        }
+      })
+      
+      setCustomPackaging(packagingByCommodity)
       
 
 
@@ -1069,7 +1106,13 @@ export default function NewPriceSheet() {
                             className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
                           >
                             {getPackagingOptions(product.commodity).map((pkg, idx) => (
-                              <option key={idx} value={pkg.name}>{pkg.name}</option>
+                              <option 
+                                key={idx} 
+                                value={pkg.name}
+                                className={!pkg.isStandard ? 'bg-blue-50 font-medium' : ''}
+                              >
+                                {!pkg.isStandard ? '🔧 ' : ''}{pkg.name}{!pkg.isStandard ? ' (Custom)' : ''}
+                              </option>
                             ))}
                           </select>
                           {hasCountSize(product.commodity) && (

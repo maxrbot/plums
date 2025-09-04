@@ -2,14 +2,14 @@ import { FastifyPluginAsync } from 'fastify'
 import { ObjectId } from 'mongodb'
 import database from '../config/database'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth'
-import { GrowingRegion } from '../models/types'
+import { ShippingPoint, GrowingRegion } from '../models/types'
 
 const regionsRoutes: FastifyPluginAsync = async (fastify) => {
   
   // Add auth middleware to all routes
   fastify.addHook('preHandler', authenticate)
   
-  // Get all user's growing regions
+  // Get all user's shipping points (formerly growing regions)
   fastify.get('/', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
     
@@ -26,10 +26,21 @@ const regionsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
-      const regions = await db.collection<GrowingRegion>('growingRegions')
+      // Query both collections during migration period
+      const shippingPoints = await db.collection<ShippingPoint>('shippingPoints')
         .find({ userId: userDoc._id })
         .sort({ createdAt: -1 })
         .toArray()
+      
+      // Fallback to old collection if new one is empty
+      let regions = shippingPoints
+      if (regions.length === 0) {
+        const oldRegions = await db.collection<GrowingRegion>('growingRegions')
+          .find({ userId: userDoc._id })
+          .sort({ createdAt: -1 })
+          .toArray()
+        regions = oldRegions
+      }
       
       // Transform _id to id for frontend compatibility
       const transformedRegions = regions.map(region => ({
@@ -41,10 +52,10 @@ const regionsRoutes: FastifyPluginAsync = async (fastify) => {
       return { regions: transformedRegions }
       
     } catch (error) {
-      console.error('Get regions error:', error)
+      console.error('Get shipping points error:', error)
       return reply.status(500).send({
         error: 'Internal Server Error',
-        message: 'Failed to get growing regions'
+        message: 'Failed to get shipping points'
       })
     }
   })

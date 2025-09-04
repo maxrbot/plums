@@ -30,16 +30,16 @@ const mockCrops: CropManagement[] = [
         id: 'var_1',
         variety: 'Albion',
         isOrganic: true,
-        growingRegions: [
+        shippingPoints: [
           {
-            regionId: '1',
-            regionName: 'Central Valley - Fresno',
-            seasonality: { startMonth: 3, endMonth: 8, isYearRound: false }
+            pointId: '1',
+            pointName: 'Fresno Distribution Center',
+            availability: { startMonth: 3, endMonth: 8, isYearRound: false }
           },
           {
-            regionId: '2',
-            regionName: 'Salinas Valley - Salinas',
-            seasonality: { startMonth: 4, endMonth: 9, isYearRound: false }
+            pointId: '2',
+            pointName: 'Salinas Cooler Facility',
+            availability: { startMonth: 4, endMonth: 9, isYearRound: false }
           }
         ],
         targetPricing: {
@@ -57,11 +57,11 @@ const mockCrops: CropManagement[] = [
         id: 'var_2',
         variety: 'Chandler',
         isOrganic: false,
-        growingRegions: [
+        shippingPoints: [
           {
-            regionId: '1',
-            regionName: 'Central Valley - Fresno',
-            seasonality: { startMonth: 3, endMonth: 7, isYearRound: false }
+            pointId: '1',
+            pointName: 'Fresno Distribution Center',
+            availability: { startMonth: 3, endMonth: 7, isYearRound: false }
           }
         ],
         targetPricing: {
@@ -88,11 +88,11 @@ const mockCrops: CropManagement[] = [
         id: 'var_3',
         variety: 'Butterhead Blend',
         isOrganic: true,
-        growingRegions: [
+        shippingPoints: [
           {
-            regionId: '2',
-            regionName: 'Salinas Valley - Salinas',
-            seasonality: { startMonth: 2, endMonth: 6, isYearRound: false }
+            pointId: '2',
+            pointName: 'Salinas Cooler Facility',
+            availability: { startMonth: 2, endMonth: 6, isYearRound: false }
           }
         ],
         targetPricing: {
@@ -119,11 +119,11 @@ const mockCrops: CropManagement[] = [
         id: 'var_4',
         variety: 'Brandywine',
         isOrganic: true,
-        growingRegions: [
+        shippingPoints: [
           {
-            regionId: '1',
-            regionName: 'Central Valley - Fresno',
-            seasonality: { startMonth: 6, endMonth: 10, isYearRound: false }
+            pointId: '1',
+            pointName: 'Fresno Distribution Center',
+            availability: { startMonth: 6, endMonth: 10, isYearRound: false }
           }
         ],
         targetPricing: {
@@ -143,40 +143,55 @@ const mockCrops: CropManagement[] = [
   }
 ]
 
-// Mock growing regions for reference
-const mockRegions = [
+// Mock shipping points for reference
+const mockShippingPoints = [
   {
     id: 1,
-    name: 'Central Valley - Fresno',
+    name: 'Fresno Distribution Center',
     city: 'Fresno',
     state: 'CA',
-    climate: 'Mediterranean',
-    soilType: 'Loam',
-    deliveryZones: ['Central CA', 'Northern CA'],
+    facilityType: 'distribution_center' as const,
+    operationTypes: ['Organic', 'Conventional'],
+    capacity: '50,000 cases',
     status: 'active' as const,
-    createdAt: '2024-03-10'
+    createdAt: '2024-03-10',
+    shipping: {
+      zones: ['Central CA', 'Northern CA'],
+      methods: ['Truck', 'Rail'],
+      leadTime: 2
+    }
   },
   {
     id: 2,
-    name: 'Salinas Valley - Salinas',
+    name: 'Salinas Cooler Facility',
     city: 'Salinas',
     state: 'CA',
-    climate: 'Mediterranean',
-    soilType: 'Sandy Loam',
-    deliveryZones: ['Central CA', 'Coastal CA'],
+    facilityType: 'cooler' as const,
+    operationTypes: ['Organic', 'Specialty'],
+    capacity: '25,000 cases',
     status: 'active' as const,
-    createdAt: '2024-03-10'
+    createdAt: '2024-03-10',
+    shipping: {
+      zones: ['Central CA', 'Coastal CA'],
+      methods: ['Truck'],
+      leadTime: 1
+    }
   },
   {
     id: 3,
-    name: 'Imperial Valley - El Centro',
+    name: 'Imperial Valley Warehouse',
     city: 'El Centro',
     state: 'CA',
-    climate: 'Desert',
-    soilType: 'Clay',
-    deliveryZones: ['Southern CA', 'Southwest'],
+    facilityType: 'warehouse' as const,
+    operationTypes: ['Conventional'],
+    capacity: '75,000 cases',
     status: 'active' as const,
-    createdAt: '2024-03-10'
+    createdAt: '2024-03-10',
+    shipping: {
+      zones: ['Southern CA', 'Southwest'],
+      methods: ['Truck', 'Air'],
+      leadTime: 3
+    }
   }
 ]
 
@@ -227,9 +242,10 @@ export default function CropManagement() {
     // In season calculation (current month)
     const currentMonth = new Date().getMonth() + 1 // 1-12
     const inSeasonCount = allVariations.filter(variation => 
-      variation.growingRegions.some(region => {
-        if (region.seasonality.isYearRound) return true
-        const { startMonth, endMonth } = region.seasonality
+      (variation.shippingPoints || variation.growingRegions || []).some(region => {
+        const availability = region.availability || region.seasonality
+        if (availability?.isYearRound) return true
+        const { startMonth, endMonth } = availability || {}
         // Handle seasons that cross year boundary (e.g., Nov-Mar)
         if (startMonth <= endMonth) {
           return currentMonth >= startMonth && currentMonth <= endMonth
@@ -241,7 +257,7 @@ export default function CropManagement() {
     
     // Active growing regions
     const uniqueRegions = new Set(
-      allVariations.flatMap(v => v.growingRegions.map(r => r.regionName))
+      allVariations.flatMap(v => (v.shippingPoints || v.growingRegions || []).map(r => r.regionName || r.pointName))
     )
     const activeRegionsCount = uniqueRegions.size
     
@@ -431,13 +447,18 @@ export default function CropManagement() {
             id: `var_${Date.now()}_${index}`,
             variety: row.variety,
             isOrganic: row.is_organic === 'true' || row.is_organic === '1',
-            growingRegions: row.region_name ? [{
-              regionId: `region_${Date.now()}_${index}`,
-              regionName: row.region_name,
-              seasonality: {
-                startMonth: parseInt(row.season_start_month) || 1,
-                endMonth: parseInt(row.season_end_month) || 12,
-                isYearRound: !row.season_start_month && !row.season_end_month
+            shippingPoints: row.shipping_point_name ? [{
+              pointId: `point_${Date.now()}_${index}`,
+              pointName: row.shipping_point_name,
+              facilityType: row.facility_type || 'warehouse',
+              availability: {
+                startMonth: parseInt(row.availability_start_month) || 1,
+                endMonth: parseInt(row.availability_end_month) || 12,
+                isYearRound: !row.availability_start_month && !row.availability_end_month
+              },
+              shipping: {
+                zones: row.shipping_zones ? row.shipping_zones.split(',').map((z: string) => z.trim()) : [],
+                leadTime: parseInt(row.lead_time_days) || 2
               }
             }] : [],
             targetPricing: {
@@ -529,7 +550,7 @@ export default function CropManagement() {
                       <CogIcon className="h-4 w-4 mr-3 text-green-600" />
                       <div className="text-left">
                         <div className="font-medium">Famous Software ERP</div>
-                        <div className="text-xs text-gray-500">Live inventory & pricing data</div>
+                        <div className="text-xs text-gray-500">Facility inventory & shipping data</div>
                       </div>
                     </button>
                     <button
@@ -543,7 +564,7 @@ export default function CropManagement() {
                       <CogIcon className="h-4 w-4 mr-3 text-blue-600" />
                       <div className="text-left">
                         <div className="font-medium">Produce Pro ERP</div>
-                        <div className="text-xs text-gray-500">Modern API-based integration</div>
+                        <div className="text-xs text-gray-500">Warehouse & distribution data</div>
                       </div>
                     </button>
                     <button
@@ -557,7 +578,7 @@ export default function CropManagement() {
                       <CogIcon className="h-4 w-4 mr-3 text-purple-600" />
                       <div className="text-left">
                         <div className="font-medium">FreshByte ERP</div>
-                        <div className="text-xs text-gray-500">Growing distributor base</div>
+                        <div className="text-xs text-gray-500">Cooler & packing house data</div>
                       </div>
                     </button>
                     <button
@@ -571,7 +592,7 @@ export default function CropManagement() {
                       <CogIcon className="h-4 w-4 mr-3 text-red-600" />
                       <div className="text-left">
                         <div className="font-medium">RedLine Solutions</div>
-                        <div className="text-xs text-gray-500">Cooler inventory tracking</div>
+                        <div className="text-xs text-gray-500">Real-time facility tracking</div>
                       </div>
                     </button>
                     
@@ -589,7 +610,7 @@ export default function CropManagement() {
                       <CogIcon className="h-4 w-4 mr-3 text-orange-600" />
                       <div className="text-left">
                         <div className="font-medium">Daily File Import</div>
-                        <div className="text-xs text-gray-500">Auto-watch CSV/EDI/XML exports</div>
+                        <div className="text-xs text-gray-500">Auto-sync facility & inventory data</div>
                       </div>
                     </button>
                   </div>
@@ -652,7 +673,7 @@ export default function CropManagement() {
           </div>
         </div>
 
-        {/* Active Growing Regions */}
+        {/* Active Shipping Points */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
             <div className="flex items-center">
@@ -661,7 +682,7 @@ export default function CropManagement() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Growing Regions</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Shipping Points</dt>
                   <dd className="text-lg font-medium text-gray-900">{metrics.activeRegionsCount}</dd>
                   <dd className="text-xs text-gray-500 mt-1">
                     Active locations
@@ -812,7 +833,7 @@ export default function CropManagement() {
                                 Type
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Growing Regions
+                                Shipping Points
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Seasonality
@@ -847,25 +868,28 @@ export default function CropManagement() {
                                 </td>
                                 <td className="px-3 py-3 text-sm text-gray-600">
                                   <div className="space-y-1">
-                                    {variation.growingRegions.map((region, regionIndex) => (
+                                    {(variation.shippingPoints || variation.growingRegions || []).map((region, regionIndex) => (
                                       <div key={regionIndex} className="text-xs">
-                                        {region.regionName}
+                                        {region.regionName || region.pointName}
                                       </div>
                                     ))}
                                   </div>
                                 </td>
                                 <td className="px-3 py-3 text-sm text-gray-600">
                                   <div className="space-y-1">
-                                    {variation.growingRegions.map((region, regionIndex) => (
+                                    {(variation.shippingPoints || variation.growingRegions || []).map((region, regionIndex) => {
+                                      const availability = region.availability || region.seasonality
+                                      return (
                                       <div key={regionIndex} className="text-xs">
-                                        {region.seasonality?.isYearRound 
+                                        {availability?.isYearRound 
                                           ? 'Year-round' 
-                                          : region.seasonality 
-                                            ? formatSeasonality(region.seasonality.startMonth, region.seasonality.endMonth)
+                                          : availability 
+                                            ? formatSeasonality(availability.startMonth, availability.endMonth)
                                             : 'Not specified'
                                         }
                                       </div>
-                                    ))}
+                                      )
+                                    })}
                                   </div>
                                 </td>
                                 <td className="px-3 py-3 text-sm text-gray-900">

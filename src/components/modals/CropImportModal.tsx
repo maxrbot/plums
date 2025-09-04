@@ -56,6 +56,7 @@ export default function CropImportModal({ isOpen, onClose, onImport }: CropImpor
 
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
       const requiredHeaders = ['commodity', 'variety', 'category']
+      const optionalHeaders = ['shipping_point_name', 'facility_type', 'availability_start_month', 'availability_end_month']
       const missingHeaders = requiredHeaders.filter(h => !headers.includes(h))
       
       if (missingHeaders.length > 0) {
@@ -131,10 +132,10 @@ export default function CropImportModal({ isOpen, onClose, onImport }: CropImpor
   }
 
   const downloadTemplate = () => {
-    const template = `commodity,variety,category,is_organic,region_name,season_start_month,season_end_month,min_price,max_price,price_unit,min_order,order_unit,notes
-strawberry,Albion,berries,true,Central Valley - Fresno,3,8,4.00,5.50,lb,50,case,Premium organic berries
-tomato,Roma,vine-crops,false,Salinas Valley - Salinas,4,10,2.50,3.25,lb,25,case,Classic paste tomato
-lettuce,Romaine,leafy-greens,true,Salinas Valley - Salinas,1,12,1.75,2.50,head,100,case,Year-round organic lettuce`
+    const template = `commodity,variety,category,is_organic,shipping_point_name,facility_type,availability_start_month,availability_end_month,min_price,max_price,price_unit,min_order,order_unit,shipping_zones,lead_time_days,notes
+strawberry,Albion,berries,true,Fresno Distribution Center,distribution_center,3,8,4.00,5.50,lb,50,case,"Central CA,Northern CA",2,Premium organic berries
+tomato,Roma,vine-crops,false,Salinas Cooler Facility,cooler,4,10,2.50,3.25,lb,25,case,"Central CA,Coastal CA",1,Classic paste tomato
+lettuce,Romaine,leafy-greens,true,Imperial Valley Warehouse,warehouse,1,12,1.75,2.50,head,100,case,"Southern CA,Southwest",3,Year-round organic lettuce`
 
     const blob = new Blob([template], { type: 'text/csv' })
     const url = URL.createObjectURL(blob)

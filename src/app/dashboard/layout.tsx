@@ -127,8 +127,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                                      : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
                                  }`}
                                >
-                                 <span className="text-xs mr-2">📍</span>
-                                 Growing Regions
+                                 <span className="text-xs mr-2">🏢</span>
+                                 Shipping Points
                                </Link>
                                <Link
                                  href="/dashboard/price-sheets/crops"

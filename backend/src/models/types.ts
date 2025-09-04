@@ -59,10 +59,11 @@ export interface User extends BaseDocument {
   }
 }
 
-// Growing Regions
-export interface GrowingRegion extends BaseDocument {
+// Shipping Points (formerly Growing Regions)
+export interface ShippingPoint extends BaseDocument {
   userId: ObjectId
   name: string
+  facilityType?: 'cooler' | 'warehouse' | 'packing_house' | 'distribution_center' | 'farm_direct'
   location: {
     // Google Places API data
     placeId?: string
@@ -75,10 +76,25 @@ export interface GrowingRegion extends BaseDocument {
       lng: number
     }
   }
-  farmingTypes: string[] // ["Organic", "Specialty Crops", etc.]
-  acreage?: string // "100-500", "500+", etc.
+  operationTypes: string[] // ["Organic", "Conventional", "Specialty", etc.]
+  capacity?: string // "50,000 cases", "1,000 pallets", etc.
   notes?: string
-  source?: 'manual' | 'scraped' // Track origin
+  source?: 'manual' | 'erp_import' // Track origin
+  // New shipping capabilities
+  shipping?: {
+    zones?: string[] // ["West Coast", "Southwest", etc.]
+    methods?: string[] // ["Truck", "Rail", "Air", etc.]
+    leadTime?: number // Days
+    minimumOrder?: number // Cases/pallets
+  }
+  // Legacy fields for backward compatibility
+  farmingTypes?: string[]
+  acreage?: string
+}
+
+// Keep the old interface for backward compatibility during migration
+export interface GrowingRegion extends ShippingPoint {
+  // This is now an alias for ShippingPoint
 }
 
 // Crop Management

@@ -132,19 +132,17 @@ export interface DeliveryLocation {
   coordinates?: [number, number];
 }
 
-export interface GrowingRegion {
+export interface ShippingPoint {
   id: number | string;
   name: string;
   city: string;
   state: string;
-  climate: string;
-  soilType: string;
-  deliveryZones: string[];
+  facilityType?: 'cooler' | 'warehouse' | 'packing_house' | 'distribution_center' | 'farm_direct';
   status: 'active' | 'inactive';
   createdAt: string;
-  // Additional fields for API integration
-  farmingTypes?: string[];
-  acreage?: string;
+  // Enhanced fields for shipping logistics
+  operationTypes?: string[]; // Renamed from farmingTypes
+  capacity?: string; // Renamed from acreage
   notes?: string;
   location?: {
     city?: string;
@@ -154,6 +152,24 @@ export interface GrowingRegion {
     formattedAddress?: string;
     coordinates?: { lat: number; lng: number };
   };
+  // New shipping capabilities
+  shipping?: {
+    zones?: string[];
+    methods?: string[];
+    leadTime?: number;
+    minimumOrder?: number;
+  };
+  // Legacy fields (for backward compatibility)
+  climate?: string;
+  soilType?: string;
+  deliveryZones?: string[];
+  farmingTypes?: string[];
+  acreage?: string;
+}
+
+// Keep the old interface for backward compatibility during migration
+export interface GrowingRegion extends ShippingPoint {
+  // This is now an alias for ShippingPoint
 }
 
 export interface CropVariation {
@@ -161,7 +177,7 @@ export interface CropVariation {
   subtype?: string;      // Optional subtype (e.g., "cherry", "roma")
   variety?: string;      // Optional variety (e.g., "Sweet 100", "San Marzano")
   isOrganic: boolean;
-  growingRegions: GrowingRegionConfig[];
+  shippingPoints: ShippingPointConfig[];
   targetPricing: {
     minPrice: number;
     maxPrice: number;
@@ -172,8 +188,27 @@ export interface CropVariation {
   minOrder: number;
   orderUnit: string;
   notes: string;
+  // Legacy field for backward compatibility
+  growingRegions?: GrowingRegionConfig[];
 }
 
+export interface ShippingPointConfig {
+  pointId: string;
+  pointName: string;
+  facilityType?: 'cooler' | 'warehouse' | 'packing_house' | 'distribution_center' | 'farm_direct';
+  availability: {
+    startMonth: number;
+    endMonth: number;
+    isYearRound: boolean;
+  };
+  shipping?: {
+    zones?: string[];    // ["West Coast", "Southwest"]
+    methods?: string[];  // ["Truck", "Rail", "Air"]
+    leadTime?: number;   // Days
+  };
+}
+
+// Legacy interface for backward compatibility
 export interface GrowingRegionConfig {
   regionId: string;
   regionName: string;

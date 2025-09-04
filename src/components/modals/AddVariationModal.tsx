@@ -71,7 +71,7 @@ export default function AddVariationModal({
     subtype: '',
     variety: '',
     isOrganic: false,
-    growingRegions: [],
+    shippingPoints: [],
     targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
     growingPractices: [],
     minOrder: 0,
@@ -166,7 +166,7 @@ export default function AddVariationModal({
           subtype: v.subtype || '',
           variety: v.variety || '',
           isOrganic: v.isOrganic,
-          growingRegions: v.growingRegions,
+          shippingPoints: v.shippingPoints || v.growingRegions || [],
           targetPricing: v.targetPricing,
           growingPractices: v.growingPractices,
           minOrder: v.minOrder,
@@ -192,7 +192,7 @@ export default function AddVariationModal({
             subtype: v.subtype || '',
             variety: v.variety || '',
             isOrganic: v.isOrganic,
-            growingRegions: v.growingRegions,
+            shippingPoints: v.shippingPoints || v.growingRegions || [],
             targetPricing: v.targetPricing,
             growingPractices: v.growingPractices,
             minOrder: v.minOrder,
@@ -219,7 +219,7 @@ export default function AddVariationModal({
         subtype: '',
         variety: '',
         isOrganic: false,
-        growingRegions: [],
+        shippingPoints: [],
         targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
         growingPractices: [],
         minOrder: 0,
@@ -265,7 +265,7 @@ export default function AddVariationModal({
     setCurrentVariation({
       variety: '',
       isOrganic: false,
-      growingRegions: [],
+      shippingPoints: [],
       targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
       growingPractices: [],
       minOrder: 0,
@@ -282,8 +282,8 @@ export default function AddVariationModal({
       alert('Please select a variety')
       return
     }
-    if (currentVariation.growingRegions.length === 0) {
-      alert('Please select at least one growing region')
+    if (currentVariation.shippingPoints.length === 0) {
+      alert('Please select at least one shipping point')
       return
     }
 
@@ -297,7 +297,7 @@ export default function AddVariationModal({
       subtype: '',
       variety: '',
       isOrganic: false,
-      growingRegions: [],
+      shippingPoints: [],
       targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
       growingPractices: [],
       minOrder: 0,
@@ -320,23 +320,23 @@ export default function AddVariationModal({
     const regionConfig = {
       regionId: regionId.toString(),
       regionName: region.name,
-      seasonality: { startMonth: 0, endMonth: 0, isYearRound: false }
+      availability: { startMonth: 0, endMonth: 0, isYearRound: false }
     }
 
     setCurrentVariation(prev => ({
       ...prev,
-      growingRegions: prev.growingRegions.some(r => r.regionId === regionId.toString())
-        ? prev.growingRegions.filter(r => r.regionId !== regionId.toString())
-        : [...prev.growingRegions, regionConfig]
+      shippingPoints: prev.shippingPoints.some(r => r.regionId === regionId.toString())
+        ? prev.shippingPoints.filter(r => r.regionId !== regionId.toString())
+        : [...prev.shippingPoints, regionConfig]
     }))
   }
 
-  const updateRegionSeasonality = (regionId: string, field: keyof typeof currentVariation.growingRegions[0]['seasonality'], value: number | boolean) => {
+  const updateRegionSeasonality = (regionId: string, field: keyof typeof currentVariation.shippingPoints[0]['availability'], value: number | boolean) => {
     setCurrentVariation(prev => ({
       ...prev,
-      growingRegions: prev.growingRegions.map(region => 
+      shippingPoints: prev.shippingPoints.map(region => 
         region.regionId === regionId 
-          ? { ...region, seasonality: { ...region.seasonality, [field]: value } }
+          ? { ...region, availability: { ...region.availability, [field]: value } }
           : region
       )
     }))
@@ -498,7 +498,7 @@ export default function AddVariationModal({
                                 {variation.variety} ({variation.isOrganic ? 'Organic' : 'Conventional'})
                               </span>
                               <span className="text-xs text-gray-500">
-                                {variation.growingRegions.length} region(s)
+                                {variation.shippingPoints?.length || variation.growingRegions?.length || 0} shipping point(s)
                               </span>
                             </div>
                             <button
@@ -603,13 +603,13 @@ export default function AddVariationModal({
                       {/* Growing Regions */}
                       <div className="mb-4">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Growing Regions *
+                          Shipping Points *
                         </label>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {availableRegions.filter(region => region.id || region.name).map((region, index) => {
                             const regionId = region.id || region.name
-                            const isSelected = currentVariation.growingRegions.some(r => r.regionId === regionId.toString())
-                            const regionConfig = currentVariation.growingRegions.find(r => r.regionId === regionId.toString())
+                            const isSelected = currentVariation.shippingPoints.some(r => r.regionId === regionId.toString())
+                            const regionConfig = currentVariation.shippingPoints.find(r => r.regionId === regionId.toString())
                             
                             return (
                               <div key={`region-${regionId}`} className="relative">
@@ -642,15 +642,15 @@ export default function AddVariationModal({
                                         </button>
                                       </div>
                                       
-                                      {!regionConfig.seasonality.isYearRound && (
+                                      {!regionConfig.availability.isYearRound && (
                                         <div className="grid grid-cols-6 gap-1">
                                           {months.map(month => (
                                             <button
                                               key={`month-${month.value}-${regionConfig.regionId}`}
                                               type="button"
                                               onClick={() => {
-                                                const currentStart = regionConfig.seasonality.startMonth
-                                                const currentEnd = regionConfig.seasonality.endMonth
+                                                const currentStart = regionConfig.availability.startMonth
+                                                const currentEnd = regionConfig.availability.endMonth
                                                 
                                                 if (currentStart === 0) {
                                                   // First month selected
@@ -675,7 +675,7 @@ export default function AddVariationModal({
                                                 }
                                               }}
                                               className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                                regionConfig.seasonality.startMonth === month.value || regionConfig.seasonality.endMonth === month.value
+                                                regionConfig.availability.startMonth === month.value || regionConfig.availability.endMonth === month.value
                                                   ? 'bg-green-100 border-blue-300 text-blue-800'
                                                   : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
                                               }`}
@@ -686,15 +686,15 @@ export default function AddVariationModal({
                                         </div>
                                       )}
                                       
-                                      {regionConfig.seasonality.isYearRound && (
+                                      {regionConfig.availability.isYearRound && (
                                         <div className="text-xs text-blue-600 font-medium">
                                           ✓ Year-round growing
                                         </div>
                                       )}
                                       
-                                      {!regionConfig.seasonality.isYearRound && regionConfig.seasonality.startMonth > 0 && regionConfig.seasonality.endMonth > 0 && (
+                                      {!regionConfig.availability.isYearRound && regionConfig.availability.startMonth > 0 && regionConfig.availability.endMonth > 0 && (
                                         <div className="text-xs text-gray-600 mt-1">
-                                          {months[regionConfig.seasonality.startMonth - 1].label} - {months[regionConfig.seasonality.endMonth - 1].label}
+                                          {months[regionConfig.availability.startMonth - 1].label} - {months[regionConfig.availability.endMonth - 1].label}
                                         </div>
                                       )}
                                     </div>
@@ -927,7 +927,7 @@ export default function AddVariationModal({
                                   subtype: '',
                                   variety: '',
                                   isOrganic: false,
-                                  growingRegions: [],
+                                  shippingPoints: [],
                                   targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
                                   growingPractices: [],
                                   minOrder: 0,

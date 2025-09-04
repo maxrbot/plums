@@ -289,7 +289,7 @@ export default function PriceSheets() {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium text-gray-900">Manage Your Data</h3>
-                  <p className="text-sm text-gray-500">Setup and manage your regions, crops, and capabilities</p>
+                  <p className="text-sm text-gray-500">Setup and manage your shipping points, crops, and capabilities</p>
                 </div>
               </div>
             </div>
@@ -303,15 +303,15 @@ export default function PriceSheets() {
                 </div>
               ) : (
                 <>
-                  {/* Growing Regions */}
+                  {/* Shipping Points */}
                   <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
                     <div className="flex items-center space-x-3 mb-3">
                       <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
                         <MapPinIcon className="h-5 w-5 text-gray-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900">Growing Regions</h4>
-                        <p className="text-xs text-gray-500">Active growing regions</p>
+                        <h4 className="text-sm font-medium text-gray-900">Shipping Points</h4>
+                        <p className="text-xs text-gray-500">Active shipping points</p>
                       </div>
                     </div>
                     

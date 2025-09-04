@@ -1577,9 +1577,9 @@ export default function AcceleratedSetup() {
                 </div>
               </div>
 
-              {/* Growing Region to be Created */}
+              {/* Shipping Point to be Created */}
               <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Growing Region (1 will be created)</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-3">Shipping Point (1 will be created)</h3>
                 <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                   <div className="flex items-center space-x-2 mb-2">
                     <CheckCircleIcon className="h-5 w-5 text-green-600" />
@@ -1588,7 +1588,7 @@ export default function AcceleratedSetup() {
                     </span>
                   </div>
                   <p className="text-sm text-green-700">
-                    Acreage: 50-200 acres • Farming Type: Tree Fruits • All crops will be assigned to this region
+                    Capacity: 50-200 acres • Facility Type: Farm Direct • All crops will be assigned to this shipping point
                   </p>
                 </div>
               </div>

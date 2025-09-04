@@ -12,7 +12,7 @@ import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { getPackagingSpecs } from '../../../../config/packagingSpecs'
 import { commodityOptions } from '../../../../config/commodityOptions'
-import { cropsApi, regionsApi, priceSheetsApi, packagingApi } from '../../../../lib/api'
+import { cropsApi, shippingPointsApi, priceSheetsApi, packagingApi } from '../../../../lib/api'
 import type { CropManagement, CropVariation } from '../../../../types'
 
 // Interface for processed product data from user's crops
@@ -298,10 +298,10 @@ export default function NewPriceSheet() {
       setError(null)
       setIsLoading(true)
 
-      // Load crops, regions, and custom packaging in parallel
-      const [cropsRes, regionsRes, packagingRes] = await Promise.all([
+      // Load crops, shipping points, and custom packaging in parallel
+      const [cropsRes, shippingPointsRes, packagingRes] = await Promise.all([
         cropsApi.getAll(),
-        regionsApi.getAll(),
+        shippingPointsApi.getAll(),
         packagingApi.getAll().catch(err => {
           console.warn('Failed to load custom packaging:', err)
           return { packaging: [] }
@@ -309,7 +309,7 @@ export default function NewPriceSheet() {
       ])
 
       const crops = cropsRes.crops || []
-      const userRegions = regionsRes.regions || []
+      const userShippingPoints = shippingPointsRes.regions || []
       const customPackagingData = packagingRes.packaging || []
 
       // Organize custom packaging by commodity
@@ -344,11 +344,18 @@ export default function NewPriceSheet() {
       crops.forEach((crop: CropManagement) => {
         if (crop.variations && crop.variations.length > 0) {
           crop.variations.forEach((variation: CropVariation) => {
-            // For each growing region in the variation
-            variation.growingRegions.forEach((regionConfig) => {
-              const region = userRegions.find(r => r.id === regionConfig.regionId || r.name === regionConfig.regionName)
+            // Handle both new shippingPoints and legacy growingRegions
+            const regionConfigs = variation.shippingPoints || variation.growingRegions || []
+            
+            regionConfigs.forEach((regionConfig) => {
+              const shippingPoint = userShippingPoints.find(sp => 
+                sp.id === regionConfig.regionId || 
+                sp.id === regionConfig.pointId || 
+                sp.name === regionConfig.regionName || 
+                sp.name === regionConfig.pointName
+              )
               
-              if (region) {
+              if (shippingPoint) {
                 const productName = [
                   variation.isOrganic ? 'Organic' : 'Conventional',
                   crop.commodity,
@@ -356,17 +363,20 @@ export default function NewPriceSheet() {
                   variation.variety
                 ].filter(Boolean).join(' ')
 
-                const seasonality = formatSeasonality(regionConfig.seasonality)
+                // Handle both availability and seasonality
+                const availability = regionConfig.availability || regionConfig.seasonality
+                const seasonality = availability ? formatSeasonality(availability) : 'Year-round'
 
                 // Ensure all IDs are defined
                 const cropId = crop.id || `crop_${Date.now()}_${Math.random()}`
                 const variationId = variation.id || `var_${Date.now()}_${Math.random()}`
-                const regionId = regionConfig.regionId || `region_${Date.now()}_${Math.random()}`
+                // Use the actual shipping point ID from the database
+                const regionId = shippingPoint.id || regionConfig.regionId || regionConfig.pointId || `region_${Date.now()}_${Math.random()}`
                 
                 processedProducts.push({
                   id: `${cropId}-${variationId}-${regionId}`,
                   name: productName,
-                  region: region.name,
+                  region: shippingPoint.name,
                   commodity: crop.commodity?.toLowerCase() || 'unknown',
                   variety: variation.variety,
                   subtype: variation.subtype,

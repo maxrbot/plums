@@ -9,6 +9,7 @@ import database from './config/database'
 import authRoutes from './routes/auth'
 import userRoutes from './routes/users'
 import regionsRoutes from './routes/regions'
+import shippingPointsRoutes from './routes/shippingPoints'
 import cropsRoutes from './routes/crops'
 import certificationsRoutes from './routes/certifications'
 import packagingRoutes from './routes/packaging'
@@ -46,6 +47,7 @@ async function registerRoutes() {
   await fastify.register(authRoutes, { prefix: '/api/auth' })
   await fastify.register(userRoutes, { prefix: '/api/users' })
   await fastify.register(regionsRoutes, { prefix: '/api/regions' })
+  await fastify.register(shippingPointsRoutes, { prefix: '/api/shipping-points' })
   await fastify.register(cropsRoutes, { prefix: '/api/crops' })
   await fastify.register(certificationsRoutes, { prefix: '/api/certifications' })
   await fastify.register(packagingRoutes, { prefix: '/api/packaging' })

@@ -2,16 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { MapPinIcon, PlusIcon, PencilIcon, TrashIcon, CheckCircleIcon, GlobeAltIcon } from '@heroicons/react/24/outline'
-import AddRegionModal from '../../../../components/modals/AddRegionModal'
-import { GrowingRegion } from '../../../../types'
+import AddShippingPointModal from '../../../../components/modals/AddShippingPointModal'
+import { ShippingPoint, GrowingRegion } from '../../../../types'
 import { Breadcrumbs } from '../../../../components/ui'
-import { regionsApi } from '../../../../lib/api'
+import { shippingPointsApi } from '../../../../lib/api'
 
-// Mock regions data
-const mockRegions: GrowingRegion[] = [
+// Mock shipping points data
+const mockShippingPoints: ShippingPoint[] = [
   {
     id: 1,
-    name: 'Central Valley - Fresno',
+    name: 'Fresno Distribution Center',
     city: 'Fresno',
     state: 'California',
     climate: '',
@@ -22,7 +22,7 @@ const mockRegions: GrowingRegion[] = [
   },
   {
     id: 2,
-    name: 'Salinas Valley - Salinas',
+    name: 'Salinas Cooler Facility',
     city: 'Salinas',
     state: 'California',
     climate: '',
@@ -33,7 +33,7 @@ const mockRegions: GrowingRegion[] = [
   },
   {
     id: 3,
-    name: 'Imperial Valley - El Centro',
+    name: 'Imperial Valley Warehouse',
     city: 'El Centro',
     state: 'California',
     climate: '',
@@ -44,8 +44,8 @@ const mockRegions: GrowingRegion[] = [
   }
 ]
 
-export default function GrowingRegions() {
-  const [regions, setRegions] = useState<GrowingRegion[]>([])
+export default function ShippingPoints() {
+  const [regions, setRegions] = useState<ShippingPoint[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,11 +59,11 @@ export default function GrowingRegions() {
     try {
       setIsLoading(true)
       setError(null)
-      const response = await regionsApi.getAll()
+      const response = await shippingPointsApi.getAll()
       
       // Backend now returns transformed data with 'id' field
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedRegions: GrowingRegion[] = response.regions.map((region: any, index: number) => {
+      const transformedRegions: ShippingPoint[] = response.regions.map((region: any, index: number) => {
         // Use placeId if available, otherwise fallback to _id, then generate unique ID
         const regionId = region.location?.placeId || region.id || region._id?.toString() || `temp_${Date.now()}_${index}`
         return {
@@ -89,51 +89,64 @@ export default function GrowingRegions() {
       console.error('Failed to load regions:', err)
       setError(err instanceof Error ? err.message : 'Failed to load regions')
       // Fall back to mock data on error
-      setRegions(mockRegions)
+      setRegions(mockShippingPoints)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleAddRegion = async (newRegion: Omit<GrowingRegion, 'id'>) => {
+  const handleAddRegion = async (newShippingPoint: Omit<ShippingPoint, 'id'>) => {
     try {
       setError(null)
       
-      // Transform frontend data to backend format
-      const regionData = {
-        name: newRegion.name,
-        location: {
-          city: newRegion.city,
-          state: newRegion.state,
-          country: 'US', // Default for now
-          formattedAddress: `${newRegion.city}, ${newRegion.state}`,
+      // Transform frontend data to backend format with new shipping point fields
+      const shippingPointData = {
+        name: newShippingPoint.name,
+        facilityType: newShippingPoint.facilityType,
+        location: newShippingPoint.location || {
+          city: newShippingPoint.city,
+          state: newShippingPoint.state,
+          country: 'US',
+          formattedAddress: `${newShippingPoint.city}, ${newShippingPoint.state}`,
         },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        farmingTypes: (newRegion as any).farmingTypes || [],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        acreage: (newRegion as any).acreage || '',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        notes: (newRegion as any).notes || ''
+        capacity: newShippingPoint.capacity,
+        notes: newShippingPoint.notes || '',
+        shipping: newShippingPoint.shipping || {
+          zones: [],
+          methods: ['Truck'],
+          leadTime: 2
+        },
+        // Legacy fields for backward compatibility
+        farmingTypes: [],
+        acreage: ''
       }
 
-      const response = await regionsApi.create(regionData)
+      const response = await shippingPointsApi.create(shippingPointData)
       
       // Add the new region to the list
       const regionId = response.region.location?.placeId || response.region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
-      const transformedRegion: GrowingRegion = {
+      const transformedRegion: ShippingPoint = {
         id: regionId,
         name: response.region.name,
         city: response.region.location?.city || '',
         state: response.region.location?.state || '',
+        facilityType: response.region.facilityType,
+        capacity: response.region.capacity,
+        status: 'active' as const,
+        createdAt: new Date(response.region.createdAt).toISOString().split('T')[0],
+        notes: response.region.notes || '',
+        location: response.region.location,
+        shipping: response.region.shipping || {
+          zones: [],
+          methods: ['Truck'],
+          leadTime: 2
+        },
+        // Legacy fields for backward compatibility
         climate: '',
         soilType: '',
         deliveryZones: [],
-        status: 'active' as const,
-        createdAt: new Date(response.region.createdAt).toISOString().split('T')[0],
         farmingTypes: response.region.farmingTypes || [],
-        acreage: response.region.acreage || '',
-        notes: response.region.notes || '',
-        location: response.region.location
+        acreage: response.region.acreage || ''
       }
       
       setRegions([...regions, transformedRegion])
@@ -165,21 +178,21 @@ export default function GrowingRegions() {
         <Breadcrumbs 
           items={[
             { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Growing Regions', current: true }
+            { label: 'Shipping Points', current: true }
           ]} 
           className="mb-4"
         />
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Growing Regions</h1>
-            <p className="mt-2 text-gray-600">Define where you grow your crops and manage your growing locations.</p>
+            <h1 className="text-3xl font-bold text-gray-900">Shipping Points</h1>
+            <p className="mt-2 text-gray-600">Manage your facilities, warehouses, and distribution centers where you ship products from.</p>
           </div>
           <button
             onClick={() => setIsModalOpen(true)}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
-            Add Region
+            Add Shipping Point
           </button>
         </div>
       </div>
@@ -194,7 +207,7 @@ export default function GrowingRegions() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Total Regions</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Total Shipping Points</dt>
                   <dd className="text-lg font-medium text-gray-900">{regions.length}</dd>
                 </dl>
               </div>
@@ -210,7 +223,7 @@ export default function GrowingRegions() {
               </div>
               <div className="ml-5 w-0 flex-1">
                 <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Active Regions</dt>
+                  <dt className="text-sm font-medium text-gray-500 truncate">Active Shipping Points</dt>
                   <dd className="text-lg font-medium text-gray-900">
                     {regions.filter(region => region.status === 'active').length}
                   </dd>
@@ -272,25 +285,25 @@ export default function GrowingRegions() {
 
       {/* Regions Grid */}
       <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Your Growing Regions</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Your Shipping Points</h3>
         
         {isLoading ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-sm text-gray-500">Loading regions...</p>
+            <p className="mt-2 text-sm text-gray-500">Loading shipping points...</p>
           </div>
         ) : regions.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <MapPinIcon className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No regions yet</h3>
-            <p className="mt-1 text-sm text-gray-500">Get started by adding your first growing region.</p>
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No shipping points yet</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by adding your first shipping point.</p>
             <div className="mt-6">
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
-                Add Your First Region
+                Add Your First Shipping Point
               </button>
             </div>
           </div>
@@ -347,7 +360,7 @@ export default function GrowingRegions() {
 
 
       {/* Add Region Modal */}
-      <AddRegionModal
+      <AddShippingPointModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSave={handleAddRegion}

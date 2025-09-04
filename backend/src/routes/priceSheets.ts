@@ -120,18 +120,46 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
       const newProducts = products.map(product => {
         const baseProduct = {
           ...product,
-          cropId: new ObjectId(product.cropId), // Convert string to ObjectId
           priceSheetId: null as any, // Will be updated after price sheet creation
           userId: userDoc._id!,
           createdAt: new Date(),
           updatedAt: new Date()
         }
         
-        // Only add regionId if it exists
+        // Convert cropId to ObjectId if it's a valid ObjectId string
+        try {
+          if (product.cropId && ObjectId.isValid(product.cropId)) {
+            baseProduct.cropId = new ObjectId(product.cropId)
+          } else {
+            // Keep as string if not a valid ObjectId
+            baseProduct.cropId = product.cropId
+          }
+        } catch (error) {
+          console.warn('Invalid cropId, keeping as string:', product.cropId)
+          baseProduct.cropId = product.cropId
+        }
+        
+        // Convert regionId to ObjectId if it exists and is valid
         if (product.regionId) {
-          return {
-            ...baseProduct,
-            regionId: new ObjectId(product.regionId)
+          try {
+            if (ObjectId.isValid(product.regionId)) {
+              return {
+                ...baseProduct,
+                regionId: new ObjectId(product.regionId)
+              }
+            } else {
+              // Keep as string if not a valid ObjectId
+              return {
+                ...baseProduct,
+                regionId: product.regionId
+              }
+            }
+          } catch (error) {
+            console.warn('Invalid regionId, keeping as string:', product.regionId)
+            return {
+              ...baseProduct,
+              regionId: product.regionId
+            }
           }
         }
         

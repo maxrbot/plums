@@ -847,8 +847,8 @@ export default function Settings() {
 
                 <div className="flex items-center justify-between">
                   <div>
-                    <label className="text-sm font-medium text-gray-900">Group by Region</label>
-                    <p className="text-sm text-gray-500">Organize products by growing region</p>
+                    <label className="text-sm font-medium text-gray-900">Group by Shipping Point</label>
+                    <p className="text-sm text-gray-500">Organize products by shipping point</p>
                   </div>
                   <input
                     type="checkbox"

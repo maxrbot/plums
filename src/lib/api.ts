@@ -82,7 +82,7 @@ export const usersApi = {
   },
 }
 
-// Growing Regions API
+// Growing Regions API (legacy - will be deprecated)
 export const regionsApi = {
   getAll: async () => {
     return apiRequest<{ regions: any[] }>('/regions')
@@ -121,6 +121,57 @@ export const regionsApi = {
 
   delete: async (id: string) => {
     return apiRequest(`/regions/${id}`, { method: 'DELETE' })
+  },
+}
+
+// Shipping Points API (new)
+export const shippingPointsApi = {
+  getAll: async () => {
+    return apiRequest<{ regions: any[] }>('/shipping-points')
+  },
+
+  getById: async (id: string) => {
+    return apiRequest<{ region: any }>(`/shipping-points/${id}`)
+  },
+
+  create: async (data: {
+    name: string
+    facilityType?: 'cooler' | 'warehouse' | 'packing_house' | 'distribution_center' | 'farm_direct'
+    location: {
+      city?: string
+      state?: string
+      country?: string
+      placeId?: string
+      formattedAddress?: string
+      coordinates?: { lat: number; lng: number }
+    }
+    capacity?: string
+    notes?: string
+    shipping?: {
+      zones?: string[]
+      methods?: string[]
+      leadTime?: number
+      minimumOrder?: number
+    }
+    // Legacy fields for backward compatibility
+    farmingTypes?: string[]
+    acreage?: string
+  }) => {
+    return apiRequest<{ region: any }>('/shipping-points', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  update: async (id: string, data: any) => {
+    return apiRequest<{ region: any }>(`/shipping-points/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    })
+  },
+
+  delete: async (id: string) => {
+    return apiRequest(`/shipping-points/${id}`, { method: 'DELETE' })
   },
 }
 

@@ -80,7 +80,6 @@ interface PreviewProduct {
 export default function NewPriceSheet() {
   const { user } = useUser()
   const [priceSheetTitle, setPriceSheetTitle] = useState('')
-  const [additionalNotes, setAdditionalNotes] = useState('')
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -89,6 +88,9 @@ export default function NewPriceSheet() {
   const [upcomingSeasonOnly, setUpcomingSeasonOnly] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
   const [showPriceInfoModal, setShowPriceInfoModal] = useState(false)
+  const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set())
+  const [productPackStyles, setProductPackStyles] = useState<Record<string, number>>({})
+  const [productPrices, setProductPrices] = useState<Record<string, string>>({})
 
   // State for custom packaging
   const [customPackaging, setCustomPackaging] = useState<Record<string, any[]>>({})
@@ -153,6 +155,97 @@ export default function NewPriceSheet() {
       }))
     
     return availableCategories
+  }
+
+  const getProductsByCommodity = () => {
+    const filtered = products.filter(product => {
+      if (selectedCategory !== 'all') {
+        const category = commodityOptions.find(cat => 
+          cat.commodities.some(c => c.id === product.commodity)
+        )
+        if (!category || category.id !== selectedCategory) return false
+      }
+      return true
+    })
+    
+    const grouped: Record<string, ProcessedProduct[]> = {}
+    filtered.forEach(product => {
+      if (!grouped[product.commodity]) {
+        grouped[product.commodity] = []
+      }
+      grouped[product.commodity].push(product)
+    })
+
+    return grouped
+  }
+
+  const toggleProductInBuilder = (productId: string) => {
+    setSelectedProductIds(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(productId)) {
+        newSet.delete(productId)
+      } else {
+        newSet.add(productId)
+      }
+      return newSet
+    })
+  }
+
+  const getSelectedProducts = () => {
+    return products.filter(product => selectedProductIds.has(product.id))
+  }
+
+  const addPackStyleForBuilder = (productId: string) => {
+    setProductPackStyles(prev => ({
+      ...prev,
+      [productId]: (prev[productId] || 0) + 1
+    }))
+  }
+
+  const removePackStyleForBuilder = (productId: string) => {
+    setProductPackStyles(prev => {
+      const currentCount = prev[productId] || 0
+      if (currentCount <= 1) {
+        const { [productId]: _, ...rest } = prev
+        return rest
+      }
+      return {
+        ...prev,
+        [productId]: currentCount - 1
+      }
+    })
+  }
+
+  const getPackStylesForProduct = (productId: string) => {
+    const count = productPackStyles[productId] || 0
+    return Array.from({ length: count }, (_, index) => index)
+  }
+
+  const updateProductPrice = (productId: string, packIndex: number | null, price: string) => {
+    const key = packIndex !== null ? `${productId}-pack-${packIndex}` : productId
+    setProductPrices(prev => ({
+      ...prev,
+      [key]: price
+    }))
+  }
+
+  const canPreviewPriceSheet = () => {
+    // Check if all main products have prices
+    const selectedProductsHavePrices = getSelectedProducts().every(product => {
+      const mainPrice = productPrices[product.id]
+      if (!mainPrice || mainPrice.trim() === '') return false
+      
+      // Check if all pack styles for this product have prices
+      const packCount = productPackStyles[product.id] || 0
+      for (let i = 0; i < packCount; i++) {
+        const packPrice = productPrices[`${product.id}-pack-${i}`]
+        if (!packPrice || packPrice.trim() === '') return false
+      }
+      
+      return true
+    })
+    
+    return selectedProductsHavePrices && getSelectedProducts().length > 0
   }
 
   // Helper function to check if a product is currently in season
@@ -709,7 +802,7 @@ export default function NewPriceSheet() {
       const priceSheetData = {
         title: priceSheetTitle,
         status: 'draft' as const,
-        notes: additionalNotes || undefined
+        notes: undefined
       }
 
       // Prepare products data
@@ -899,32 +992,331 @@ export default function NewPriceSheet() {
       </div>
 
       <div className="space-y-8">
-        {/* Price Sheet Title */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center space-x-3 mb-4">
-            <DocumentTextIcon className="h-6 w-6 text-blue-600" />
-            <h2 className="text-lg font-medium text-gray-900">Price Sheet Details</h2>
-          </div>
-          
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-              Price Sheet Title
-            </label>
-            <input
-              type="text"
-              id="title"
-              value={priceSheetTitle}
-              onChange={(e) => setPriceSheetTitle(e.target.value)}
-              className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-              placeholder="Enter price sheet title"
-            />
+
+
+
+        {/* Left Panel + Right Panel Builder */}
+        <div className="bg-white shadow rounded-lg overflow-hidden">
+          <div className="flex h-[600px]">
+            
+            {/* Left Panel - Product Selection */}
+            <div className="w-80 border-r border-gray-200 bg-gray-50 flex flex-col">
+              <div className="p-4 border-b border-gray-200 bg-white">
+                <h3 className="font-medium text-gray-900 mb-3">Available Products</h3>
+                
+                {/* Category Filter */}
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="all">All Categories</option>
+                  {getAvailableCategories().map(category => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Product List */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <div className="space-y-3">
+                  {Object.entries(getProductsByCommodity()).map(([commodity, commodityProducts]) => (
+                    <div key={commodity} className="border border-gray-200 rounded-lg bg-white">
+                      <div className="px-3 py-2 border-b border-gray-200">
+                        <h4 className="text-sm font-medium text-gray-900 capitalize">
+                          {commodity.replace('-', ' ')} ({commodityProducts.length})
+                        </h4>
+                      </div>
+                      <div className="p-2 space-y-2">
+                        {commodityProducts.slice(0, 3).map((product: any) => (
+                          <div
+                            key={product.id}
+                            className={`p-2 rounded cursor-pointer transition-all ${
+                              selectedProductIds.has(product.id)
+                                ? 'bg-blue-50 border border-blue-200'
+                                : 'hover:bg-gray-50 border border-transparent'
+                            }`}
+                            onClick={() => toggleProductInBuilder(product.id)}
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div>
+                                <h5 className="text-sm font-medium text-gray-900">
+                                  {product.commodity.charAt(0).toUpperCase() + product.commodity.slice(1)}
+                                  {product.variety && `, ${product.variety}`}
+                                </h5>
+                                <p className="text-xs text-gray-600">{product.region}</p>
+                                {product.isOrganic && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                    Organic
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Panel - Configuration */}
+            <div className="flex-1 flex flex-col">
+              {/* Header with Save Button */}
+              <div className="p-4 border-b border-gray-200 bg-white flex justify-between items-center">
+                <div>
+                  <h3 className="font-medium text-gray-900">Selected Products ({selectedProductIds.size})</h3>
+                  <p className="text-sm text-gray-600">Configure packaging, pricing, and availability</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={() => setShowPriceInfoModal(true)}
+                    className="inline-flex items-center px-3 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    Pricing Guidance
+                  </button>
+                </div>
+              </div>
+
+              {/* Configuration Area */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {selectedProductIds.size === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <PlusIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <h4 className="text-lg font-medium text-gray-900 mb-2">No Products Selected</h4>
+                      <p className="text-gray-600">Select products from the left panel to start configuring your price sheet</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* Header Row */}
+                    <div className="grid grid-cols-11 gap-3 items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="col-span-3">
+                        <span className="text-xs font-medium text-gray-700">Product & Region</span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-xs font-medium text-gray-700">Cut</span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-xs font-medium text-gray-700">Package</span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-xs font-medium text-gray-700">Size</span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-xs font-medium text-gray-700">Grade</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-xs font-medium text-gray-700">Price</span>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-xs font-medium text-gray-700">Status</span>
+                      </div>
+                    </div>
+
+                    {getSelectedProducts().map((product) => (
+                      <div key={product.id} className="space-y-1">
+                        {/* Main Product Row */}
+                        <div className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow">
+                          <div className="grid grid-cols-11 gap-3 items-center">
+                            {/* Product Info with + button - 3 columns */}
+                            <div className="col-span-3">
+                              <div className="flex items-start space-x-2">
+                                <button
+                                  onClick={() => addPackStyleForBuilder(product.id)}
+                                  className="flex-shrink-0 w-6 h-6 flex items-center justify-center border border-gray-300 rounded text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-colors mt-0.5"
+                                  title="Add pack style"
+                                >
+                                  <PlusIcon className="w-3 h-3" />
+                                </button>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900 text-sm">
+                                    {product.commodity.charAt(0).toUpperCase() + product.commodity.slice(1)}
+                                    {product.variety && `, ${product.variety}`}
+                                  </h4>
+                                  <p className="text-xs text-gray-600">{product.region}</p>
+                                  {product.isOrganic && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
+                                      Organic
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Processing Type - 1 column (if applicable) */}
+                            {hasProcessingTypes(product.commodity) ? (
+                              <div className="col-span-1">
+                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                  <option value="">Select...</option>
+                                  {getProcessingTypesForCommodity(product.commodity).map(type => (
+                                    <option key={type.id} value={type.id}>{type.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            ) : (
+                              <div className="col-span-1"></div>
+                            )}
+
+                            {/* Package Type - 1 column */}
+                            <div className="col-span-1">
+                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                {getPackagingSpecs(product.commodity).map((pkg, idx) => (
+                                  <option key={idx} value={pkg.name}>{pkg.name.split(' ')[0]}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Size - 1 column */}
+                            <div className="col-span-1">
+                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                {getPackagingSpecs(product.commodity).map((pkg, idx) => (
+                                  <option key={idx} value={pkg.name}>{pkg.name.split(' ').slice(1).join(' ')}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            {/* Grade - 1 column */}
+                            <div className="col-span-1">
+                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                <option>US No. 1</option>
+                                <option>US No. 2</option>
+                                <option>Premium</option>
+                                <option>Choice</option>
+                              </select>
+                            </div>
+
+                            {/* Price - 2 columns */}
+                            <div className="col-span-2">
+                              <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                  <span className="text-gray-500 text-xs">$</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  value={productPrices[product.id] || ''}
+                                  onChange={(e) => updateProductPrice(product.id, null, e.target.value)}
+                                  className="w-full pl-5 pr-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  placeholder="0.00"
+                                />
+                              </div>
+                            </div>
+
+                            {/* Availability - 2 columns */}
+                            <div className="col-span-2">
+                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                <option>Available</option>
+                                <option>Limited</option>
+                                <option>End Season</option>
+                                <option>Pre-Order</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Additional Pack Style Rows */}
+                        {getPackStylesForProduct(product.id).map((packIndex) => (
+                          <div key={`${product.id}-pack-${packIndex}`} className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:shadow-sm transition-shadow ml-4">
+                            <div className="grid grid-cols-11 gap-3 items-center">
+                              {/* Product info with remove button */}
+                              <div className="col-span-3">
+                                <div className="flex items-center space-x-2">
+                                  <button
+                                    onClick={() => removePackStyleForBuilder(product.id)}
+                                    className="flex-shrink-0 w-6 h-6 flex items-center justify-center border border-red-300 rounded text-red-600 hover:bg-red-50 hover:border-red-400 transition-colors"
+                                    title="Remove pack style"
+                                  >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                                    </svg>
+                                  </button>
+                                  <span className="text-xs text-gray-500 italic">↳ Additional pack style</span>
+                                </div>
+                              </div>
+
+                              {/* Processing Type - same as main */}
+                              {hasProcessingTypes(product.commodity) ? (
+                                <div className="col-span-1">
+                                  <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select...</option>
+                                    {getProcessingTypesForCommodity(product.commodity).map(type => (
+                                      <option key={type.id} value={type.id}>{type.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ) : (
+                                <div className="col-span-1"></div>
+                              )}
+
+                              {/* Package Type */}
+                              <div className="col-span-1">
+                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                  {getPackagingSpecs(product.commodity).map((pkg, idx) => (
+                                    <option key={idx} value={pkg.name}>{pkg.name.split(' ')[0]}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Size */}
+                              <div className="col-span-1">
+                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                  {getPackagingSpecs(product.commodity).map((pkg, idx) => (
+                                    <option key={idx} value={pkg.name}>{pkg.name.split(' ').slice(1).join(' ')}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Grade */}
+                              <div className="col-span-1">
+                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                  <option>US No. 1</option>
+                                  <option>US No. 2</option>
+                                  <option>Premium</option>
+                                  <option>Choice</option>
+                                </select>
+                              </div>
+
+                              {/* Price - 2 columns */}
+                              <div className="col-span-2">
+                                <div className="relative">
+                                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 text-xs">$</span>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={productPrices[`${product.id}-pack-${packIndex}`] || ''}
+                                    onChange={(e) => updateProductPrice(product.id, packIndex, e.target.value)}
+                                    className="w-full pl-5 pr-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="0.00"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Availability - 2 columns */}
+                              <div className="col-span-2">
+                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                  <option>Available</option>
+                                  <option>Limited</option>
+                                  <option>End Season</option>
+                                  <option>Pre-Order</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
 
-
-
-        {/* Products and Pricing */}
-        <div className="bg-white shadow rounded-lg">
+        {/* Original Products and Pricing (Hidden for Demo) */}
+        <div className="bg-white shadow rounded-lg" style={{display: 'none'}}>
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <div>
               <h2 className="text-lg font-medium text-gray-900">Products and Pricing</h2>
@@ -1273,17 +1665,6 @@ export default function NewPriceSheet() {
 
 
 
-        {/* Additional Notes */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">Additional Notes</h2>
-          <textarea
-            rows={4}
-            value={additionalNotes}
-            onChange={(e) => setAdditionalNotes(e.target.value)}
-            className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-            placeholder="Add any additional notes, terms, or special information for this price sheet..."
-          />
-        </div>
 
         {/* Generate Button */}
         <div className="flex justify-end space-x-4">
@@ -1296,7 +1677,7 @@ export default function NewPriceSheet() {
           <button
             type="button"
             onClick={handlePreview}
-            disabled={productRows.filter(row => row.isSelected && row.price).length === 0}
+            disabled={!canPreviewPriceSheet()}
             className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <EyeIcon className="h-5 w-5 mr-2" />
@@ -1310,8 +1691,8 @@ export default function NewPriceSheet() {
         isOpen={isPreviewModalOpen}
         onClose={() => setIsPreviewModalOpen(false)}
         title={priceSheetTitle}
+        onTitleChange={setPriceSheetTitle}
         products={generatePreviewData()}
-        additionalNotes={additionalNotes}
         onSave={handleSave}
         isSaving={isSaving}
         hasSaved={hasSaved}

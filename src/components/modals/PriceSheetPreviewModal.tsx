@@ -21,13 +21,13 @@ interface PriceSheetPreviewModalProps {
   isOpen: boolean
   onClose: () => void
   title: string
+  onTitleChange?: (title: string) => void
   products: PriceSheetProduct[]
   contactInfo?: {
     name: string
     pricingTier: string
     pricingAdjustment: number
   }
-  additionalNotes?: string
   onSave?: () => void
   isSaving?: boolean
   hasSaved?: boolean
@@ -38,9 +38,9 @@ export default function PriceSheetPreviewModal({
   isOpen,
   onClose,
   title,
+  onTitleChange,
   products,
   contactInfo,
-  additionalNotes,
   onSave,
   isSaving = false,
   hasSaved = false,
@@ -88,7 +88,7 @@ export default function PriceSheetPreviewModal({
                 <div className="bg-white px-6 py-3 border-b border-gray-200">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <h1 className="text-lg font-semibold text-gray-900">{title}</h1>
+                      <h1 className="text-lg font-semibold text-gray-900">Price Sheet Preview</h1>
                       <div className="text-sm text-gray-500">
                         AcreList • sales@acrelist.com • (555) 123-4567
                       </div>
@@ -101,6 +101,32 @@ export default function PriceSheetPreviewModal({
                       <XMarkIcon className="h-5 w-5" />
                     </button>
                   </div>
+                </div>
+
+                {/* Title Input Section */}
+                {mode === 'save' && onTitleChange && (
+                  <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                    <div>
+                      <label htmlFor="priceSheetTitle" className="block text-sm font-medium text-gray-700 mb-2">
+                        Price Sheet Title
+                      </label>
+                      <input
+                        type="text"
+                        id="priceSheetTitle"
+                        value={title}
+                        onChange={(e) => onTitleChange(e.target.value)}
+                        className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                        placeholder="Enter price sheet title"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">This will be the title shown on your price sheet</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Preview Header with Title */}
+                <div className="bg-white px-6 py-4 border-b border-gray-200">
+                  <h2 className="text-xl font-bold text-gray-900 text-center">{title}</h2>
+                  <p className="text-sm text-gray-500 text-center mt-1">Generated on {new Date().toLocaleDateString()}</p>
                 </div>
 
                 {/* Clean Preview Content */}
@@ -158,13 +184,6 @@ export default function PriceSheetPreviewModal({
                     </div>
                   ))}
 
-                  {/* Additional Notes */}
-                  {additionalNotes && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <h3 className="text-sm font-medium text-gray-900 mb-2">Notes</h3>
-                      <p className="text-sm text-gray-600 whitespace-pre-wrap">{additionalNotes}</p>
-                    </div>
-                  )}
                 </div>
 
                 {/* Footer Actions */}
@@ -211,16 +230,6 @@ export default function PriceSheetPreviewModal({
                     )}
                   </div>
                 </div>
-                
-                {/* Save Notice - Only show in save mode */}
-                {mode === 'save' && (
-                  <div className="bg-blue-50 border-t border-blue-200 px-6 py-3">
-                    <p className="text-sm text-blue-800">
-                      💡 <strong>Next Step:</strong> After saving, send this price sheet to contacts with automatic pricing optimization at{' '}
-                      <span className="font-mono text-xs bg-blue-100 px-2 py-0.5 rounded">/dashboard/price-sheets/send</span>
-                    </p>
-                  </div>
-                )}
               </Dialog.Panel>
             </Transition.Child>
           </div>

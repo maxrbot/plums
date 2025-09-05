@@ -3,7 +3,7 @@
 
 export interface PackagingSpec {
   id: string                    // Unique identifier
-  type: 'carton' | 'bag' | 'bulk' | 'clamshell' | 'tray'
+  type: 'carton' | 'bag' | 'bulk' | 'clamshell' | 'tray' | 'basket'
   name: string                  // Display name (e.g., "40 lb Carton", "Clamshell")
   counts?: string[]             // For cartons: '88s', '113s', etc.
   sizes?: string[]              // For bags/containers: '3 lb', '5 lb', etc.
@@ -48,8 +48,15 @@ export const commodityPrimaryPackages: Record<string, {
   lettuce: { packageName: '24 ct Carton', type: 'count', standardUnit: 24, unitType: 'ct' },
   spinach: { packageName: '24 ct Carton', type: 'count', standardUnit: 24, unitType: 'ct' },
   kale: { packageName: '12 bunch Carton', type: 'count', standardUnit: 12, unitType: 'ct' },
+  celery: { packageName: '30 ct Carton', type: 'count', standardUnit: 30, unitType: 'ct' },
   chard: { packageName: '12 bunch Carton', type: 'count', standardUnit: 12, unitType: 'ct' },
   arugula: { packageName: '4 lb Case', type: 'weight', standardUnit: 4, unitType: 'lb' },
+  
+  // Brassicas & Cole Crops
+  broccoli: { packageName: '14 ct Case', type: 'count', standardUnit: 14, unitType: 'ct' },
+  cauliflower: { packageName: '12 ct Case', type: 'count', standardUnit: 12, unitType: 'ct' },
+  cabbage: { packageName: '50 lb Bag', type: 'weight', standardUnit: 50, unitType: 'lb' },
+  'brussels-sprouts': { packageName: '10 lb Box', type: 'weight', standardUnit: 10, unitType: 'lb' },
   
   // Vine Crops
   tomato: { packageName: '25 lb Box', type: 'weight', standardUnit: 25, unitType: 'lb' },
@@ -1085,6 +1092,36 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     }
   },
   {
+    id: 'celery-carton-30ct',
+    type: 'carton',
+    name: '30 ct Carton',
+    counts: ['24ct', '30ct', '36ct'],
+    weight: '55 lbs',
+    grades: ['US No. 1', 'US No. 2', 'Choice'],
+    isStandard: true,
+    commodities: ['celery'],
+    category: 'carton',
+    description: 'Standard celery carton',
+    usdaMapping: {
+      commodity: 'celery'
+    }
+  },
+  {
+    id: 'celery-bag-2lb',
+    type: 'bag',
+    name: '2 lb Bag',
+    sizes: ['1 lb', '2 lb', '3 lb'],
+    grades: ['US No. 1', 'Choice'],
+    isStandard: true,
+    commodities: ['celery'],
+    category: 'bag',
+    description: 'Celery hearts and sticks packaging',
+    usdaMapping: {
+      commodity: 'celery',
+      specifications: 'hearts'
+    }
+  },
+  {
     id: 'arugula-bag',
     type: 'bag',
     name: 'Bag',
@@ -1096,6 +1133,84 @@ export const standardPackagingSpecs: PackagingSpec[] = [
     description: 'Plastic bag for arugula',
     usdaMapping: {
       commodity: 'arugula'
+    }
+  },
+
+  // BRASSICAS & COLE CROPS
+  {
+    id: 'broccoli-case-14ct',
+    type: 'carton',
+    name: '14 ct Case',
+    counts: ['12ct', '14ct', '18ct', '20ct'],
+    weight: '20 lbs',
+    grades: ['US No. 1', 'US No. 2', 'Choice'],
+    isStandard: true,
+    commodities: ['broccoli'],
+    category: 'carton',
+    description: 'Standard broccoli case for crown cut',
+    usdaMapping: {
+      commodity: 'broccoli'
+    }
+  },
+  {
+    id: 'broccoli-bag-2lb',
+    type: 'bag',
+    name: '2 lb Bag',
+    sizes: ['1 lb', '2 lb', '5 lb'],
+    grades: ['Premium', 'US No. 1'],
+    isStandard: true,
+    commodities: ['broccoli'],
+    category: 'bag',
+    description: 'Broccoli florets packaging',
+    usdaMapping: {
+      commodity: 'broccoli',
+      specifications: 'florets'
+    }
+  },
+  {
+    id: 'broccoli-bunch',
+    type: 'carton',
+    name: 'Bunch',
+    counts: ['12 bunch', '18 bunch', '24 bunch'],
+    weight: '15 lbs',
+    grades: ['US No. 1', 'Choice'],
+    isStandard: true,
+    commodities: ['broccoli'],
+    category: 'carton',
+    description: 'Bunched broccoli with stems',
+    usdaMapping: {
+      commodity: 'broccoli',
+      specifications: 'bunched'
+    }
+  },
+  {
+    id: 'cauliflower-case-12ct',
+    type: 'carton',
+    name: '12 ct Case',
+    counts: ['9ct', '12ct', '15ct'],
+    weight: '25 lbs',
+    grades: ['US No. 1', 'US No. 2', 'Choice'],
+    isStandard: true,
+    commodities: ['cauliflower'],
+    category: 'carton',
+    description: 'Standard cauliflower case',
+    usdaMapping: {
+      commodity: 'cauliflower'
+    }
+  },
+  {
+    id: 'cauliflower-bag-2lb',
+    type: 'bag',
+    name: '2 lb Bag',
+    sizes: ['1 lb', '2 lb', '5 lb'],
+    grades: ['Premium', 'US No. 1'],
+    isStandard: true,
+    commodities: ['cauliflower'],
+    category: 'bag',
+    description: 'Cauliflower florets packaging',
+    usdaMapping: {
+      commodity: 'cauliflower',
+      specifications: 'florets'
     }
   },
 
@@ -1326,7 +1441,7 @@ export function getPackagingById(id: string): PackagingSpec | undefined {
 
 // Legacy compatibility - maps old structure to new
 export interface LegacyPackagingSpec {
-  type: 'carton' | 'bag' | 'bulk' | 'clamshell' | 'tray'
+  type: 'carton' | 'bag' | 'bulk' | 'clamshell' | 'tray' | 'basket'
   counts?: string[]
   sizes?: string[]
   weight?: string

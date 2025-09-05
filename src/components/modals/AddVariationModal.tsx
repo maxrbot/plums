@@ -342,6 +342,37 @@ export default function AddVariationModal({
     }))
   }
 
+  // Helper function to get all months in a range (handles cross-year ranges)
+  const getMonthsInRange = (startMonth: number, endMonth: number): number[] => {
+    if (startMonth === 0 || endMonth === 0) return []
+    
+    const months: number[] = []
+    if (startMonth <= endMonth) {
+      // Same year range (e.g., March to October)
+      for (let i = startMonth; i <= endMonth; i++) {
+        months.push(i)
+      }
+    } else {
+      // Cross-year range (e.g., December to March)
+      // Add months from start to end of year
+      for (let i = startMonth; i <= 12; i++) {
+        months.push(i)
+      }
+      // Add months from start of year to end
+      for (let i = 1; i <= endMonth; i++) {
+        months.push(i)
+      }
+    }
+    return months
+  }
+
+  // Helper function to check if a month is in the selected range
+  const isMonthInRange = (month: number, startMonth: number, endMonth: number): boolean => {
+    if (startMonth === 0 || endMonth === 0) return false
+    const monthsInRange = getMonthsInRange(startMonth, endMonth)
+    return monthsInRange.includes(month)
+  }
+
   const toggleGrowingPractice = (practice: string) => {
     setCurrentVariation(prev => ({
       ...prev,
@@ -653,31 +684,29 @@ export default function AddVariationModal({
                                                 const currentEnd = regionConfig.availability.endMonth
                                                 
                                                 if (currentStart === 0) {
-                                                  // First month selected
+                                                  // First month selected - set as start
                                                   updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
-                                                } else if (currentEnd === 0 && month.value > currentStart) {
-                                                  // Second month selected
+                                                } else if (currentEnd === 0) {
+                                                  // Second month selected - set as end (allow cross-year ranges)
                                                   updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                } else if (month.value === currentStart) {
-                                                  // Deselect start month
+                                                } else if (currentStart === month.value) {
+                                                  // Clicking start month again, reset both
                                                   updateRegionSeasonality(regionConfig.regionId, 'startMonth', 0)
-                                                } else if (month.value === currentEnd) {
-                                                  // Deselect end month
                                                   updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
-                                                } else if (month.value > currentStart && month.value < currentEnd) {
-                                                  // Month in range, do nothing
-                                                } else if (month.value < currentStart) {
-                                                  // New start month
-                                                  updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
+                                                } else if (currentEnd === month.value) {
+                                                  // Clicking end month again, reset to just start
+                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
                                                 } else {
-                                                  // New end month
+                                                  // Clicking a different month - set as new end
                                                   updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
                                                 }
                                               }}
                                               className={`px-2 py-1 text-xs rounded border transition-colors ${
                                                 regionConfig.availability.startMonth === month.value || regionConfig.availability.endMonth === month.value
-                                                  ? 'bg-green-100 border-blue-300 text-blue-800'
-                                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                                  ? 'bg-blue-500 border-blue-500 text-white font-semibold' // Start/End months
+                                                  : isMonthInRange(month.value, regionConfig.availability.startMonth, regionConfig.availability.endMonth)
+                                                  ? 'bg-blue-100 border-blue-300 text-blue-800' // Months in range
+                                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50' // Unselected months
                                               }`}
                                             >
                                               {month.label.slice(0, 3)}
@@ -694,7 +723,19 @@ export default function AddVariationModal({
                                       
                                       {!regionConfig.availability.isYearRound && regionConfig.availability.startMonth > 0 && regionConfig.availability.endMonth > 0 && (
                                         <div className="text-xs text-gray-600 mt-1">
-                                          {months[regionConfig.availability.startMonth - 1].label} - {months[regionConfig.availability.endMonth - 1].label}
+                                          <div className="flex items-center justify-between">
+                                            <span>
+                                              {months[regionConfig.availability.startMonth - 1].label} - {months[regionConfig.availability.endMonth - 1].label}
+                                            </span>
+                                            <span className="text-blue-600 font-medium">
+                                              {getMonthsInRange(regionConfig.availability.startMonth, regionConfig.availability.endMonth).length} months
+                                            </span>
+                                          </div>
+                                          {regionConfig.availability.startMonth > regionConfig.availability.endMonth && (
+                                            <div className="text-xs text-orange-600 mt-1">
+                                              ⚠️ Cross-year season (winter crop)
+                                            </div>
+                                          )}
                                         </div>
                                       )}
                                     </div>

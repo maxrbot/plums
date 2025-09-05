@@ -103,6 +103,11 @@ export const commodityOptions: CategoryOption[] = [
         id: 'turnip',
         name: 'Turnip',
         varieties: ['Purple Top White Globe', 'Tokyo Cross', 'Hakurei', 'Scarlet Queen', 'Golden Ball', 'White Lady', 'Market Express']
+      },
+      {
+        id: 'leek',
+        name: 'Leek',
+        varieties: ['American Flag', 'King Richard', 'Carentan', 'Giant Musselburgh', 'Lincoln', 'Bandit', 'Lancelot', 'Tadorna']
       }
     ]
   },
@@ -134,6 +139,84 @@ export const commodityOptions: CategoryOption[] = [
         id: 'arugula',
         name: 'Arugula',
         varieties: ['Wild Arugula', 'Cultivated Arugula', 'Sylvetta', 'Astro', 'Apollo', 'Sprint', 'Slow Bolt']
+      },
+      {
+        id: 'celery',
+        name: 'Celery',
+        varieties: ['Pascal', 'Golden Self-Blanching', 'Utah 52-70', 'Tango', 'Conquistador', 'Redventure', 'Pink Plume', 'Tall Utah']
+      }
+    ]
+  },
+  {
+    id: 'brassicas',
+    name: 'Brassicas & Cole Crops',
+    commodities: [
+      {
+        id: 'broccoli',
+        name: 'Broccoli',
+        varieties: ['Calabrese', 'De Cicco', 'Waltham 29', 'Premium Crop', 'Packman', 'Green Goliath', 'Arcadia', 'Belstar', 'Marathon', 'Aspabroc', 'Happy Rich', 'Atlantis', 'Apollo', 'Inspiration']
+      },
+      {
+        id: 'cauliflower',
+        name: 'Cauliflower',
+        varieties: ['Snowball Y Improved', 'Early Snowball', 'Purple of Sicily', 'Cheddar', 'Romanesco', 'Graffiti', 'Orange Bouquet', 'Veronica']
+      },
+      {
+        id: 'cabbage',
+        name: 'Cabbage',
+        subtypes: [
+          {
+            id: 'green',
+            name: 'Green Cabbage',
+            varieties: ['Copenhagen Market', 'Golden Acre', 'Danish Ballhead', 'Stonehead', 'Early Jersey Wakefield', 'Late Flat Dutch']
+          },
+          {
+            id: 'red',
+            name: 'Red Cabbage',
+            varieties: ['Red Acre', 'Mammoth Red Rock', 'Red Express', 'Ruby Ball', 'Red Rookie', 'Integro']
+          },
+          {
+            id: 'savoy',
+            name: 'Savoy Cabbage',
+            varieties: ['Savoy Ace', 'Perfection Drumhead Savoy', 'Chieftain Savoy', 'Melissa', 'Tundra']
+          },
+          {
+            id: 'napa',
+            name: 'Napa Cabbage',
+            varieties: ['Michihili', 'Wong Bok', 'China Express', 'Minuet', 'Bilko', 'Monument']
+          }
+        ]
+      },
+      {
+        id: 'brussels-sprouts',
+        name: 'Brussels Sprouts',
+        varieties: ['Long Island Improved', 'Jade Cross', 'Prince Marvel', 'Diablo', 'Franklin', 'Gustus', 'Churchill', 'Red Bull']
+      },
+      {
+        id: 'kohlrabi',
+        name: 'Kohlrabi',
+        varieties: ['Early White Vienna', 'Early Purple Vienna', 'Grand Duke', 'Kongo', 'Kolibri', 'Quickstar', 'Winner']
+      },
+      {
+        id: 'radish',
+        name: 'Radish',
+        subtypes: [
+          {
+            id: 'small',
+            name: 'Small Radish',
+            varieties: ['Cherry Belle', 'French Breakfast', 'Easter Egg', 'Sparkler', 'Champion', 'Comet', 'Sora']
+          },
+          {
+            id: 'daikon',
+            name: 'Daikon',
+            varieties: ['Miyashige White', 'April Cross', 'Summer Cross', 'Minowase', 'Alpine', 'KN-Bravo']
+          },
+          {
+            id: 'watermelon',
+            name: 'Watermelon Radish',
+            varieties: ['Red Meat', 'Misato Rose', 'Beauty Heart', 'Rose Heart']
+          }
+        ]
       }
     ]
   },
@@ -248,6 +331,79 @@ export const commodityOptions: CategoryOption[] = [
             id: 'specialty',
             name: 'Specialty Melon',
             varieties: ['Crenshaw', 'Casaba', 'Persian', 'Galia', 'Charentais', 'Canary', 'Juan Canary', 'Santa Claus']
+          }
+        ]
+      },
+      {
+        id: 'eggplant',
+        name: 'Eggplant',
+        subtypes: [
+          {
+            id: 'globe',
+            name: 'Globe Eggplant',
+            varieties: ['Black Beauty', 'Epic', 'Classic', 'Dusky', 'Black Bell', 'Purple Rain']
+          },
+          {
+            id: 'italian',
+            name: 'Italian Eggplant',
+            varieties: ['Rosa Bianca', 'Violetta Lunga', 'Listada de Gandia', 'Prosperosa', 'Bambino']
+          },
+          {
+            id: 'asian',
+            name: 'Asian Eggplant',
+            varieties: ['Japanese Long', 'Chinese Long', 'Ichiban', 'Ping Tung', 'Millionaire', 'Orient Express']
+          },
+          {
+            id: 'specialty',
+            name: 'Specialty Eggplant',
+            varieties: ['White Eggplant', 'Thai Long Green', 'Turkish Orange', 'Fairy Tale', 'Graffiti', 'Calliope']
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 'specialty-vegetables',
+    name: 'Specialty Vegetables',
+    commodities: [
+      {
+        id: 'asparagus',
+        name: 'Asparagus',
+        varieties: ['Mary Washington', 'Jersey Giant', 'Purple Passion', 'Atlas', 'Apollo', 'Millennium', 'UC 157', 'Walker Deluxe']
+      },
+      {
+        id: 'artichoke',
+        name: 'Artichoke',
+        varieties: ['Green Globe', 'Imperial Star', 'Purple of Romagna', 'Violetto', 'Big Heart', 'Emerald', 'Tempo', 'Madrigal']
+      },
+      {
+        id: 'fennel',
+        name: 'Fennel',
+        varieties: ['Florence Fennel', 'Fino', 'Orion', 'Preludio', 'Romanesco', 'Victorio', 'Perfection', 'Cantino']
+      },
+      {
+        id: 'okra',
+        name: 'Okra',
+        varieties: ['Clemson Spineless', 'Emerald', 'Annie Oakley II', 'Burgundy', 'Red Velvet', 'Star of David', 'Jambalaya', 'Beck\'s Big Buck']
+      },
+      {
+        id: 'corn',
+        name: 'Sweet Corn',
+        subtypes: [
+          {
+            id: 'yellow',
+            name: 'Yellow Corn',
+            varieties: ['Golden Bantam', 'Honey Select', 'Bodacious', 'Incredible', 'Vision', 'Temptation', 'Obsession']
+          },
+          {
+            id: 'white',
+            name: 'White Corn',
+            varieties: ['Silver Queen', 'Argent', 'Whiteout', 'Silver King', 'Avalon', 'Captivate', 'Devotion']
+          },
+          {
+            id: 'bicolor',
+            name: 'Bicolor Corn',
+            varieties: ['Butter and Sugar', 'Honey and Cream', 'Serendipity', 'Ambrosia', 'Providence', 'Luscious', 'Delectable']
           }
         ]
       }

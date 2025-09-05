@@ -787,15 +787,15 @@ export default function CropManagement() {
                 
                 {/* Commodities within category */}
                 <div className="divide-y divide-gray-200">
-                  {categorycrops.map((crop) => (
-                    <div key={crop.id || 'unknown'} className="p-6">
+                  {categorycrops.map((crop, cropIndex) => (
+                    <div key={crop.id || `${categoryName}-${crop.commodity}-${cropIndex}`} className="p-6">
                       {/* Commodity Header - Collapsible */}
                       <div className="flex items-center justify-between mb-4">
                         <button
-                          onClick={() => toggleCommodity(crop.id?.toString() || 'unknown')}
+                          onClick={() => toggleCommodity(crop.id?.toString() || `${categoryName}-${crop.commodity}-${cropIndex}`)}
                           className="flex items-center space-x-3 hover:bg-gray-50 rounded-md p-2 -ml-2 transition-colors"
                         >
-                          {collapsedCommodities.has(crop.id?.toString() || 'unknown') ? (
+                          {collapsedCommodities.has(crop.id?.toString() || `${categoryName}-${crop.commodity}-${cropIndex}`) ? (
                             <ChevronUpIcon className="h-5 w-5 text-gray-400" />
                           ) : (
                             <ChevronDownIcon className="h-5 w-5 text-gray-400" />
@@ -821,7 +821,7 @@ export default function CropManagement() {
                       </div>
                       
                       {/* Variations Table - Collapsible */}
-                      {!collapsedCommodities.has(crop.id?.toString() || 'unknown') && (
+                      {!collapsedCommodities.has(crop.id?.toString() || `${categoryName}-${crop.commodity}-${cropIndex}`) && (
                         <div className="overflow-x-auto">
                           <table className="min-w-full divide-y divide-gray-200">
                           <thead className="bg-gray-50">
@@ -848,7 +848,7 @@ export default function CropManagement() {
                           </thead>
                           <tbody className="bg-white divide-y divide-gray-200">
                             {crop.variations.map((variation, index) => (
-                              <tr key={index} className="hover:bg-gray-50">
+                              <tr key={variation.id || `${crop.id || crop.commodity}-var-${index}`} className="hover:bg-gray-50">
                                 <td className="px-3 py-3 text-sm text-gray-900">
                                   <div className="font-medium">
                                     {variation.subtype && typeof variation.subtype === 'string' && (
@@ -869,7 +869,7 @@ export default function CropManagement() {
                                 <td className="px-3 py-3 text-sm text-gray-600">
                                   <div className="space-y-1">
                                     {(variation.shippingPoints || variation.growingRegions || []).map((region, regionIndex) => (
-                                      <div key={regionIndex} className="text-xs">
+                                      <div key={`${variation.id || index}-region-${regionIndex}`} className="text-xs">
                                         {region.regionName || region.pointName}
                                       </div>
                                     ))}
@@ -880,7 +880,7 @@ export default function CropManagement() {
                                     {(variation.shippingPoints || variation.growingRegions || []).map((region, regionIndex) => {
                                       const availability = region.availability || region.seasonality
                                       return (
-                                      <div key={regionIndex} className="text-xs">
+                                      <div key={`${variation.id || index}-availability-${regionIndex}`} className="text-xs">
                                         {availability?.isYearRound 
                                           ? 'Year-round' 
                                           : availability 

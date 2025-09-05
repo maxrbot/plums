@@ -289,7 +289,7 @@ export default function Dashboard() {
                 <PlusIcon className="h-4 w-4 text-gray-600" />
                 <span>Add crop variety</span>
               </Link>
-              <Link href="/dashboard/price-sheets/usda-pricing" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 text-sm">
+              <Link href="/dashboard/price-sheets/insights" className="flex items-center space-x-3 p-2 rounded-md hover:bg-gray-50 text-sm">
                 <ArrowPathIcon className="h-4 w-4 text-gray-600" />
                 <span>Update pricing</span>
               </Link>
@@ -325,7 +325,7 @@ export default function Dashboard() {
             </p>
             <div className="flex space-x-3">
               <Link
-                href="/dashboard/price-sheets/usda-pricing"
+                href="/dashboard/price-sheets/insights"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
               >
                 View Market Data

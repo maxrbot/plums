@@ -12,8 +12,10 @@ import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { getPackagingSpecs } from '../../../../config/packagingSpecs'
 import { commodityOptions } from '../../../../config/commodityOptions'
+import { getProcessingTypesForCommodity, hasProcessingTypes, getApplicablePackaging } from '../../../../config/processingTypes'
 import { cropsApi, shippingPointsApi, priceSheetsApi, packagingApi } from '../../../../lib/api'
 import type { CropManagement, CropVariation } from '../../../../types'
+import { useUser } from '../../../../contexts/UserContext'
 
 // Interface for processed product data from user's crops
 interface ProcessedProduct {
@@ -45,6 +47,7 @@ const availabilityOptions = [
 interface ProductRow {
   id: string
   productId: number
+  processingType?: string   // "Crown Cut", "Florets", etc. for applicable commodities
   packageType: string
   countSize?: string         // "88s", "113s" for cartons
   grade?: string            // "Fancy", "Choice", "Standard"
@@ -75,7 +78,8 @@ interface PreviewProduct {
 }
 
 export default function NewPriceSheet() {
-  const [priceSheetTitle, setPriceSheetTitle] = useState(`AcreList Price Sheet - ${new Date().toLocaleDateString()}`)
+  const { user } = useUser()
+  const [priceSheetTitle, setPriceSheetTitle] = useState('')
   const [additionalNotes, setAdditionalNotes] = useState('')
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
@@ -88,6 +92,13 @@ export default function NewPriceSheet() {
 
   // State for custom packaging
   const [customPackaging, setCustomPackaging] = useState<Record<string, any[]>>({})
+
+  // Set default title when user data loads
+  useEffect(() => {
+    if (user?.profile?.companyName && !priceSheetTitle) {
+      setPriceSheetTitle(`${user.profile.companyName} Price Sheet - ${new Date().toLocaleDateString()}`)
+    }
+  }, [user?.profile?.companyName, priceSheetTitle])
 
   // Helper functions to work with unified packaging system
   const getPackagingOptions = (commodity: string) => {
@@ -270,6 +281,7 @@ export default function NewPriceSheet() {
       return {
         id: `${product.id}-main`,
         productId: index, // Use array index as unique productId
+        processingType: existingRow?.processingType || (hasProcessingTypes(product.commodity) ? getProcessingTypesForCommodity(product.commodity)[0]?.id : undefined),
         packageType: existingRow?.packageType || firstPackaging?.name || 'Standard Package',
         countSize: existingRow?.countSize || (hasCountSize(product.commodity) ? (getCountSizeOptions(product.commodity)[0] || '') : ''),
         grade: existingRow?.grade || getGradeOptions(product.commodity)[0] || 'US No. 1',
@@ -349,9 +361,9 @@ export default function NewPriceSheet() {
             
             regionConfigs.forEach((regionConfig) => {
               const shippingPoint = userShippingPoints.find(sp => 
-                sp.id === regionConfig.regionId || 
+                sp.id === (regionConfig as any).regionId || 
                 sp.id === regionConfig.pointId || 
-                sp.name === regionConfig.regionName || 
+                sp.name === (regionConfig as any).regionName || 
                 sp.name === regionConfig.pointName
               )
               
@@ -364,14 +376,14 @@ export default function NewPriceSheet() {
                 ].filter(Boolean).join(' ')
 
                 // Handle both availability and seasonality
-                const availability = regionConfig.availability || regionConfig.seasonality
+                const availability = regionConfig.availability || (regionConfig as any).seasonality
                 const seasonality = availability ? formatSeasonality(availability) : 'Year-round'
 
                 // Ensure all IDs are defined
                 const cropId = crop.id || `crop_${Date.now()}_${Math.random()}`
                 const variationId = variation.id || `var_${Date.now()}_${Math.random()}`
                 // Use the actual shipping point ID from the database
-                const regionId = shippingPoint.id || regionConfig.regionId || regionConfig.pointId || `region_${Date.now()}_${Math.random()}`
+                const regionId = shippingPoint.id || (regionConfig as any).regionId || regionConfig.pointId || `region_${Date.now()}_${Math.random()}`
                 
                 processedProducts.push({
                   id: `${cropId}-${variationId}-${regionId}`,
@@ -403,6 +415,7 @@ export default function NewPriceSheet() {
         return {
           id: `${product.id}-main`,
           productId: index, // Use array index as unique productId
+          processingType: hasProcessingTypes(product.commodity) ? getProcessingTypesForCommodity(product.commodity)[0]?.id : undefined,
           packageType: firstPackaging?.name || 'Standard Package',
           countSize: hasCountSize(product.commodity) ? (getCountSizeOptions(product.commodity)[0] || '') : '',
           grade: getGradeOptions(product.commodity)[0] || 'US No. 1',
@@ -1013,6 +1026,9 @@ export default function NewPriceSheet() {
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">
                     Product Name
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">
+                    Processing Type
+                  </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">
                     Package & Size
                   </th>
@@ -1104,6 +1120,24 @@ export default function NewPriceSheet() {
                               </span>
                             )}
                           </div>
+                        )}
+                      </td>
+                      
+                      {/* Processing Type */}
+                      <td className="w-28 px-4 py-4">
+                        {hasProcessingTypes(product.commodity) ? (
+                          <select
+                            value={row.processingType || ''}
+                            onChange={(e) => updateRowData(row.id, 'processingType', e.target.value)}
+                            className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
+                          >
+                            <option value="">-</option>
+                            {getProcessingTypesForCommodity(product.commodity).map(type => (
+                              <option key={type.id} value={type.id}>{type.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <span className="text-xs text-gray-400">N/A</span>
                         )}
                       </td>
                       

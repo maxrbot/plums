@@ -230,7 +230,7 @@ export default function PriceSheets() {
         </Link>
 
         <Link
-          href="/dashboard/price-sheets/usda-pricing"
+          href="/dashboard/price-sheets/insights"
           className="group bg-orange-50 border border-orange-200 hover:bg-orange-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
         >
           <div className="flex flex-col items-center space-y-3">
@@ -238,8 +238,8 @@ export default function PriceSheets() {
               <CurrencyDollarIcon className="h-8 w-8 text-orange-700" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Market Prices</h3>
-              <p className="text-sm text-gray-600">View USDA pricing data</p>
+              <h3 className="text-lg font-semibold text-gray-900">Market Intelligence</h3>
+              <p className="text-sm text-gray-600">USDA pricing & retail insights</p>
             </div>
           </div>
         </Link>

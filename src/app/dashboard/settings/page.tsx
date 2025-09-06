@@ -158,7 +158,23 @@ export default function Settings() {
     setHasChanges(true)
   }
 
+  const formatPhoneNumber = (value: string) => {
+    // Remove all non-numeric characters
+    const phoneNumber = value.replace(/\D/g, '')
+    
+    // Format as (XXX) XXX-XXXX
+    if (phoneNumber.length === 0) return ''
+    if (phoneNumber.length <= 3) return `(${phoneNumber}`
+    if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+  }
+
   const updateUserData = (field: string, value: any) => {
+    // Format phone numbers automatically
+    if (field === 'phone' || field === 'contactPhone') {
+      value = formatPhoneNumber(value)
+    }
+    
     setUserData(prev => ({
       ...prev,
       [field]: value
@@ -375,7 +391,7 @@ export default function Settings() {
                   type="tel"
                   id="phone"
                   value={userData.phone}
-                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  onChange={(e) => updateUserData('phone', e.target.value)}
                   className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                 />
               </div>
@@ -534,7 +550,7 @@ export default function Settings() {
                       type="tel"
                       id="contactPhone"
                       value={userData.contactPhone}
-                      onChange={(e) => handleInputChange('contactPhone', e.target.value)}
+                      onChange={(e) => updateUserData('contactPhone', e.target.value)}
                       className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
                     />
                   </div>

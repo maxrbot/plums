@@ -113,25 +113,27 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
           }
           
           crop.variations.forEach((variation: any) => {
-            variation.growingRegions?.forEach((regionConfig: any) => {
-              const cropName = [
-                variation.subtype,
-                variation.variety,
-                variation.isOrganic ? '(Organic)' : ''
-              ].filter(Boolean).join(' ')
-              
-              commodityGroups[commodityKey].push({
-                cropId: crop.id || `crop_${Date.now()}_${Math.random()}`,
-                variationId: variation.id || `var_${Date.now()}_${Math.random()}`,
-                regionId: regionConfig.regionId,
-                cropName,
-                fullCropName: [crop.commodity, cropName].filter(Boolean).join(' '),
-                category: crop.category,
-                commodity: crop.commodity,
-                variety: variation.variety,
-                subtype: variation.subtype,
-                isOrganic: variation.isOrganic
-              })
+            // Create one entry per variation (not per shipping point)
+            const cropName = [
+              variation.subtype,
+              variation.variety,
+              variation.isOrganic ? '(Organic)' : ''
+            ].filter(Boolean).join(' ')
+            
+            // Get shipping points for reference but don't create multiple entries
+            const shippingPoints = variation.shippingPoints || variation.growingRegions || []
+            
+            commodityGroups[commodityKey].push({
+              cropId: crop.id || `crop_${Date.now()}_${Math.random()}`,
+              variationId: variation.id || `var_${Date.now()}_${Math.random()}`,
+              cropName,
+              fullCropName: [crop.commodity, cropName].filter(Boolean).join(' '),
+              category: crop.category,
+              commodity: crop.commodity,
+              variety: variation.variety,
+              subtype: variation.subtype,
+              isOrganic: variation.isOrganic,
+              shippingPointsCount: shippingPoints.length // Track how many shipping points this variation has
             })
           })
         }

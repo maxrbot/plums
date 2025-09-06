@@ -2,9 +2,9 @@
 
 import { Fragment } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, BookmarkIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, BookmarkIcon, RocketLaunchIcon } from '@heroicons/react/24/outline'
 
-interface PriceSheetProduct {
+export interface PriceSheetProduct {
   id: string
   productName: string
   region: string
@@ -28,7 +28,10 @@ interface PriceSheetPreviewModalProps {
     pricingTier: string
     pricingAdjustment: number
   }
+  userEmail?: string
+  userPhone?: string
   onSave?: () => void
+  onSendPriceSheet?: () => void
   isSaving?: boolean
   hasSaved?: boolean
   mode?: 'save' | 'send' // 'save' shows save button, 'send' is for preview only
@@ -41,7 +44,10 @@ export default function PriceSheetPreviewModal({
   onTitleChange,
   products,
   contactInfo,
+  userEmail,
+  userPhone,
   onSave,
+  onSendPriceSheet,
   isSaving = false,
   hasSaved = false,
   mode = 'save'
@@ -84,21 +90,16 @@ export default function PriceSheetPreviewModal({
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
               <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-4xl">
-                {/* Minimal Header */}
-                <div className="bg-white px-6 py-3 border-b border-gray-200">
+                {/* Clean Header */}
+                <div className="bg-white px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <h1 className="text-lg font-semibold text-gray-900">Price Sheet Preview</h1>
-                      <div className="text-sm text-gray-500">
-                        AcreList • sales@acrelist.com • (555) 123-4567
-                      </div>
-                    </div>
+                    <h1 className="text-xl font-semibold text-gray-900">Price Sheet Preview</h1>
                     <button
                       type="button"
                       onClick={onClose}
                       className="rounded-md bg-white text-gray-400 hover:text-gray-500"
                     >
-                      <XMarkIcon className="h-5 w-5" />
+                      <XMarkIcon className="h-6 w-6" />
                     </button>
                   </div>
                 </div>
@@ -123,14 +124,19 @@ export default function PriceSheetPreviewModal({
                   </div>
                 )}
 
-                {/* Preview Header with Title */}
-                <div className="bg-white px-6 py-4 border-b border-gray-200">
-                  <h2 className="text-xl font-bold text-gray-900 text-center">{title}</h2>
-                  <p className="text-sm text-gray-500 text-center mt-1">Generated on {new Date().toLocaleDateString()}</p>
-                </div>
+                {/* Framed Document Preview */}
+                <div className="bg-gray-50 px-6 py-6">
+                  <div className="bg-white border-2 border-gray-300 rounded-lg shadow-sm">
+                    {/* Document Header */}
+                    <div className="px-8 py-6 border-b border-gray-200">
+                      <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">{title}</h2>
+                      <p className="text-sm text-gray-600 text-center">
+                        {userEmail || 'sales@acrelist.com'} • {userPhone || '(555) 123-4567'}
+                      </p>
+                    </div>
 
-                {/* Clean Preview Content */}
-                <div className="bg-white px-6 py-4 max-h-96 overflow-y-auto">
+                    {/* Document Content */}
+                    <div className="px-8 py-6 max-h-96 overflow-y-auto">
 
                   {/* Clean Products by Region */}
                   {Object.entries(productsByRegion).map(([region, regionProducts]) => (
@@ -184,6 +190,8 @@ export default function PriceSheetPreviewModal({
                     </div>
                   ))}
 
+                    </div>
+                  </div>
                 </div>
 
                 {/* Footer Actions */}
@@ -200,33 +208,38 @@ export default function PriceSheetPreviewModal({
                       Close
                     </button>
                     {mode === 'save' && (
-                      <button
-                        type="button"
-                        onClick={onSave}
-                        disabled={isSaving || !onSave || hasSaved}
-                        className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${
-                          hasSaved 
-                            ? 'text-green-700 bg-green-100 cursor-not-allowed'
-                            : 'text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed'
-                        }`}
-                      >
-                        {isSaving ? (
-                          <>
-                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                            Saving...
-                          </>
-                        ) : hasSaved ? (
-                          <>
-                            <BookmarkIcon className="h-4 w-4 mr-2" />
-                            Saved
-                          </>
-                        ) : (
-                          <>
-                            <BookmarkIcon className="h-4 w-4 mr-2" />
-                            Save Price Sheet
-                          </>
+                      <>
+                        {!hasSaved && onSave && (
+                          <button
+                            type="button"
+                            onClick={onSave}
+                            disabled={isSaving}
+                            className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                          >
+                            {isSaving ? (
+                              <>
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <BookmarkIcon className="h-4 w-4 mr-2" />
+                                Save Price Sheet
+                              </>
+                            )}
+                          </button>
                         )}
-                      </button>
+                        {hasSaved && onSendPriceSheet && (
+                          <button
+                            type="button"
+                            onClick={onSendPriceSheet}
+                            className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                          >
+                            <RocketLaunchIcon className="h-4 w-4 mr-2" />
+                            Send Price Sheet
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

@@ -9,13 +9,26 @@ import {
   XMarkIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
-import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
+import PriceSheetPreviewModal, { type PriceSheetProduct } from '../../../../components/modals/PriceSheetPreviewModal'
 import { getPackagingSpecs } from '../../../../config/packagingSpecs'
 import { commodityOptions } from '../../../../config/commodityOptions'
-import { getProcessingTypesForCommodity, hasProcessingTypes, getApplicablePackaging } from '../../../../config/processingTypes'
+import { 
+  getCommodityPackaging, 
+  getDefaultProcessingType, 
+  getDefaultPackageType, 
+  getDefaultSize,
+  getDefaultFruitCount,
+  getDefaultGrade,
+  type CommodityPackaging,
+  type ProcessingType,
+  type PackageType,
+  type PackageSize,
+  type FruitCount
+} from '../../../../config/commodityPackaging'
 import { cropsApi, shippingPointsApi, priceSheetsApi, packagingApi } from '../../../../lib/api'
 import type { CropManagement, CropVariation } from '../../../../types'
 import { useUser } from '../../../../contexts/UserContext'
+import { useRouter } from 'next/navigation'
 
 // Interface for processed product data from user's crops
 interface ProcessedProduct {
@@ -79,6 +92,7 @@ interface PreviewProduct {
 
 export default function NewPriceSheet() {
   const { user } = useUser()
+  const router = useRouter()
   const [priceSheetTitle, setPriceSheetTitle] = useState('')
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
@@ -91,6 +105,15 @@ export default function NewPriceSheet() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set())
   const [productPackStyles, setProductPackStyles] = useState<Record<string, number>>({})
   const [productPrices, setProductPrices] = useState<Record<string, string>>({})
+  
+  // New packaging state management
+  const [productPackaging, setProductPackaging] = useState<Record<string, {
+    processingType?: string
+    packageType?: string
+    size?: string
+    fruitCount?: string
+    grade?: string
+  }>>({})
 
   // State for custom packaging
   const [customPackaging, setCustomPackaging] = useState<Record<string, any[]>>({})
@@ -159,12 +182,27 @@ export default function NewPriceSheet() {
 
   const getProductsByCommodity = () => {
     const filtered = products.filter(product => {
+      // Filter by category
       if (selectedCategory !== 'all') {
         const category = commodityOptions.find(cat => 
           cat.commodities.some(c => c.id === product.commodity)
         )
         if (!category || category.id !== selectedCategory) return false
       }
+      
+      // Filter by season (OR logic when both are selected)
+      if (inSeasonOnly || upcomingSeasonOnly) {
+        const inSeason = inSeasonOnly && isProductInSeason(product)
+        const upcoming = upcomingSeasonOnly && isProductUpcomingSeason(product)
+        
+        // If both filters are active, show products that match either condition
+        if (inSeasonOnly && upcomingSeasonOnly) {
+          return inSeason || upcoming
+        }
+        // If only one filter is active, show products that match that condition
+        return inSeason || upcoming
+      }
+      
       return true
     })
     
@@ -179,13 +217,75 @@ export default function NewPriceSheet() {
     return grouped
   }
 
+  const initializeProductPackaging = (productId: string, commodity: string) => {
+    const config = getCommodityPackaging(commodity)
+    if (!config) return
+
+    const defaults: any = {}
+    
+    if (config.hasProcessing) {
+      const defaultProcessing = getDefaultProcessingType(commodity)
+      if (defaultProcessing) {
+        defaults.processingType = defaultProcessing.id
+        const defaultPackage = getDefaultPackageType(commodity, defaultProcessing.id)
+        if (defaultPackage) {
+          defaults.packageType = defaultPackage.id
+          const defaultSize = getDefaultSize(commodity, defaultProcessing.id, defaultPackage.id)
+          if (defaultSize) {
+            defaults.size = defaultSize.id
+          }
+        }
+      }
+    } else {
+      const defaultPackage = getDefaultPackageType(commodity)
+      if (defaultPackage) {
+        defaults.packageType = defaultPackage.id
+        const defaultSize = getDefaultSize(commodity, undefined, defaultPackage.id)
+        if (defaultSize) {
+          defaults.size = defaultSize.id
+        }
+        const defaultFruitCount = getDefaultFruitCount(commodity, defaultPackage.id)
+        if (defaultFruitCount) {
+          defaults.fruitCount = defaultFruitCount.id
+        }
+      }
+    }
+    
+    const defaultGrade = getDefaultGrade(commodity)
+    if (defaultGrade) {
+      defaults.grade = defaultGrade
+    }
+
+    setProductPackaging(prev => ({
+      ...prev,
+      [productId]: defaults
+    }))
+  }
+
   const toggleProductInBuilder = (productId: string) => {
     setSelectedProductIds(prev => {
       const newSet = new Set(prev)
       if (newSet.has(productId)) {
         newSet.delete(productId)
+        // Clean up related state
+        setProductPackStyles(prev => {
+          const newStyles = { ...prev }
+          delete newStyles[productId]
+          return newStyles
+        })
+        setProductPackaging(prev => {
+          const newPackaging = { ...prev }
+          delete newPackaging[productId]
+          return newPackaging
+        })
       } else {
         newSet.add(productId)
+        // Initialize packaging defaults
+        const product = getSelectedProducts().find(p => p.id === productId) || 
+                       products.find(p => p.id === productId)
+        if (product) {
+          initializeProductPackaging(productId, product.commodity)
+        }
       }
       return newSet
     })
@@ -196,10 +296,23 @@ export default function NewPriceSheet() {
   }
 
   const addPackStyleForBuilder = (productId: string) => {
-    setProductPackStyles(prev => ({
-      ...prev,
-      [productId]: (prev[productId] || 0) + 1
-    }))
+    setProductPackStyles(prev => {
+      const newCount = (prev[productId] || 0) + 1
+      
+      // Initialize pack style with same settings as main product
+      const mainPackaging = productPackaging[productId]
+      if (mainPackaging) {
+        setProductPackaging(prevPackaging => ({
+          ...prevPackaging,
+          [`${productId}-pack-${newCount - 1}`]: { ...mainPackaging }
+        }))
+      }
+      
+      return {
+        ...prev,
+        [productId]: newCount
+      }
+    })
   }
 
   const removePackStyleForBuilder = (productId: string) => {
@@ -229,6 +342,54 @@ export default function NewPriceSheet() {
     }))
   }
 
+  const updateProductPackaging = (productId: string, field: string, value: string) => {
+    setProductPackaging(prev => {
+      const current = prev[productId] || {}
+      const updated = { ...current, [field]: value }
+      
+      // Reset dependent fields when parent changes
+      if (field === 'processingType') {
+        delete updated.packageType
+        delete updated.size
+        delete updated.fruitCount
+        
+        // Set new defaults
+        const product = products.find(p => p.id === productId)
+        if (product) {
+          const defaultPackage = getDefaultPackageType(product.commodity, value)
+          if (defaultPackage) {
+            updated.packageType = defaultPackage.id
+            const defaultSize = getDefaultSize(product.commodity, value, defaultPackage.id)
+            if (defaultSize) {
+              updated.size = defaultSize.id
+            }
+          }
+        }
+      } else if (field === 'packageType') {
+        delete updated.size
+        delete updated.fruitCount
+        
+        // Set new defaults
+        const product = products.find(p => p.id === productId)
+        if (product) {
+          const defaultSize = getDefaultSize(product.commodity, current.processingType, value)
+          if (defaultSize) {
+            updated.size = defaultSize.id
+          }
+          const defaultFruitCount = getDefaultFruitCount(product.commodity, value)
+          if (defaultFruitCount) {
+            updated.fruitCount = defaultFruitCount.id
+          }
+        }
+      }
+      
+      return {
+        ...prev,
+        [productId]: updated
+      }
+    })
+  }
+
   const canPreviewPriceSheet = () => {
     // Check if all main products have prices
     const selectedProductsHavePrices = getSelectedProducts().every(product => {
@@ -246,6 +407,22 @@ export default function NewPriceSheet() {
     })
     
     return selectedProductsHavePrices && getSelectedProducts().length > 0
+  }
+
+  // Helper function to format month range from seasonality
+  const formatMonthRange = (product: ProcessedProduct): string => {
+    const seasonality = product.seasonality
+    if (!seasonality || seasonality === 'Year-round') {
+      return 'Year Round'
+    }
+    
+    // If it's already a formatted range like "Jan - Apr" or "Oct - Dec", return as is
+    if (seasonality.includes(' - ')) {
+      return seasonality
+    }
+    
+    // If it's a single month or other format, return as is
+    return seasonality
   }
 
   // Helper function to check if a product is currently in season
@@ -374,7 +551,7 @@ export default function NewPriceSheet() {
       return {
         id: `${product.id}-main`,
         productId: index, // Use array index as unique productId
-        processingType: existingRow?.processingType || (hasProcessingTypes(product.commodity) ? getProcessingTypesForCommodity(product.commodity)[0]?.id : undefined),
+        processingType: existingRow?.processingType || getDefaultProcessingType(product.commodity)?.id,
         packageType: existingRow?.packageType || firstPackaging?.name || 'Standard Package',
         countSize: existingRow?.countSize || (hasCountSize(product.commodity) ? (getCountSizeOptions(product.commodity)[0] || '') : ''),
         grade: existingRow?.grade || getGradeOptions(product.commodity)[0] || 'US No. 1',
@@ -508,7 +685,7 @@ export default function NewPriceSheet() {
         return {
           id: `${product.id}-main`,
           productId: index, // Use array index as unique productId
-          processingType: hasProcessingTypes(product.commodity) ? getProcessingTypesForCommodity(product.commodity)[0]?.id : undefined,
+          processingType: getDefaultProcessingType(product.commodity)?.id,
           packageType: firstPackaging?.name || 'Standard Package',
           countSize: hasCountSize(product.commodity) ? (getCountSizeOptions(product.commodity)[0] || '') : '',
           grade: getGradeOptions(product.commodity)[0] || 'US No. 1',
@@ -732,53 +909,176 @@ export default function NewPriceSheet() {
   }
 
   // Generate preview data for base price sheet
-  const generatePreviewData = (): PreviewProduct[] => {
-    // Include both selected main rows AND pack style rows with prices
-    const selectedRows = productRows.filter(row => 
-      (row.isSelected && row.price) || // Main rows that are selected
-      (row.isPackStyleRow && row.price) // Pack style rows with prices (regardless of selection)
-    )
+  const generatePreviewData = (): PriceSheetProduct[] => {
+    const previewProducts: PriceSheetProduct[] = []
     
-    return selectedRows.map((row): PreviewProduct | null => {
-      // Find the real product data
-      let product: ProcessedProduct | undefined
-
-      if (row.isPackStyleRow) {
-        // For pack style rows, find the parent product using parentProductId
-        const parentRow = productRows.find(r => 
-          r.productId === row.parentProductId && !r.isPackStyleRow
-        )
-        if (parentRow) {
-          const parentProductId = parentRow.id.replace('-main', '')
-          product = products.find(p => p.id === parentProductId)
+    // Process each selected product
+    getSelectedProducts().forEach(product => {
+      const productId = product.id
+      const packaging = productPackaging[productId]
+      const price = productPrices[productId]
+      
+      // Skip if no price set
+      if (!price || price.trim() === '') return
+      
+      // Add main product
+      previewProducts.push(createPreviewProduct(product, packaging, price, productId))
+      
+      // Add pack styles for this product
+      const packCount = productPackStyles[productId] || 0
+      for (let i = 0; i < packCount; i++) {
+        const packKey = `${productId}-pack-${i}`
+        const packPackaging = productPackaging[packKey] || packaging
+        const packPrice = productPrices[packKey]
+        
+        // Skip pack style if no price set
+        if (!packPrice || packPrice.trim() === '') continue
+        
+        previewProducts.push(createPreviewProduct(product, packPackaging, packPrice, packKey, true))
+      }
+    })
+    
+    return previewProducts
+  }
+  
+  const createProductData = (
+    product: ProcessedProduct,
+    packaging: any,
+    price: string
+  ) => {
+    // Build package description
+    let packageDescription = ''
+    if (packaging?.packageType && packaging?.size) {
+      const config = getCommodityPackaging(product.commodity)
+      let packageType: PackageType | undefined
+      
+      if (config?.hasProcessing && packaging?.processingType) {
+        const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+        packageType = processingType?.packageTypes.find(pt => pt.id === packaging.packageType)
+      } else if (!config?.hasProcessing) {
+        packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+      }
+      
+      const size = packageType?.sizes.find(s => s.id === packaging.size)
+      if (packageType && size) {
+        packageDescription = `${size.name} ${packageType.name}`
+        
+        // Add fruit count for citrus
+        if (packaging?.fruitCount && packageType.fruitCounts) {
+          const fruitCount = packageType.fruitCounts.find(fc => fc.id === packaging.fruitCount)
+          if (fruitCount) {
+            packageDescription += ` (${fruitCount.name})`
+          }
         }
-      } else {
-        // For main rows, use the standard lookup
-        const productRowId = row.id.replace('-main', '')
-        product = products.find(p => p.id === productRowId)
       }
+    }
 
-      if (!product) return null
-
-      const basePrice = parseFloat(row.price)
-
-      return {
-        id: row.id,
-        productName: product.name,
-        region: product.region,
-        packageType: row.packageType,
-        countSize: row.countSize,
-        grade: row.grade,
-        basePrice,
-        adjustedPrice: basePrice, // No adjustment in base sheet
-        marketPrice: row.marketPrice ? parseFloat(row.marketPrice) : undefined,
-        availability: row.availability
+    return {
+      // References (for data integrity)
+      cropId: product.cropId,
+      variationId: product.variationId,
+      regionId: product.regionId,
+      
+      // Denormalized product details (for performance)
+      productName: `${product.commodity.charAt(0).toUpperCase() + product.commodity.slice(1)}${product.variety ? `, ${product.variety}` : ''}${product.isOrganic ? ' (Organic)' : ''}`,
+      category: product.commodity,
+      commodity: product.commodity,
+      variety: product.variety,
+      subtype: product.subtype,
+      isOrganic: product.isOrganic,
+      regionName: product.region,
+      
+      // Pricing and packaging
+      packageType: packageDescription || 'Standard Package',
+      countSize: undefined, // Not used in new system
+      grade: packaging?.grade || 'Standard',
+      price: parseFloat(price),
+      marketPrice: undefined, // TODO: Add market price integration
+      marketPriceUnit: undefined,
+      marketPriceDate: undefined,
+      availability: 'Available', // Default for now
+      isSelected: true,
+      customNote: undefined,
+      discountPercent: undefined
+    }
+  }
+  
+  const createPreviewProduct = (
+    product: ProcessedProduct, 
+    packaging: any, 
+    price: string, 
+    id: string,
+    isPackStyle: boolean = false
+  ): PriceSheetProduct => {
+    // Format product name with variety
+    let productName = product.commodity.charAt(0).toUpperCase() + product.commodity.slice(1)
+    if (product.variety) {
+      productName += `, ${product.variety}`
+    }
+    if (product.isOrganic) {
+      productName += ' (Organic)'
+    }
+    
+    // Add processing type if available
+    if (packaging?.processingType) {
+      const config = getCommodityPackaging(product.commodity)
+      const processingType = config?.processingTypes?.find(pt => pt.id === packaging.processingType)
+      if (processingType) {
+        productName += ` - ${processingType.name}`
       }
-    }).filter((product): product is PreviewProduct => product !== null)
+    }
+    
+    // Pack styles are equal to main products, no special indicator needed
+    
+    // Build package description
+    let packageDescription = ''
+    if (packaging?.packageType && packaging?.size) {
+      const config = getCommodityPackaging(product.commodity)
+      let packageType: PackageType | undefined
+      
+      if (config?.hasProcessing && packaging?.processingType) {
+        const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+        packageType = processingType?.packageTypes.find(pt => pt.id === packaging.packageType)
+      } else if (!config?.hasProcessing) {
+        packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+      }
+      
+      const size = packageType?.sizes.find(s => s.id === packaging.size)
+      if (packageType && size) {
+        packageDescription = `${size.name} ${packageType.name}`
+        
+        // Add fruit count for citrus
+        if (packaging?.fruitCount && packageType.fruitCounts) {
+          const fruitCount = packageType.fruitCounts.find(fc => fc.id === packaging.fruitCount)
+          if (fruitCount) {
+            packageDescription += ` (${fruitCount.name})`
+          }
+        }
+      }
+    }
+    
+    return {
+      id,
+      productName,
+      region: product.region,
+      packageType: packageDescription || 'Standard Package',
+      countSize: '', // Not used in new system
+      grade: packaging?.grade || 'Standard',
+      basePrice: parseFloat(price) || 0,
+      adjustedPrice: parseFloat(price) || 0,
+      availability: 'Available', // Default for now
+      showStrikethrough: false
+    }
   }
 
   const handlePreview = () => {
     setIsPreviewModalOpen(true)
+  }
+
+  const handleSendPriceSheet = () => {
+    // Close the modal and navigate to send page
+    setIsPreviewModalOpen(false)
+    router.push('/dashboard/price-sheets/send')
   }
 
   // Save price sheet to MongoDB
@@ -786,13 +1086,28 @@ export default function NewPriceSheet() {
     setIsSaving(true)
     
     try {
-      // Get all rows with prices (both selected main rows and pack style rows)
-      const rowsToSave = productRows.filter(row => 
-        ((row.isSelected && row.price) || (row.isPackStyleRow && row.price)) && 
-        parseFloat(row.price) > 0
-      )
+      // Get all products with prices (main products and pack styles)
+      const productsWithPrices: string[] = []
+      
+      // Check main products
+      getSelectedProducts().forEach(product => {
+        const price = productPrices[product.id]
+        if (price && price.trim() !== '' && parseFloat(price) > 0) {
+          productsWithPrices.push(product.id)
+        }
+        
+        // Check pack styles for this product
+        const packCount = productPackStyles[product.id] || 0
+        for (let i = 0; i < packCount; i++) {
+          const packKey = `${product.id}-pack-${i}`
+          const packPrice = productPrices[packKey]
+          if (packPrice && packPrice.trim() !== '' && parseFloat(packPrice) > 0) {
+            productsWithPrices.push(packKey)
+          }
+        }
+      })
 
-      if (rowsToSave.length === 0) {
+      if (productsWithPrices.length === 0) {
         alert('Please add prices to at least one product before saving.')
         setIsSaving(false)
         return
@@ -805,64 +1120,28 @@ export default function NewPriceSheet() {
         notes: undefined
       }
 
-      // Prepare products data
-      const productsData = rowsToSave.map(row => {
-        // Find the real product data
-        let product: ProcessedProduct | undefined
-
-        if (row.isPackStyleRow) {
-          // For pack style rows, find the parent product using parentProductId
-          const parentRow = productRows.find(r => 
-            r.productId === row.parentProductId && !r.isPackStyleRow
-          )
-          if (parentRow) {
-            const parentProductId = parentRow.id.replace('-main', '')
-            product = products.find(p => p.id === parentProductId)
+      // Prepare products data using new system
+      const productsData: any[] = []
+      
+      getSelectedProducts().forEach(product => {
+        const packaging = productPackaging[product.id]
+        const price = productPrices[product.id]
+        
+        // Add main product if it has a price
+        if (price && price.trim() !== '' && parseFloat(price) > 0) {
+          productsData.push(createProductData(product, packaging, price))
+        }
+        
+        // Add pack styles for this product
+        const packCount = productPackStyles[product.id] || 0
+        for (let i = 0; i < packCount; i++) {
+          const packKey = `${product.id}-pack-${i}`
+          const packPackaging = productPackaging[packKey] || packaging
+          const packPrice = productPrices[packKey]
+          
+          if (packPrice && packPrice.trim() !== '' && parseFloat(packPrice) > 0) {
+            productsData.push(createProductData(product, packPackaging, packPrice))
           }
-        } else {
-          // For main rows, use the standard lookup
-          const productRowId = row.id.replace('-main', '')
-          product = products.find(p => p.id === productRowId)
-        }
-
-        if (!product) {
-          console.error('Product lookup failed:', {
-            rowId: row.id,
-            isPackStyleRow: row.isPackStyleRow,
-            parentProductId: row.parentProductId,
-            productId: row.productId,
-            availableProducts: products.map(p => ({ id: p.id, name: p.name }))
-          })
-          throw new Error(`Product not found for row ${row.id}${row.isPackStyleRow ? ` (pack style, parent: ${row.parentProductId})` : ''}`)
-        }
-
-        return {
-          // References (for data integrity)
-          cropId: product.cropId, // This will be converted to ObjectId on backend
-          variationId: product.variationId,
-          regionId: product.regionId, // This will be converted to ObjectId on backend
-          
-          // Denormalized product details (for performance)
-          productName: product.name, // e.g., "Organic Lime Key Lime"
-          category: product.commodity, // Using commodity as category for now
-          commodity: product.commodity,
-          variety: product.variety,
-          subtype: product.subtype,
-          isOrganic: product.isOrganic,
-          regionName: product.region,
-          
-          // Pricing and packaging
-          packageType: row.packageType,
-          countSize: row.countSize || undefined,
-          grade: row.grade || undefined,
-          price: parseFloat(row.price),
-          marketPrice: row.marketPrice ? parseFloat(row.marketPrice) : undefined,
-          marketPriceUnit: row.marketPriceUnit || undefined,
-          marketPriceDate: row.marketPriceDate ? new Date(row.marketPriceDate) : undefined,
-          availability: row.availability,
-          isSelected: row.isSelected || row.isPackStyleRow, // Pack style rows are considered selected
-          customNote: undefined,
-          discountPercent: undefined
         }
       })
 
@@ -1008,13 +1287,114 @@ export default function NewPriceSheet() {
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 mb-3"
                 >
                   <option value="all">All Categories</option>
                   {getAvailableCategories().map(category => (
                     <option key={category.id} value={category.id}>{category.name}</option>
                   ))}
                 </select>
+
+                {/* Season Filters */}
+                <div className="flex space-x-2 mb-3">
+                  <button
+                    onClick={() => setInSeasonOnly(!inSeasonOnly)}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      inSeasonOnly
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                  >
+                    In Season
+                  </button>
+                  <button
+                    onClick={() => setUpcomingSeasonOnly(!upcomingSeasonOnly)}
+                    className={`flex-1 px-3 py-2 text-xs font-medium rounded-md transition-colors ${
+                      upcomingSeasonOnly
+                        ? 'bg-orange-100 text-orange-800 border border-orange-200'
+                        : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
+                    }`}
+                  >
+                    Coming Soon
+                  </button>
+                </div>
+
+                {/* Select All/Deselect All */}
+                {(() => {
+                  const visibleProducts = Object.values(getProductsByCommodity()).flat()
+                  const visibleCount = visibleProducts.length
+                  const selectedVisibleCount = visibleProducts.filter(p => selectedProductIds.has(p.id)).length
+                  const allVisibleSelected = visibleCount > 0 && selectedVisibleCount === visibleCount
+                  
+                  return (
+                    <button
+                      onClick={() => {
+                        if (allVisibleSelected) {
+                          // Deselect all visible products
+                          const newSelected = new Set(selectedProductIds)
+                          visibleProducts.forEach(product => {
+                            newSelected.delete(product.id)
+                            // Also clean up related state
+                            setProductPackStyles(prev => {
+                              const newStyles = { ...prev }
+                              delete newStyles[product.id]
+                              return newStyles
+                            })
+                            setProductPackaging(prev => {
+                              const newPackaging = { ...prev }
+                              delete newPackaging[product.id]
+                              // Also clean up pack style packaging
+                              Object.keys(newPackaging).forEach(key => {
+                                if (key.startsWith(`${product.id}-pack-`)) {
+                                  delete newPackaging[key]
+                                }
+                              })
+                              return newPackaging
+                            })
+                            setProductPrices(prev => {
+                              const newPrices = { ...prev }
+                              delete newPrices[product.id]
+                              // Also clean up pack style prices
+                              Object.keys(newPrices).forEach(key => {
+                                if (key.startsWith(`${product.id}-pack-`)) {
+                                  delete newPrices[key]
+                                }
+                              })
+                              return newPrices
+                            })
+                          })
+                          setSelectedProductIds(newSelected)
+                        } else {
+                          // Select all visible products
+                          const newSelected = new Set(selectedProductIds)
+                          visibleProducts.forEach(product => {
+                            newSelected.add(product.id)
+                            // Initialize packaging defaults for new products
+                            if (!selectedProductIds.has(product.id)) {
+                              initializeProductPackaging(product.id, product.commodity)
+                            }
+                          })
+                          setSelectedProductIds(newSelected)
+                        }
+                      }}
+                      disabled={visibleCount === 0}
+                      className={`w-full px-3 py-2 text-xs font-medium rounded-md transition-colors border ${
+                        visibleCount === 0
+                          ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                          : allVisibleSelected
+                          ? 'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
+                          : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                      }`}
+                    >
+                      {visibleCount === 0 
+                        ? 'No products to select'
+                        : allVisibleSelected 
+                        ? `Deselect All (${visibleCount})`
+                        : `Select All (${visibleCount})`
+                      }
+                    </button>
+                  )
+                })()}
               </div>
 
               {/* Product List */}
@@ -1038,18 +1418,31 @@ export default function NewPriceSheet() {
                             }`}
                             onClick={() => toggleProductInBuilder(product.id)}
                           >
-                            <div className="flex items-center space-x-2">
-                              <div>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
                                 <h5 className="text-sm font-medium text-gray-900">
                                   {product.commodity.charAt(0).toUpperCase() + product.commodity.slice(1)}
                                   {product.variety && `, ${product.variety}`}
                                 </h5>
-                                <p className="text-xs text-gray-600">{product.region}</p>
-                                {product.isOrganic && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 mt-1">
-                                    Organic
+                                <div className="flex items-center justify-between mt-0.5">
+                                  <div className="flex items-center space-x-2">
+                                    <p className="text-xs text-gray-600">{product.region}</p>
+                                    {product.isOrganic && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        Organic
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                    isProductInSeason(product)
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : isProductUpcomingSeason(product)
+                                      ? 'bg-orange-100 text-orange-700'
+                                      : 'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    {formatMonthRange(product)}
                                   </span>
-                                )}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1092,7 +1485,7 @@ export default function NewPriceSheet() {
                 ) : (
                   <div className="space-y-2">
                     {/* Header Row */}
-                    <div className="grid grid-cols-11 gap-3 items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="grid grid-cols-12 gap-3 items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="col-span-3">
                         <span className="text-xs font-medium text-gray-700">Product & Region</span>
                       </div>
@@ -1104,6 +1497,9 @@ export default function NewPriceSheet() {
                       </div>
                       <div className="col-span-1">
                         <span className="text-xs font-medium text-gray-700">Size</span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-xs font-medium text-gray-700">Count</span>
                       </div>
                       <div className="col-span-1">
                         <span className="text-xs font-medium text-gray-700">Grade</span>
@@ -1120,7 +1516,7 @@ export default function NewPriceSheet() {
                       <div key={product.id} className="space-y-1">
                         {/* Main Product Row */}
                         <div className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow">
-                          <div className="grid grid-cols-11 gap-3 items-center">
+                          <div className="grid grid-cols-12 gap-3 items-center">
                             {/* Product Info with + button - 3 columns */}
                             <div className="col-span-3">
                               <div className="flex items-start space-x-2">
@@ -1147,44 +1543,121 @@ export default function NewPriceSheet() {
                             </div>
 
                             {/* Processing Type - 1 column (if applicable) */}
-                            {hasProcessingTypes(product.commodity) ? (
-                              <div className="col-span-1">
-                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                  <option value="">Select...</option>
-                                  {getProcessingTypesForCommodity(product.commodity).map(type => (
-                                    <option key={type.id} value={type.id}>{type.name}</option>
-                                  ))}
-                                </select>
-                              </div>
-                            ) : (
-                              <div className="col-span-1"></div>
-                            )}
+                            {(() => {
+                              const config = getCommodityPackaging(product.commodity)
+                              return config?.hasProcessing ? (
+                                <div className="col-span-1">
+                                  <select 
+                                    value={productPackaging[product.id]?.processingType || ''}
+                                    onChange={(e) => updateProductPackaging(product.id, 'processingType', e.target.value)}
+                                    className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                  >
+                                    {config.processingTypes?.map(type => (
+                                      <option key={type.id} value={type.id}>{type.name}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              ) : (
+                                <div className="col-span-1"></div>
+                              )
+                            })()}
 
                             {/* Package Type - 1 column */}
                             <div className="col-span-1">
-                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                {getPackagingSpecs(product.commodity).map((pkg, idx) => (
-                                  <option key={idx} value={pkg.name}>{pkg.name.split(' ')[0]}</option>
-                                ))}
+                              <select 
+                                value={productPackaging[product.id]?.packageType || ''}
+                                onChange={(e) => updateProductPackaging(product.id, 'packageType', e.target.value)}
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                {(() => {
+                                  const config = getCommodityPackaging(product.commodity)
+                                  const packaging = productPackaging[product.id]
+                                  
+                                  if (config?.hasProcessing && packaging?.processingType) {
+                                    const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+                                    return processingType?.packageTypes.map(pkg => (
+                                      <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+                                    )) || []
+                                  } else if (!config?.hasProcessing) {
+                                    return config?.packageTypes?.map(pkg => (
+                                      <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+                                    )) || []
+                                  }
+                                  return [<option key="none" value="">Select Package</option>]
+                                })()}
                               </select>
                             </div>
 
                             {/* Size - 1 column */}
                             <div className="col-span-1">
-                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                {getPackagingSpecs(product.commodity).map((pkg, idx) => (
-                                  <option key={idx} value={pkg.name}>{pkg.name.split(' ').slice(1).join(' ')}</option>
-                                ))}
+                              <select 
+                                value={productPackaging[product.id]?.size || ''}
+                                onChange={(e) => updateProductPackaging(product.id, 'size', e.target.value)}
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                {(() => {
+                                  const config = getCommodityPackaging(product.commodity)
+                                  const packaging = productPackaging[product.id]
+                                  
+                                  let packageType: PackageType | undefined
+                                  
+                                  if (config?.hasProcessing && packaging?.processingType && packaging?.packageType) {
+                                    const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+                                    packageType = processingType?.packageTypes.find(pt => pt.id === packaging.packageType)
+                                  } else if (!config?.hasProcessing && packaging?.packageType) {
+                                    packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+                                  }
+                                  
+                                  return packageType?.sizes.map(size => (
+                                    <option key={size.id} value={size.id}>{size.name}</option>
+                                  )) || [<option key="none" value="">Select Size</option>]
+                                })()}
                               </select>
+                            </div>
+
+                            {/* Fruit Count - 1 column (for citrus only) */}
+                            <div className="col-span-1">
+                              {(() => {
+                                const config = getCommodityPackaging(product.commodity)
+                                const packaging = productPackaging[product.id]
+                                
+                                let packageType: PackageType | undefined
+                                
+                                if (!config?.hasProcessing && packaging?.packageType) {
+                                  packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+                                }
+                                
+                                if (packageType?.fruitCounts && packageType.fruitCounts.length > 0) {
+                                  return (
+                                    <select 
+                                      value={productPackaging[product.id]?.fruitCount || ''}
+                                      onChange={(e) => updateProductPackaging(product.id, 'fruitCount', e.target.value)}
+                                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                      {packageType.fruitCounts.map(count => (
+                                        <option key={count.id} value={count.id}>{count.name}</option>
+                                      ))}
+                                    </select>
+                                  )
+                                } else {
+                                  return <div className="text-xs text-gray-400">-</div>
+                                }
+                              })()}
                             </div>
 
                             {/* Grade - 1 column */}
                             <div className="col-span-1">
-                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                <option>US No. 1</option>
-                                <option>US No. 2</option>
-                                <option>Premium</option>
-                                <option>Choice</option>
+                              <select 
+                                value={productPackaging[product.id]?.grade || ''}
+                                onChange={(e) => updateProductPackaging(product.id, 'grade', e.target.value)}
+                                className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                              >
+                                {(() => {
+                                  const config = getCommodityPackaging(product.commodity)
+                                  return config?.grades.map(grade => (
+                                    <option key={grade} value={grade}>{grade}</option>
+                                  )) || [<option key="standard" value="Standard">Standard</option>]
+                                })()}
                               </select>
                             </div>
 
@@ -1219,7 +1692,7 @@ export default function NewPriceSheet() {
                         {/* Additional Pack Style Rows */}
                         {getPackStylesForProduct(product.id).map((packIndex) => (
                           <div key={`${product.id}-pack-${packIndex}`} className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:shadow-sm transition-shadow ml-4">
-                            <div className="grid grid-cols-11 gap-3 items-center">
+                            <div className="grid grid-cols-12 gap-3 items-center">
                               {/* Product info with remove button */}
                               <div className="col-span-3">
                                 <div className="flex items-center space-x-2">
@@ -1237,44 +1710,121 @@ export default function NewPriceSheet() {
                               </div>
 
                               {/* Processing Type - same as main */}
-                              {hasProcessingTypes(product.commodity) ? (
-                                <div className="col-span-1">
-                                  <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                    <option value="">Select...</option>
-                                    {getProcessingTypesForCommodity(product.commodity).map(type => (
-                                      <option key={type.id} value={type.id}>{type.name}</option>
-                                    ))}
-                                  </select>
-                                </div>
-                              ) : (
-                                <div className="col-span-1"></div>
-                              )}
+                              {(() => {
+                                const config = getCommodityPackaging(product.commodity)
+                                return config?.hasProcessing ? (
+                                  <div className="col-span-1">
+                                    <select 
+                                      value={productPackaging[`${product.id}-pack-${packIndex}`]?.processingType || productPackaging[product.id]?.processingType || ''}
+                                      onChange={(e) => updateProductPackaging(`${product.id}-pack-${packIndex}`, 'processingType', e.target.value)}
+                                      className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    >
+                                      {config.processingTypes?.map(type => (
+                                        <option key={type.id} value={type.id}>{type.name}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                ) : (
+                                  <div className="col-span-1"></div>
+                                )
+                              })()}
 
                               {/* Package Type */}
                               <div className="col-span-1">
-                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                  {getPackagingSpecs(product.commodity).map((pkg, idx) => (
-                                    <option key={idx} value={pkg.name}>{pkg.name.split(' ')[0]}</option>
-                                  ))}
+                                <select 
+                                  value={productPackaging[`${product.id}-pack-${packIndex}`]?.packageType || productPackaging[product.id]?.packageType || ''}
+                                  onChange={(e) => updateProductPackaging(`${product.id}-pack-${packIndex}`, 'packageType', e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  {(() => {
+                                    const config = getCommodityPackaging(product.commodity)
+                                    const packaging = productPackaging[`${product.id}-pack-${packIndex}`] || productPackaging[product.id]
+                                    
+                                    if (config?.hasProcessing && packaging?.processingType) {
+                                      const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+                                      return processingType?.packageTypes.map(pkg => (
+                                        <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+                                      )) || []
+                                    } else if (!config?.hasProcessing) {
+                                      return config?.packageTypes?.map(pkg => (
+                                        <option key={pkg.id} value={pkg.id}>{pkg.name}</option>
+                                      )) || []
+                                    }
+                                    return [<option key="none" value="">Select Package</option>]
+                                  })()}
                                 </select>
                               </div>
 
                               {/* Size */}
                               <div className="col-span-1">
-                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                  {getPackagingSpecs(product.commodity).map((pkg, idx) => (
-                                    <option key={idx} value={pkg.name}>{pkg.name.split(' ').slice(1).join(' ')}</option>
-                                  ))}
+                                <select 
+                                  value={productPackaging[`${product.id}-pack-${packIndex}`]?.size || productPackaging[product.id]?.size || ''}
+                                  onChange={(e) => updateProductPackaging(`${product.id}-pack-${packIndex}`, 'size', e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  {(() => {
+                                    const config = getCommodityPackaging(product.commodity)
+                                    const packaging = productPackaging[`${product.id}-pack-${packIndex}`] || productPackaging[product.id]
+                                    
+                                    let packageType: PackageType | undefined
+                                    
+                                    if (config?.hasProcessing && packaging?.processingType && packaging?.packageType) {
+                                      const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+                                      packageType = processingType?.packageTypes.find(pt => pt.id === packaging.packageType)
+                                    } else if (!config?.hasProcessing && packaging?.packageType) {
+                                      packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+                                    }
+                                    
+                                    return packageType?.sizes.map(size => (
+                                      <option key={size.id} value={size.id}>{size.name}</option>
+                                    )) || [<option key="none" value="">Select Size</option>]
+                                  })()}
                                 </select>
+                              </div>
+
+                              {/* Fruit Count - 1 column (for citrus only) */}
+                              <div className="col-span-1">
+                                {(() => {
+                                  const config = getCommodityPackaging(product.commodity)
+                                  const packaging = productPackaging[`${product.id}-pack-${packIndex}`] || productPackaging[product.id]
+                                  
+                                  let packageType: PackageType | undefined
+                                  
+                                  if (!config?.hasProcessing && packaging?.packageType) {
+                                    packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+                                  }
+                                  
+                                  if (packageType?.fruitCounts && packageType.fruitCounts.length > 0) {
+                                    return (
+                                      <select 
+                                        value={productPackaging[`${product.id}-pack-${packIndex}`]?.fruitCount || productPackaging[product.id]?.fruitCount || ''}
+                                        onChange={(e) => updateProductPackaging(`${product.id}-pack-${packIndex}`, 'fruitCount', e.target.value)}
+                                        className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                      >
+                                        {packageType.fruitCounts.map(count => (
+                                          <option key={count.id} value={count.id}>{count.name}</option>
+                                        ))}
+                                      </select>
+                                    )
+                                  } else {
+                                    return <div className="text-xs text-gray-400">-</div>
+                                  }
+                                })()}
                               </div>
 
                               {/* Grade */}
                               <div className="col-span-1">
-                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                  <option>US No. 1</option>
-                                  <option>US No. 2</option>
-                                  <option>Premium</option>
-                                  <option>Choice</option>
+                                <select 
+                                  value={productPackaging[`${product.id}-pack-${packIndex}`]?.grade || productPackaging[product.id]?.grade || ''}
+                                  onChange={(e) => updateProductPackaging(`${product.id}-pack-${packIndex}`, 'grade', e.target.value)}
+                                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                >
+                                  {(() => {
+                                    const config = getCommodityPackaging(product.commodity)
+                                    return config?.grades.map(grade => (
+                                      <option key={grade} value={grade}>{grade}</option>
+                                    )) || [<option key="standard" value="Standard">Standard</option>]
+                                  })()}
                                 </select>
                               </div>
 
@@ -1517,20 +2067,23 @@ export default function NewPriceSheet() {
                       
                       {/* Processing Type */}
                       <td className="w-28 px-4 py-4">
-                        {hasProcessingTypes(product.commodity) ? (
-                          <select
-                            value={row.processingType || ''}
-                            onChange={(e) => updateRowData(row.id, 'processingType', e.target.value)}
-                            className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
-                          >
-                            <option value="">-</option>
-                            {getProcessingTypesForCommodity(product.commodity).map(type => (
-                              <option key={type.id} value={type.id}>{type.name}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <span className="text-xs text-gray-400">N/A</span>
-                        )}
+                        {(() => {
+                          const config = getCommodityPackaging(product.commodity)
+                          return config?.hasProcessing ? (
+                            <select
+                              value={row.processingType || ''}
+                              onChange={(e) => updateRowData(row.id, 'processingType', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 bg-white px-2 py-1.5 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-sm min-w-0"
+                            >
+                              <option value="">-</option>
+                              {config.processingTypes?.map(type => (
+                                <option key={type.id} value={type.id}>{type.name}</option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-xs text-gray-400">N/A</span>
+                          )
+                        })()}
                       </td>
                       
                       {/* Combined Package & Size */}
@@ -1693,7 +2246,10 @@ export default function NewPriceSheet() {
         title={priceSheetTitle}
         onTitleChange={setPriceSheetTitle}
         products={generatePreviewData()}
+        userEmail={user?.email ? `sales@${user.email.split('@')[1]}` : undefined}
+        userPhone={user?.profile?.phone}
         onSave={handleSave}
+        onSendPriceSheet={handleSendPriceSheet}
         isSaving={isSaving}
         hasSaved={hasSaved}
       />

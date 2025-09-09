@@ -24,6 +24,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
   const [isInviteVerified, setIsInviteVerified] = useState(false)
   const [inviteError, setInviteError] = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
+  const [showWaitlist, setShowWaitlist] = useState(false)
+  const [showInviteForm, setShowInviteForm] = useState(false)
+  const [waitlistEmail, setWaitlistEmail] = useState('')
+  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
 
   // Sync isRegisterMode with initialMode prop changes
   useEffect(() => {
@@ -44,6 +48,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
       setIsInviteVerified(false)
       setInviteError('')
       setShowCelebration(false)
+      setShowWaitlist(initialMode === 'signup') // Show waitlist by default for signup
+      setShowInviteForm(false)
+      setWaitlistEmail('')
+      setWaitlistSubmitted(false)
     }
   }, [isOpen, initialMode])
 
@@ -131,6 +139,34 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     setIsInviteVerified(true)
   }
 
+  const handleWaitlistSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    
+    // Simulate API call to add email to waitlist
+    try {
+      // In a real app, you'd call your waitlist API here
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      setWaitlistSubmitted(true)
+    } catch (err) {
+      setError('Failed to join waitlist. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleShowInviteForm = () => {
+    setShowWaitlist(false)
+    setShowInviteForm(true)
+  }
+
+  const handleBackToWaitlist = () => {
+    setShowInviteForm(false)
+    setShowWaitlist(true)
+    setInviteError('')
+    setInviteCode('')
+  }
+
   const resetForm = () => {
     setEmail('')
     setPassword('')
@@ -142,6 +178,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     setIsInviteVerified(false)
     setInviteError('')
     setShowCelebration(false)
+    setShowWaitlist(false)
+    setShowInviteForm(false)
+    setWaitlistEmail('')
+    setWaitlistSubmitted(false)
     // Reset to initial mode when closing
     setIsRegisterMode(initialMode === 'signup')
   }
@@ -152,8 +192,18 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
   }
 
   const toggleMode = () => {
-    setIsRegisterMode(!isRegisterMode)
+    const newRegisterMode = !isRegisterMode
+    setIsRegisterMode(newRegisterMode)
     setError('')
+    
+    // If switching to register mode, show waitlist by default
+    if (newRegisterMode) {
+      setShowWaitlist(true)
+      setShowInviteForm(false)
+      setIsInviteVerified(false)
+      setShowCelebration(false)
+      setWaitlistSubmitted(false)
+    }
   }
 
   return (
@@ -197,7 +247,12 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                 <div className="sm:flex sm:items-start">
                   <div className="w-full mt-3 text-center sm:ml-0 sm:mt-0 sm:text-left">
                     <Dialog.Title as="h3" className="text-2xl font-semibold leading-6 text-gray-900 mb-6">
-                      {isRegisterMode ? (isInviteVerified ? 'Create Account' : 'Join AcreList') : 'Welcome Back'}
+                      {isRegisterMode ? (
+                        isInviteVerified ? 'Create Account' : 
+                        showWaitlist ? 'Join AcreList' : 
+                        showInviteForm ? 'Verify Access' : 
+                        'Join AcreList'
+                      ) : 'Welcome Back'}
                     </Dialog.Title>
 
                     {error && (
@@ -226,48 +281,130 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                             <span className="ml-2">→</span>
                           </button>
                         </div>
-                      ) : (
+                      ) : showInviteForm ? (
                         /* Invite Code Form */
                         <form onSubmit={handleInviteSubmit} className="space-y-4">
-                        <div className="text-center mb-6">
-                          <div className="mx-auto h-12 w-12 rounded-full bg-lime-100 flex items-center justify-center mb-4">
-                            <span className="text-lime-600 font-semibold text-lg">🔑</span>
+                          <div className="text-center mb-6">
+                            <div className="mx-auto h-12 w-12 rounded-full bg-lime-100 flex items-center justify-center mb-4">
+                              <span className="text-lime-600 font-semibold text-lg">🔑</span>
+                            </div>
+                            <h4 className="text-lg font-medium text-gray-900 mb-2">Enter Invite Code</h4>
+                            <p className="text-sm text-gray-600">
+                              Please enter your invite code to continue with account creation.
+                            </p>
                           </div>
-                          <h4 className="text-lg font-medium text-gray-900 mb-2">Early Access Required</h4>
-                          <p className="text-sm text-gray-600">
-                            AcreList is currently in early access. Please enter your invite code to continue.
-                          </p>
-                        </div>
 
-                        {inviteError && (
-                          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                            <p className="text-sm text-red-600">{inviteError}</p>
+                          {inviteError && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                              <p className="text-sm text-red-600">{inviteError}</p>
+                            </div>
+                          )}
+
+                          <div>
+                            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
+                              Invite Code
+                            </label>
+                            <input
+                              type="text"
+                              id="inviteCode"
+                              value={inviteCode}
+                              onChange={(e) => setInviteCode(e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                              placeholder="Enter your invite code"
+                              required
+                            />
                           </div>
-                        )}
 
-                        <div>
-                          <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
-                            Invite Code
-                          </label>
-                          <input
-                            type="text"
-                            id="inviteCode"
-                            value={inviteCode}
-                            onChange={(e) => setInviteCode(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
-                            placeholder="Enter your invite code"
-                            required
-                          />
-                        </div>
+                          <button
+                            type="submit"
+                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500"
+                          >
+                            Verify Invite Code
+                          </button>
 
-                        <button
-                          type="submit"
-                          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500"
-                        >
-                          Verify Invite Code
-                        </button>
+                          <div className="text-center">
+                            <button
+                              type="button"
+                              onClick={handleBackToWaitlist}
+                              className="text-sm text-gray-600 hover:text-gray-500"
+                            >
+                              ← Back to waitlist
+                            </button>
+                          </div>
                         </form>
-                      )
+                      ) : showWaitlist ? (
+                        waitlistSubmitted ? (
+                          /* Waitlist Success */
+                          <div className="text-center py-8">
+                            <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
+                              <span className="text-2xl">✅</span>
+                            </div>
+                            <h4 className="text-xl font-bold text-gray-900 mb-2">You're on the list!</h4>
+                            <p className="text-sm text-gray-600 mb-6">
+                              We'll notify you at <strong>{waitlistEmail}</strong> when AcreList becomes available.
+                            </p>
+                            <button
+                              onClick={handleClose}
+                              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                            >
+                              Close
+                            </button>
+                          </div>
+                        ) : (
+                          /* Waitlist Form */
+                          <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                            <div className="text-center mb-6">
+                              <div className="mx-auto h-12 w-12 rounded-full bg-lime-100 flex items-center justify-center mb-4">
+                                <span className="text-lime-600 font-semibold text-lg">🚀</span>
+                              </div>
+                              <h4 className="text-lg font-medium text-gray-900 mb-2">Early Access Required</h4>
+                              <p className="text-sm text-gray-600">
+                                AcreList is currently in early access. Join our waitlist to be notified when we launch.
+                              </p>
+                            </div>
+
+                            <div>
+                              <label htmlFor="waitlistEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                                Email Address
+                              </label>
+                              <input
+                                type="email"
+                                id="waitlistEmail"
+                                value={waitlistEmail}
+                                onChange={(e) => setWaitlistEmail(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                                placeholder="you@company.com"
+                                required
+                              />
+                            </div>
+
+                            <button
+                              type="submit"
+                              disabled={isLoading}
+                              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 disabled:opacity-50"
+                            >
+                              {isLoading ? (
+                                <div className="flex items-center">
+                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                  Joining waitlist...
+                                </div>
+                              ) : (
+                                'Join Waitlist'
+                              )}
+                            </button>
+
+                            <div className="text-center">
+                              <button
+                                type="button"
+                                onClick={handleShowInviteForm}
+                                className="text-sm text-lime-600 hover:text-lime-500 font-medium"
+                              >
+                                Have an invite code?
+                              </button>
+                            </div>
+                          </form>
+                        )
+                      ) : null
                     ) : (
                       /* Main Form */
                       <form onSubmit={handleSubmit} className="space-y-4">

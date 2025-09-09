@@ -102,7 +102,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                     <CheckCircleIcon className="h-16 w-16 text-green-500 mx-auto mb-4" />
                     <h4 className="text-xl font-semibold text-gray-900 mb-2">Welcome to AcreList!</h4>
                     <p className="text-gray-600 mb-6">
-                      We'll notify you as soon as early access is available. Keep an eye on your inbox!
+                      We&apos;ll notify you as soon as early access is available. Keep an eye on your inbox!
                     </p>
                     <button
                       onClick={handleClose}

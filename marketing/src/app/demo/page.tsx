@@ -82,8 +82,8 @@ export default function DemoPage() {
                     <PlayIcon className="h-20 w-20 text-white mx-auto mb-6 opacity-75" />
                     <p className="text-white text-2xl font-medium mb-4">Demo Video Coming Soon</p>
                     <p className="text-gray-300 text-lg max-w-md mx-auto mb-8">
-                      We're putting the finishing touches on our comprehensive demo video. 
-                      Join our early access list to be notified when it's ready!
+                      We&apos;re putting the finishing touches on our comprehensive demo video. 
+                      Join our early access list to be notified when it&apos;s ready!
                     </p>
                     <button
                       onClick={openWaitlistModal}
@@ -116,10 +116,10 @@ export default function DemoPage() {
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-              What You'll See in the Demo
+              What You&apos;ll See in the Demo
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              A complete walkthrough of how AcreList transforms your farm's sales process
+              A complete walkthrough of how AcreList transforms your farm&apos;s sales process
             </p>
           </div>
           
@@ -140,7 +140,7 @@ export default function DemoPage() {
                 </li>
                 <li className="flex items-start space-x-2">
                   <CheckIcon className="h-5 w-5 text-lime-500 mt-0.5 flex-shrink-0" />
-                  <span>Showcase your farm's story and certifications</span>
+                  <span>Showcase your farm&apos;s story and certifications</span>
                 </li>
               </ul>
             </div>
@@ -194,7 +194,7 @@ export default function DemoPage() {
       <div className="bg-slate-800 py-16">
         <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Transform Your Farm's Sales?
+            Ready to Transform Your Farm&apos;s Sales?
           </h2>
           <p className="text-xl text-gray-300 mb-8">
             Join hundreds of farmers already using AcreList to connect with premium buyers.

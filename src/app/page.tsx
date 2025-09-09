@@ -10,8 +10,7 @@ import {
   CurrencyDollarIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
-import LoginModal from '@/components/modals/LoginModal'
-import AIAssistantModal from '@/components/modals/AIAssistantModal'
+import WaitlistModal from '@/components/modals/WaitlistModal'
 
 // Mock dashboard data
 const mockProducts = [
@@ -28,30 +27,10 @@ const mockBuyerActivity = [
 ]
 
 export default function Home() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
-  const [modalMode, setModalMode] = useState<'login' | 'signup'>('login')
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false)
+  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false)
 
-  const handleLogin = async (email: string, password: string) => {
-    // This will be handled by the LoginModal component
-  }
-
-  const [hideToggle, setHideToggle] = useState(false)
-
-  const openSignupModal = () => {
-    setModalMode('signup')
-    setHideToggle(true) // Hide toggle for signup-focused CTAs
-    setIsLoginModalOpen(true)
-  }
-
-  const openLoginModal = () => {
-    setModalMode('login')
-    setHideToggle(false) // Show toggle for login button
-    setIsLoginModalOpen(true)
-  }
-
-  const openAIModal = () => {
-    setIsAIModalOpen(true)
+  const openWaitlistModal = () => {
+    setIsWaitlistModalOpen(true)
   }
 
   return (
@@ -61,7 +40,7 @@ export default function Home() {
         <nav className="flex items-center justify-between p-4 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-        <Image
+              <Image
                 src="/acrelist-logo.png" 
                 alt="AcreList" 
                 width={160} 
@@ -75,7 +54,7 @@ export default function Home() {
           </div>
           <div className="flex lg:flex-1 lg:justify-end gap-x-4">
             <button 
-              onClick={openLoginModal}
+              onClick={openWaitlistModal}
               className="text-sm font-medium text-gray-700 hover:text-lime-600"
             >
               Login
@@ -215,13 +194,13 @@ export default function Home() {
           {/* CTA */}
           <div className="text-center mt-12">
             <button
-              onClick={openSignupModal}
+              onClick={openWaitlistModal}
               className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
             >
-              Build Your Dashboard
+              Join Early Access
             </button>
             <p className="mt-4 text-sm text-gray-600">
-              Free 14-day trial • No credit card required • Setup in 5 minutes
+              Be the first to know when we launch • No spam, ever
             </p>
           </div>
         </div>
@@ -313,16 +292,16 @@ export default function Home() {
             Ready to build your command center?
           </h2>
           <p className="text-xl text-gray-300 mb-8">
-            Start your free trial today. No credit card required.
+            Be among the first to experience the future of agricultural sales.
           </p>
           <button
-            onClick={openSignupModal}
+            onClick={openWaitlistModal}
             className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-slate-800 bg-lime-400 hover:bg-lime-300"
           >
-            Start Free Trial
+            Join Early Access
           </button>
           <p className="mt-4 text-sm text-gray-400">
-            14-day free trial • Cancel anytime • Setup in 5 minutes
+            Early access • Be the first to know • No spam, ever
           </p>
         </div>
       </div>
@@ -336,38 +315,17 @@ export default function Home() {
               <span className="text-gray-400">•</span>
               <span className="text-sm text-gray-600">Your Farm&apos;s Command Center</span>
             </div>
-            <div className="flex items-center space-x-6">
-              <button 
-                onClick={openAIModal}
-                className="text-sm text-gray-500 hover:text-lime-600 underline"
-              >
-                Looking for the AcreList Sales Assistant?
-              </button>
-              <p className="text-sm text-gray-500">
-                © 2024 AcreList. All rights reserved.
-              </p>
-            </div>
+            <p className="text-sm text-gray-500">
+              © 2024 AcreList. All rights reserved.
+            </p>
           </div>
         </div>
       </footer>
 
-      {/* Login Modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => {
-          setIsLoginModalOpen(false)
-          // Reset states when modal closes
-          setHideToggle(false)
-        }}
-        onLogin={handleLogin}
-        initialMode={modalMode}
-        hideToggle={hideToggle}
-      />
-
-      {/* AI Assistant Modal */}
-      <AIAssistantModal
-        isOpen={isAIModalOpen}
-        onClose={() => setIsAIModalOpen(false)}
+      {/* Waitlist Modal */}
+      <WaitlistModal
+        isOpen={isWaitlistModalOpen}
+        onClose={() => setIsWaitlistModalOpen(false)}
       />
     </div>
   )

@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../../components/ui'
 import { Contact } from '../../../../../types'
+import { useUser } from '../../../../../contexts/UserContext'
 import EmailPreviewModal from '../../../../../components/modals/EmailPreviewModal'
 import SMSPreviewModal from '../../../../../components/modals/SMSPreviewModal'
 import PriceSheetPreviewModal from '../../../../../components/modals/PriceSheetPreviewModal'
@@ -152,6 +153,9 @@ const mockSelectedContacts: Contact[] = [
 ]
 
 export default function ScheduleSendPage() {
+  // User data
+  const { user } = useUser()
+  
   const [selectedContacts] = useState<Contact[]>(mockSelectedContacts)
   const [sendTiming, setSendTiming] = useState<'now' | 'scheduled'>('now')
   const [scheduledDate, setScheduledDate] = useState('')
@@ -671,6 +675,8 @@ export default function ScheduleSendPage() {
             new File([], 'romaine_quality_photos.jpg'),
             new File([], 'broccoli_crown_samples.jpg')
           ]}
+          userEmail={user?.profile?.email || 'sales@acrelist.com'}
+          userPhone={user?.profile?.phone || '(555) 123-4567'}
         />
       )}
 
@@ -722,8 +728,8 @@ export default function ScheduleSendPage() {
             pricingTier: priceSheetPreviewModal.contact?.pricesheetSettings?.globalAdjustment ? 'Custom Pricing' : 'Standard',
             pricingAdjustment: priceSheetPreviewModal.contact?.pricesheetSettings?.globalAdjustment || 0
           }}
-          userEmail="mike@graniteridgeproduce.com"
-          userPhone="(559) 555-0187"
+          userEmail={user?.profile?.email || 'sales@acrelist.com'}
+          userPhone={user?.profile?.phone || '(555) 123-4567'}
           mode="send"
         />
       )}

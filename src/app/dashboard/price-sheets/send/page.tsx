@@ -14,6 +14,7 @@ import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { Contact } from '../../../../types'
 import { priceSheetsApi, contactsApi } from '../../../../lib/api'
+import { useUser } from '../../../../contexts/UserContext'
 
 // Interfaces for real data
 interface PriceSheet {
@@ -107,6 +108,9 @@ const convertToPreviewFormat = async (products: PriceSheetProduct[]): Promise<Ar
 }
 
 export default function SendPriceSheets() {
+  // User data
+  const { user } = useUser()
+  
   // Data state
   const [priceSheets, setPriceSheets] = useState<PriceSheet[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -1153,14 +1157,7 @@ david@graniteridgeproduce.com | (559) 555-0234`
                 <div className="text-sm text-gray-600">
                   🎉 All emails generated and ready for delivery!
                 </div>
-                <div className="flex items-center space-x-3">
-                  <button
-                    type="button"
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                  >
-                    <EyeIcon className="h-4 w-4 mr-2" />
-                    Preview All
-                  </button>
+                <div className="flex items-center justify-end">
                   <button
                     type="button"
                     onClick={() => window.location.href = '/dashboard/price-sheets/send/schedule'}
@@ -1184,6 +1181,8 @@ david@graniteridgeproduce.com | (559) 555-0234`
           title={previewPriceSheet.title}
           products={previewProducts}
           additionalNotes={previewPriceSheet.notes}
+          userEmail={user?.profile?.email || 'sales@acrelist.com'}
+          userPhone={user?.profile?.phone || '(555) 123-4567'}
           mode="send"
         />
       )}

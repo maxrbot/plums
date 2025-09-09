@@ -11,10 +11,12 @@ interface EmailPreviewModalProps {
   contact: Contact
   customMessage?: string
   attachedFiles?: File[]
+  userEmail?: string
+  userPhone?: string
 }
 
 // Generate personalized email content (reusing logic from send page)
-const generatePersonalizedEmail = (contact: Contact, customMessage?: string) => {
+const generatePersonalizedEmail = (contact: Contact, customMessage?: string, userEmail?: string, userPhone?: string) => {
   const firstName = contact.firstName || 'Friend'
   const company = contact.company || 'Your Company'
   
@@ -44,7 +46,7 @@ Let me know what quantities work for ${company} and we can get this loaded today
 Talk soon,
 Mike Rodriguez
 Granite Ridge Produce
-mike@graniteridgeproduce.com | (559) 555-0187`
+${userEmail || 'sales@acrelist.com'} | ${userPhone || '(555) 123-4567'}`
   }
 }
 
@@ -53,9 +55,11 @@ export default function EmailPreviewModal({
   onClose,
   contact,
   customMessage,
-  attachedFiles = []
+  attachedFiles = [],
+  userEmail = 'sales@acrelist.com',
+  userPhone = '(555) 123-4567'
 }: EmailPreviewModalProps) {
-  const email = generatePersonalizedEmail(contact, customMessage)
+  const email = generatePersonalizedEmail(contact, customMessage, userEmail, userPhone)
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -113,7 +117,7 @@ export default function EmailPreviewModal({
                   <div className="space-y-2 text-sm">
                     <div className="flex">
                       <span className="w-16 text-gray-500 font-medium">From:</span>
-                      <span className="text-gray-900">mike@graniteridgeproduce.com</span>
+                      <span className="text-gray-900">{userEmail}</span>
                     </div>
                     <div className="flex">
                       <span className="w-16 text-gray-500 font-medium">To:</span>

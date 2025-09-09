@@ -105,6 +105,7 @@ export default function NewPriceSheet() {
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set())
   const [productPackStyles, setProductPackStyles] = useState<Record<string, number>>({})
   const [productPrices, setProductPrices] = useState<Record<string, string>>({})
+  const [expandedOptions, setExpandedOptions] = useState<Record<string, boolean>>({}) // Track expanded additional options per product
   
   // New packaging state management
   const [productPackaging, setProductPackaging] = useState<Record<string, {
@@ -260,6 +261,25 @@ export default function NewPriceSheet() {
       ...prev,
       [productId]: defaults
     }))
+    
+    // Set default price based on the initialized packaging
+    if (defaults.size) {
+      let packageType
+      if (config.hasProcessing && defaults.processingType) {
+        const processingType = config.processingTypes?.find(pt => pt.id === defaults.processingType)
+        packageType = processingType?.packageTypes.find(pt => pt.id === defaults.packageType)
+      } else {
+        packageType = config.packageTypes?.find(pt => pt.id === defaults.packageType)
+      }
+      
+      const sizeConfig = packageType?.sizes.find(s => s.id === defaults.size)
+      if (sizeConfig?.defaultPrice !== undefined) {
+        setProductPrices(prev => ({
+          ...prev,
+          [productId]: sizeConfig.defaultPrice!.toString()
+        }))
+      }
+    }
   }
 
   const toggleProductInBuilder = (productId: string) => {
@@ -298,14 +318,38 @@ export default function NewPriceSheet() {
   const addPackStyleForBuilder = (productId: string) => {
     setProductPackStyles(prev => {
       const newCount = (prev[productId] || 0) + 1
+      const packStyleId = `${productId}-pack-${newCount - 1}`
       
       // Initialize pack style with same settings as main product
       const mainPackaging = productPackaging[productId]
       if (mainPackaging) {
         setProductPackaging(prevPackaging => ({
           ...prevPackaging,
-          [`${productId}-pack-${newCount - 1}`]: { ...mainPackaging }
+          [packStyleId]: { ...mainPackaging }
         }))
+        
+        // Set default price based on the packaging settings
+        const product = products.find(p => p.id === productId)
+        if (product && mainPackaging.size) {
+          const config = getCommodityPackaging(product.commodity)
+          if (config) {
+            let packageType
+            if (config.hasProcessing && mainPackaging.processingType) {
+              const processingType = config.processingTypes?.find(pt => pt.id === mainPackaging.processingType)
+              packageType = processingType?.packageTypes.find(pt => pt.id === mainPackaging.packageType)
+            } else {
+              packageType = config.packageTypes?.find(pt => pt.id === mainPackaging.packageType)
+            }
+            
+            const sizeConfig = packageType?.sizes.find(s => s.id === mainPackaging.size)
+            if (sizeConfig?.defaultPrice !== undefined) {
+              setProductPrices(prevPrices => ({
+                ...prevPrices,
+                [packStyleId]: sizeConfig.defaultPrice!.toString()
+              }))
+            }
+          }
+        }
       }
       
       return {
@@ -359,10 +403,20 @@ export default function NewPriceSheet() {
           const defaultPackage = getDefaultPackageType(product.commodity, value)
           if (defaultPackage) {
             updated.packageType = defaultPackage.id
-            const defaultSize = getDefaultSize(product.commodity, value, defaultPackage.id)
-            if (defaultSize) {
-              updated.size = defaultSize.id
+          const defaultSize = getDefaultSize(product.commodity, value, defaultPackage.id)
+          if (defaultSize) {
+            updated.size = defaultSize.id
+            // Set default price if available
+            const config = getCommodityPackaging(product.commodity)
+            if (config?.hasProcessing) {
+              const processingType = config.processingTypes?.find(pt => pt.id === value)
+              const packageType = processingType?.packageTypes.find(pt => pt.id === defaultPackage.id)
+              const sizeConfig = packageType?.sizes.find(s => s.id === defaultSize.id)
+              if (sizeConfig?.defaultPrice) {
+                updateProductPrice(productId, null, sizeConfig.defaultPrice.toString())
+              }
             }
+          }
           }
         }
       } else if (field === 'packageType') {
@@ -372,10 +426,25 @@ export default function NewPriceSheet() {
         // Set new defaults
         const product = products.find(p => p.id === productId)
         if (product) {
-          const defaultSize = getDefaultSize(product.commodity, current.processingType, value)
-          if (defaultSize) {
-            updated.size = defaultSize.id
+        const defaultSize = getDefaultSize(product.commodity, current.processingType, value)
+        if (defaultSize) {
+          updated.size = defaultSize.id
+          // Set default price if available
+          const config = getCommodityPackaging(product.commodity)
+          if (config) {
+            let packageType
+            if (config.hasProcessing && current.processingType) {
+              const processingType = config.processingTypes?.find(pt => pt.id === current.processingType)
+              packageType = processingType?.packageTypes.find(pt => pt.id === value)
+            } else {
+              packageType = config.packageTypes?.find(pt => pt.id === value)
+            }
+            const sizeConfig = packageType?.sizes.find(s => s.id === defaultSize.id)
+            if (sizeConfig?.defaultPrice) {
+              updateProductPrice(productId, null, sizeConfig.defaultPrice.toString())
+            }
           }
+        }
           const defaultFruitCount = getDefaultFruitCount(product.commodity, value)
           if (defaultFruitCount) {
             updated.fruitCount = defaultFruitCount.id
@@ -1485,11 +1554,11 @@ export default function NewPriceSheet() {
                 ) : (
                   <div className="space-y-2">
                     {/* Header Row */}
-                    <div className="grid grid-cols-12 gap-3 items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="grid grid-cols-12 gap-2 items-center px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
                       <div className="col-span-3">
                         <span className="text-xs font-medium text-gray-700">Product & Region</span>
                       </div>
-                      <div className="col-span-1">
+                      <div className="col-span-2">
                         <span className="text-xs font-medium text-gray-700">Cut</span>
                       </div>
                       <div className="col-span-1">
@@ -1504,11 +1573,8 @@ export default function NewPriceSheet() {
                       <div className="col-span-1">
                         <span className="text-xs font-medium text-gray-700">Grade</span>
                       </div>
-                      <div className="col-span-2">
+                      <div className="col-span-3">
                         <span className="text-xs font-medium text-gray-700">Price</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-xs font-medium text-gray-700">Status</span>
                       </div>
                     </div>
 
@@ -1516,7 +1582,7 @@ export default function NewPriceSheet() {
                       <div key={product.id} className="space-y-1">
                         {/* Main Product Row */}
                         <div className="border border-gray-200 rounded-lg p-3 bg-white hover:shadow-sm transition-shadow">
-                          <div className="grid grid-cols-12 gap-3 items-center">
+                          <div className="grid grid-cols-12 gap-2 items-center">
                             {/* Product Info with + button - 3 columns */}
                             <div className="col-span-3">
                               <div className="flex items-start space-x-2">
@@ -1542,11 +1608,11 @@ export default function NewPriceSheet() {
                               </div>
                             </div>
 
-                            {/* Processing Type - 1 column (if applicable) */}
+                            {/* Processing Type - 2 columns (if applicable) */}
                             {(() => {
                               const config = getCommodityPackaging(product.commodity)
                               return config?.hasProcessing ? (
-                                <div className="col-span-1">
+                                <div className="col-span-2">
                                   <select 
                                     value={productPackaging[product.id]?.processingType || ''}
                                     onChange={(e) => updateProductPackaging(product.id, 'processingType', e.target.value)}
@@ -1558,7 +1624,7 @@ export default function NewPriceSheet() {
                                   </select>
                                 </div>
                               ) : (
-                                <div className="col-span-1"></div>
+                                <div className="col-span-2"></div>
                               )
                             })()}
 
@@ -1661,38 +1727,83 @@ export default function NewPriceSheet() {
                               </select>
                             </div>
 
-                            {/* Price - 2 columns */}
-                            <div className="col-span-2">
-                              <div className="relative">
-                                <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                                  <span className="text-gray-500 text-xs">$</span>
+                            {/* Price - 3 columns */}
+                            <div className="col-span-3">
+                              <div className="flex items-center space-x-2">
+                                <div className="relative flex-1">
+                                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                    <span className="text-gray-500 text-xs">$</span>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    value={productPrices[product.id] || ''}
+                                    onChange={(e) => updateProductPrice(product.id, null, e.target.value)}
+                                    className="w-full pl-5 pr-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder="0.00"
+                                  />
                                 </div>
-                                <input
-                                  type="text"
-                                  value={productPrices[product.id] || ''}
-                                  onChange={(e) => updateProductPrice(product.id, null, e.target.value)}
-                                  className="w-full pl-5 pr-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                  placeholder="0.00"
-                                />
+                                <button
+                                  onClick={() => setExpandedOptions(prev => ({
+                                    ...prev,
+                                    [product.id]: !prev[product.id]
+                                  }))}
+                                  className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded transition-colors ${
+                                    expandedOptions[product.id] 
+                                      ? 'text-green-600 bg-green-50' 
+                                      : 'text-green-500 hover:text-green-600 hover:bg-green-50'
+                                  }`}
+                                >
+                                  <svg 
+                                    className={`w-3 h-3 transition-transform ${expandedOptions[product.id] ? 'rotate-90' : ''}`}
+                                    fill="none" 
+                                    stroke="currentColor" 
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </button>
                               </div>
                             </div>
-
-                            {/* Availability - 2 columns */}
-                            <div className="col-span-2">
-                              <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                <option>Available</option>
-                                <option>Limited</option>
-                                <option>End Season</option>
-                                <option>Pre-Order</option>
-                              </select>
-                            </div>
                           </div>
+                          
+                          {/* Additional Options - Inline Expandable Section */}
+                          {expandedOptions[product.id] && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                              <div className="grid grid-cols-2 gap-4">
+                                {/* Availability */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Availability</label>
+                                  <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    <option>Available</option>
+                                    <option>Limited</option>
+                                    <option>End Season</option>
+                                    <option>Pre-Order</option>
+                                    <option>Contact for Availability</option>
+                                  </select>
+                                </div>
+                                
+                                {/* Stickers Toggle */}
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Product Features</label>
+                                  <div className="flex items-center space-x-3">
+                                    <label className="flex items-center">
+                                      <input
+                                        type="checkbox"
+                                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1"
+                                      />
+                                      <span className="ml-2 text-xs text-gray-700">Stickered</span>
+                                    </label>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {/* Additional Pack Style Rows */}
                         {getPackStylesForProduct(product.id).map((packIndex) => (
                           <div key={`${product.id}-pack-${packIndex}`} className="border border-gray-200 rounded-lg p-3 bg-gray-50 hover:shadow-sm transition-shadow ml-4">
-                            <div className="grid grid-cols-12 gap-3 items-center">
+                            <div className="grid grid-cols-12 gap-2 items-center">
                               {/* Product info with remove button */}
                               <div className="col-span-3">
                                 <div className="flex items-center space-x-2">
@@ -1713,7 +1824,7 @@ export default function NewPriceSheet() {
                               {(() => {
                                 const config = getCommodityPackaging(product.commodity)
                                 return config?.hasProcessing ? (
-                                  <div className="col-span-1">
+                                  <div className="col-span-2">
                                     <select 
                                       value={productPackaging[`${product.id}-pack-${packIndex}`]?.processingType || productPackaging[product.id]?.processingType || ''}
                                       onChange={(e) => updateProductPackaging(`${product.id}-pack-${packIndex}`, 'processingType', e.target.value)}
@@ -1725,7 +1836,7 @@ export default function NewPriceSheet() {
                                     </select>
                                   </div>
                                 ) : (
-                                  <div className="col-span-1"></div>
+                                  <div className="col-span-2"></div>
                                 )
                               })()}
 
@@ -1828,32 +1939,77 @@ export default function NewPriceSheet() {
                                 </select>
                               </div>
 
-                              {/* Price - 2 columns */}
-                              <div className="col-span-2">
-                                <div className="relative">
-                                  <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
-                                    <span className="text-gray-500 text-xs">$</span>
+                              {/* Price - 3 columns */}
+                              <div className="col-span-3">
+                                <div className="flex items-center space-x-2">
+                                  <div className="relative flex-1">
+                                    <div className="absolute inset-y-0 left-0 pl-2 flex items-center pointer-events-none">
+                                      <span className="text-gray-500 text-xs">$</span>
+                                    </div>
+                                    <input
+                                      type="text"
+                                      value={productPrices[`${product.id}-pack-${packIndex}`] || ''}
+                                      onChange={(e) => updateProductPrice(product.id, packIndex, e.target.value)}
+                                      className="w-full pl-5 pr-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                                      placeholder="0.00"
+                                    />
                                   </div>
-                                  <input
-                                    type="text"
-                                    value={productPrices[`${product.id}-pack-${packIndex}`] || ''}
-                                    onChange={(e) => updateProductPrice(product.id, packIndex, e.target.value)}
-                                    className="w-full pl-5 pr-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-                                    placeholder="0.00"
-                                  />
+                                  <button
+                                    onClick={() => setExpandedOptions(prev => ({
+                                      ...prev,
+                                      [`${product.id}-pack-${packIndex}`]: !prev[`${product.id}-pack-${packIndex}`]
+                                    }))}
+                                    className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded transition-colors ${
+                                      expandedOptions[`${product.id}-pack-${packIndex}`] 
+                                        ? 'text-green-600 bg-green-50' 
+                                        : 'text-green-500 hover:text-green-600 hover:bg-green-50'
+                                    }`}
+                                  >
+                                    <svg 
+                                      className={`w-3 h-3 transition-transform ${expandedOptions[`${product.id}-pack-${packIndex}`] ? 'rotate-90' : ''}`}
+                                      fill="none" 
+                                      stroke="currentColor" 
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                  </button>
                                 </div>
                               </div>
-
-                              {/* Availability - 2 columns */}
-                              <div className="col-span-2">
-                                <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-                                  <option>Available</option>
-                                  <option>Limited</option>
-                                  <option>End Season</option>
-                                  <option>Pre-Order</option>
-                                </select>
-                              </div>
                             </div>
+                            
+                            {/* Additional Options - Inline Expandable Section for Pack Styles */}
+                            {expandedOptions[`${product.id}-pack-${packIndex}`] && (
+                              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                <div className="grid grid-cols-2 gap-4">
+                                  {/* Availability */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Availability</label>
+                                    <select className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                      <option>Available</option>
+                                      <option>Limited</option>
+                                      <option>End Season</option>
+                                      <option>Pre-Order</option>
+                                      <option>Contact for Availability</option>
+                                    </select>
+                                  </div>
+                                  
+                                  {/* Stickers Toggle */}
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">Product Features</label>
+                                    <div className="flex items-center space-x-3">
+                                      <label className="flex items-center">
+                                        <input
+                                          type="checkbox"
+                                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 focus:ring-offset-0 focus:ring-1"
+                                        />
+                                        <span className="ml-2 text-xs text-gray-700">Stickered</span>
+                                      </label>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

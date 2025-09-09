@@ -412,14 +412,27 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
                             <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Status</label>
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              contact.status === 'active' ? 'bg-green-100 text-green-800' :
-                              contact.status === 'prospect' ? 'bg-blue-100 text-blue-800' :
-                              contact.status === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                              'bg-red-100 text-red-800'
-                            }`}>
-                              {contact.status}
-                            </span>
+                            <div className="flex flex-wrap gap-1">
+                              {contact.tags && contact.tags.length > 0 ? (
+                                contact.tags.map((tag) => (
+                                  <span key={tag} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                    tag === 'active' ? 'bg-green-100 text-green-800' :
+                                    tag === 'prospect' ? 'bg-blue-100 text-blue-800' :
+                                    tag === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {tag === 'active' ? 'Active' : 
+                                     tag === 'prospect' ? 'Prospect' : 
+                                     tag === 'inactive' ? 'Inactive' : 
+                                     tag}
+                                  </span>
+                                ))
+                              ) : (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                  {contact.status || 'No status'}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           {contact.industry && (
                             <div>

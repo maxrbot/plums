@@ -7,7 +7,8 @@ import {
   CheckIcon,
   MagnifyingGlassIcon,
   EnvelopeIcon,
-  DevicePhoneMobileIcon
+  DevicePhoneMobileIcon,
+  CalendarIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
@@ -122,6 +123,7 @@ export default function SendPriceSheets() {
   const [emailContent, setEmailContent] = useState('')
   const [emailSubject, setEmailSubject] = useState('')
   const [isEmailGenerated, setIsEmailGenerated] = useState(false)
+  const [isGeneratingEmails, setIsGeneratingEmails] = useState(false)
   
   // Step 3: Enhancement state
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
@@ -398,64 +400,23 @@ export default function SendPriceSheets() {
   }
 
   const generateAIEmail = async () => {
+    setIsGeneratingEmails(true)
+    
+    // Simulate AI processing time
+    await new Promise(resolve => setTimeout(resolve, 2500))
+    
     const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
     const analysis = await analyzePriceSheet(selectedPriceSheet)
     
-    // Build dynamic content based on analysis
-    let availabilityHighlights = ''
-    if (analysis) {
-      const highlights = []
-      if (analysis.availableItems > 0) highlights.push(`${analysis.availableItems} items ready for immediate delivery`)
-      if (analysis.newCropItems > 0) highlights.push(`${analysis.newCropItems} fresh harvest items just picked`)
-      if (analysis.preOrderItems > 0) highlights.push(`${analysis.preOrderItems} items available for pre-order`)
-      if (analysis.limitedItems > 0) highlights.push(`${analysis.limitedItems} limited availability items`)
-      
-      availabilityHighlights = highlights.length > 0 ? `\n🌱 This Week's Highlights:\n• ${highlights.join('\n• ')}` : ''
-    }
-
-    // Build attachments section
-    const attachmentsSection = attachedFiles.length > 0 
-      ? `\n📸 I've attached ${attachedFiles.length} photo${attachedFiles.length !== 1 ? 's' : ''} showing:\n• ${attachedFiles.map(f => f.name.replace(/\.[^/.]+$/, "")).join('\n• ')}\n`
-      : ''
-
-    // Custom message section
-    const customMessageSection = customMessage.trim() 
-      ? `\n💬 Special Note:\n${customMessage}\n`
-      : ''
-    
     // Generate subject line based on price sheet title
-    const subjectLine = selectedSheet?.title || selectedSheet?.name || 'Price Sheet'
+    const subjectLine = selectedSheet?.title || selectedSheet?.name || 'Weekly Price Sheet'
     
-    // Enhanced AI-generated email with smart content
-    const aiEmail = `Dear [FIRST_NAME],
-
-I hope this message finds you well! I'm excited to share our latest price sheet featuring ${analysis?.totalProducts || selectedSheet?.productsCount || 5} premium products from our farms.${availabilityHighlights}${customMessageSection}${attachmentsSection}
-Our team has carefully curated this selection based on current market conditions and seasonal availability. Each product meets our strict quality standards and is harvested at optimal freshness.
-
-[CUSTOM_PRICING_NOTE]
-
-[CUSTOM_NOTE]
-
-I'm here to answer any questions about availability, minimum orders, or special requirements for [COMPANY_NAME]. Don't hesitate to reach out if you'd like to discuss any items in detail.
-
-Looking forward to serving you with the best produce available!
-
-Best regards,
-[SENDER_NAME]
-[SENDER_EMAIL] | [SENDER_PHONE]
-
----
-Personalization Preview:
-• [FIRST_NAME] = Contact's first name
-• [COMPANY_NAME] = Contact's company
-• [PRICING_TIER] = Custom/Standard pricing
-• [DELIVERY_METHOD] = Email/SMS preference
-• [CUSTOM_PRICING_NOTE] = Pricing adjustment details
-• [CUSTOM_NOTE] = Individual contact note
-• [SENDER_NAME] = Your name from settings`
+    // Set basic template (not used in display but kept for consistency)
+    const aiEmail = `Personalized emails generated for each contact with custom pricing and messaging.`
 
     setEmailSubject(subjectLine)
     setEmailContent(aiEmail)
+    setIsGeneratingEmails(false)
     setIsEmailGenerated(true)
   }
 
@@ -466,6 +427,112 @@ Personalization Preview:
       adjusted: adjustedPrice,
       difference: adjustedPrice - basePrice
     }
+  }
+
+  // Helper function to generate realistic personalized emails for demo based on actual price sheet
+  const generatePersonalizedEmailForContact = (contact: Contact, index: number) => {
+    const firstName = contact.firstName || 'Friend'
+    const company = contact.company || 'Your Company'
+    
+    // Different email variations for demo purposes based on Granite Ridge Produce Price Sheet
+    const emailVariations = [
+      {
+        subject: `Granite Ridge Produce - Today's Deals`,
+        content: `Hey ${firstName},
+
+Great talking with you on the phone yesterday! Please see the attached Price Sheet and quality photos. We have some featured items that I think you'll be interested in:
+
+🥬 Today's Featured Items:
+• Romaine Lettuce: 24ct cartons, premium grade - $19.00
+• Broccoli: 14ct cases, premium quality - $28.50
+• Celery: 30ct cartons, crisp and fresh - $24.50
+• Valencia Oranges: 40lb cartons (56s), fancy grade - $45.00
+
+${contact.pricingAdjustment !== 0 ? 
+  contact.pricingAdjustment > 0 ? 
+    `As discussed, your premium pricing reflects the priority service and quality grades we reserve for ${company}.` :
+    `Don't forget about your ${Math.abs(contact.pricingAdjustment)}% volume discount - already reflected in the attached sheet.`
+  : 'All pricing is current as of this morning.'
+}
+
+${customMessage ? `Also wanted to mention: ${customMessage}` : ''}
+
+Let me know what quantities work for ${company} and we can get this loaded today.
+
+Talk soon,
+Mike Rodriguez
+Granite Ridge Produce
+mike@graniteridgeproduce.com | (559) 555-0187`
+      },
+      {
+        subject: `Granite Ridge Produce - Today's Deals`,
+        content: `Hi ${firstName},
+
+Hope you're having a good week! Wanted to follow up on our conversation and get you our latest availability. Attached is today's price sheet with some quality shots of the product.
+
+🥬 What's Looking Good:
+• Romaine Lettuce (24ct cartons): $19.00 - really nice heads
+• Broccoli (14ct cases): $28.50 - tight crowns, great color  
+• Celery (30ct cartons): $24.50 - super crisp, good snap
+• Valencia Oranges (40lb/56s): $45.00 - sweet and juicy
+
+${contact.pricingAdjustment !== 0 ? 
+  contact.pricingAdjustment > 0 ? 
+    `Your pricing includes the premium service package we set up for ${company} - priority picking and dedicated logistics.` :
+    `Your ${Math.abs(contact.pricingAdjustment)}% partnership discount is already built into these numbers.`
+  : 'Pricing is competitive and current as of this morning.'
+}
+
+${customMessage ? `Quick note: ${customMessage}` : ''}
+
+Everything's available for pickup or delivery today. Just let me know what ${company} needs!
+
+Best,
+Sarah Martinez
+Granite Ridge Produce
+sarah@graniteridgeproduce.com | (559) 555-0123`
+      },
+      {
+        subject: `Granite Ridge Produce - Today's Deals`,
+        content: `Hey ${firstName},
+
+Thanks for taking my call earlier! As promised, here's today's price sheet with photos. I think you'll like what we have available.
+
+🥬 Today's Highlights:
+• Romaine Lettuce: 24ct cartons at $19.00 - premium quality
+• Broccoli: 14ct cases at $28.50 - fresh cut this morning
+• Celery: 30ct cartons at $24.50 - excellent crunch
+• Valencia Oranges: 40lb cartons (56s) at $45.00 - perfect for retail
+
+${contact.pricingAdjustment !== 0 ? 
+  contact.pricingAdjustment > 0 ? 
+    `As we discussed, the premium pricing ensures ${company} gets first pick of our best grades.` :
+    `Your ${Math.abs(contact.pricingAdjustment)}% volume pricing is already calculated in - no surprises.`
+  : 'Straight pricing, no games - what you see is what you get.'
+}
+
+${customMessage ? `One more thing: ${customMessage}` : ''}
+
+All items are ready to ship and perfect for ${company.includes('Market') || company.includes('Grocery') ? 'your customers' : company.includes('CPG') ? 'processing' : 'your operation'}. 
+
+Give me a shout when you're ready to move!
+
+Cheers,
+David Park
+Granite Ridge Produce
+david@graniteridgeproduce.com | (559) 555-0234`
+      }
+    ]
+    
+    return emailVariations[index % emailVariations.length]
+  }
+
+  // Helper function to personalize email subject for a specific contact
+  const personalizeSubjectForContact = (contact: Contact, template: string) => {
+    const firstName = contact.firstName || 'Friend'
+    return template
+      .replace(/\[FIRST_NAME\]/g, firstName)
+      .replace(/\[COMPANY_NAME\]/g, contact.company || 'Your Company')
   }
 
   const tierCounts = {
@@ -816,8 +883,8 @@ Personalization Preview:
                     <p className="text-sm font-medium text-gray-700 mb-1">Attached Files ({attachedFiles.length}):</p>
                     <div className="flex flex-wrap gap-2">
                       {attachedFiles.map((file, index) => (
-                        <span key={index} className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-orange-300 text-xs text-gray-700">
-                          {file.type.startsWith('image/') ? '📷' : file.type === 'application/pdf' ? '📄' : '📎'}
+                        <span key={`attached-file-${index}-${file.name}`} className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-orange-300 text-xs text-gray-700">
+                          {file.type.startsWith('image/') ? '📷' : file.type.startsWith('video/') ? '🎥' : file.type === 'application/pdf' ? '📄' : '📎'}
                           <span className="ml-1">{file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name}</span>
                         </span>
                       ))}
@@ -834,27 +901,10 @@ Personalization Preview:
                 </p>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Custom Message Input */}
+              {/* File Attachments - Now First */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  What would you like to emphasize?
-                </label>
-                <textarea
-                  value={customMessage}
-                  onChange={(e) => handleCustomMessageChange(e.target.value)}
-                  rows={4}
-                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm"
-                  placeholder="e.g., 'Just harvested our first strawberries of the season' or 'Limited quantities - first come, first served'"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  This will be included in your personalized email message.
-                </p>
-              </div>
-
-              {/* File Attachments */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Attach Photos & Documents
+                  Showcase Your Product Quality
                 </label>
                 <div
                   onDragOver={handleDragOver}
@@ -869,7 +919,7 @@ Personalization Preview:
                   <input
                     type="file"
                     multiple
-                    accept="image/*,.pdf,.doc,.docx"
+                    accept="image/*,video/*,.pdf,.doc,.docx"
                     onChange={handleFileSelect}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
@@ -883,7 +933,10 @@ Personalization Preview:
                       <span className="font-medium text-orange-600">Click to upload</span> or drag and drop
                     </div>
                     <p className="text-xs text-gray-500">
-                      Photos, PDFs, or documents (Max 10MB each)
+                      Add photos of your fresh produce, videos showing quality, or spec sheets
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Max 10MB each • Photos, videos, PDFs, documents
                     </p>
                   </div>
                 </div>
@@ -893,11 +946,13 @@ Personalization Preview:
                   <div className="mt-4 space-y-2">
                     <p className="text-sm font-medium text-gray-700">Attached Files:</p>
                     {attachedFiles.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
+                      <div key={`summary-file-${index}-${file.name}`} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
                         <div className="flex items-center space-x-2">
                           <div className="flex-shrink-0">
                             {file.type.startsWith('image/') ? (
                               <span className="text-green-600">📷</span>
+                            ) : file.type.startsWith('video/') ? (
+                              <span className="text-purple-600">🎥</span>
                             ) : file.type === 'application/pdf' ? (
                               <span className="text-red-600">📄</span>
                             ) : (
@@ -921,6 +976,23 @@ Personalization Preview:
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Custom Message Input - Now Second */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  What would you like to emphasize?
+                </label>
+                <textarea
+                  value={customMessage}
+                  onChange={(e) => handleCustomMessageChange(e.target.value)}
+                  rows={4}
+                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm"
+                  placeholder="e.g., 'Just harvested our first strawberries of the season' or 'Limited quantities - first come, first served'"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  This will be included in your personalized email message.
+                </p>
               </div>
             </div>
             
@@ -946,114 +1018,160 @@ Personalization Preview:
           </div>
         )}
 
-        {/* Step 4: Send */}
+        {/* Step 4: Email Generation */}
         {selectedPriceSheet && selectedContacts.length > 0 && isStep3Collapsed && (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-2">
               <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">4</div>
-              <h2 className="text-lg font-medium text-gray-900">Send</h2>
+              <h2 className="text-lg font-medium text-gray-900">Email Generation</h2>
             </div>
             <p className="text-sm text-gray-600 mb-6 ml-11">
-              Dynamic pricing and personalized messages will be applied automatically for each contact.
+              Ready to create {selectedContacts.length} unique emails with dynamic pricing and personalized messaging.
             </p>
 
-            {/* AI Email Generation */}
-            <div className="bg-white border border-gray-200 rounded-lg p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Email Message</h3>
-                {!isEmailGenerated && (
-                  <button
-                    onClick={generateAIEmail}
-                    className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
-                  >
-                    ✨ Generate AI Email
-                  </button>
-                )}
-              </div>
-              
-              {isEmailGenerated ? (
-                <div>
-                  <div className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Content (Editable)
-                    </label>
-                    <p className="text-xs text-gray-500 mb-2">
-                      AI-generated email ready to send. Edit as needed before sending.
-                    </p>
+            {/* Personalized Email Previews */}
+            {isEmailGenerated && (
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-medium text-gray-900">Personalized Email Previews</h3>
+                  <div className="text-sm text-gray-500">
+                    Showing {Math.min(selectedContacts.length, 3)} of {selectedContacts.length} contacts
                   </div>
-                  
-                  {/* Subject Line */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      value={emailSubject}
-                      onChange={(e) => setEmailSubject(e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                      placeholder="Enter email subject..."
-                    />
-                  </div>
-                  
-                  {/* Email Body */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Message
-                    </label>
-                    <textarea
-                      value={emailContent}
-                      onChange={(e) => setEmailContent(e.target.value)}
-                      rows={12}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm font-mono"
-                      placeholder="Enter email message..."
-                    />
-                  </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <p className="text-xs text-gray-500">
-                      Placeholders will be automatically replaced with each contact's specific information.
-                    </p>
-                    <button
-                      onClick={generateAIEmail}
-                      className="text-sm text-blue-600 hover:text-blue-500"
-                    >
-                      🔄 Regenerate
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+                  {selectedContacts.slice(0, 3).map((contactId, index) => {
+                    const contact = contacts.find(c => c.id === contactId)
+                    if (!contact) return null
+                    
+                    const personalizedEmail = generatePersonalizedEmailForContact(contact, index)
+                    
+                    return (
+                      <div key={`email-preview-${contact.id}-${index}`} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-900">{contact.firstName} {contact.lastName}</h4>
+                            <p className="text-xs text-gray-500">{contact.email}</p>
+                            <p className="text-xs text-gray-400">{contact.company}</p>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            {contact.pricingAdjustment !== 0 && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                {contact.pricingAdjustment > 0 ? '+' : ''}{contact.pricingAdjustment}%
+                              </span>
+                            )}
+                            {renderDeliveryMethod(contact)}
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 mb-1">Subject:</p>
+                            <p className="text-xs text-gray-900 bg-white px-2 py-1 rounded border">{personalizedEmail.subject}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs font-medium text-gray-700 mb-1">Message Preview:</p>
+                            <div className="text-xs text-gray-900 bg-white px-2 py-2 rounded border max-h-32 overflow-y-auto">
+                              {personalizedEmail.content.split('\n').slice(0, 6).map((line, lineIndex) => (
+                                <div key={`${contact.id}-line-${lineIndex}`} className={line.includes('💰') || line.includes('🎯') || line.includes('✨') || line.includes('🌟') ? 'text-blue-600 font-medium' : ''}>
+                                  {line}
+                                </div>
+                              ))}
+                              {personalizedEmail.content.split('\n').length > 6 && (
+                                <div key={`${contact.id}-more`} className="text-gray-400 italic">...and more</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }).filter(Boolean)}
+                </div>
+                
+                {selectedContacts.length > 3 && (
+                  <div className="text-center">
+                    <button className="text-sm text-blue-600 hover:text-blue-500">
+                      View all {selectedContacts.length} personalized emails →
                     </button>
                   </div>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <p className="text-sm">Click &quot;Generate AI Email&quot; to create a personalized message for your recipients.</p>
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
 
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Ready to send to {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} with personalized pricing and messages.
+            {/* Generate Email Button or Loading */}
+            {!isEmailGenerated && !isGeneratingEmails && (
+              <div className="text-center mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-4">
+                  <div className="flex items-center justify-center mb-4">
+                    <div className="flex -space-x-2">
+                      {selectedContacts.slice(0, 3).map((contactId, index) => {
+                        const contact = contacts.find(c => c.id === contactId)
+                        if (!contact) return null
+                        return (
+                          <div key={contact.id} className="w-8 h-8 bg-white border-2 border-white rounded-full flex items-center justify-center text-xs font-medium text-gray-700 shadow-sm">
+                            {contact.firstName ? contact.firstName.charAt(0) : '?'}
+                          </div>
+                        )
+                      }).filter(Boolean)}
+                      {selectedContacts.length > 3 && (
+                        <div className="w-8 h-8 bg-gray-100 border-2 border-white rounded-full flex items-center justify-center text-xs font-medium text-gray-500 shadow-sm">
+                          +{selectedContacts.length - 3}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-base font-medium text-gray-900 mb-4">
+                    AI will craft unique emails for each contact with custom pricing and messaging.
+                  </p>
+                  <button
+                    onClick={generateAIEmail}
+                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transform hover:scale-105 transition-all duration-200"
+                  >
+                    ✨ Generate {selectedContacts.length} Personalized Email{selectedContacts.length !== 1 ? 's' : ''}
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center space-x-3">
-                <button
-                  type="button"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  <EyeIcon className="h-4 w-4 mr-2" />
-                  Preview
-                </button>
-                <button
-                  type="button"
-                  disabled={!isEmailGenerated}
-                  className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm ${
-                    isEmailGenerated 
-                      ? 'text-white bg-green-600 hover:bg-green-700' 
-                      : 'text-gray-400 bg-gray-200 cursor-not-allowed'
-                  }`}
-                >
-                  <PaperAirplaneIcon className="h-4 w-4 mr-2" />
-                  Send to {selectedContacts.length} Contact{selectedContacts.length !== 1 ? 's' : ''}
-                </button>
+            )}
+
+            {/* Loading State */}
+            {isGeneratingEmails && (
+              <div className="text-center py-8 mb-6">
+                <div className="mb-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                </div>
+                <h3 className="text-base font-medium text-gray-900 mb-2">
+                  Generating Personalized Emails...
+                </h3>
+                <p className="text-sm text-gray-600">
+                  AI is crafting custom messages for each of your {selectedContacts.length} contacts
+                </p>
               </div>
-            </div>
+            )}
+
+            {isEmailGenerated && (
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-600">
+                  🎉 All emails generated and ready for delivery!
+                </div>
+                <div className="flex items-center space-x-3">
+                  <button
+                    type="button"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <EyeIcon className="h-4 w-4 mr-2" />
+                    Preview All
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => window.location.href = '/dashboard/price-sheets/send/schedule'}
+                    className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                  >
+                    <CalendarIcon className="h-4 w-4 mr-2" />
+                    Schedule & Send
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

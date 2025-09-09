@@ -7,6 +7,7 @@ export interface PackageSize {
   weight?: string // "40lb", "25lb" 
   count?: string // "14ct", "18ct"
   isDefault?: boolean
+  defaultPrice?: number // Recent/typical price for this package size
 }
 
 export interface FruitCount {
@@ -53,11 +54,11 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
         id: 'carton',
         name: 'Carton',
         type: 'carton',
-        sizes: [
-          { id: '40lb', name: '40lb', weight: '40lb', isDefault: true },
-          { id: '25lb', name: '25lb', weight: '25lb' },
-          { id: '35lb', name: '35lb', weight: '35lb' }
-        ],
+          sizes: [
+            { id: '40lb', name: '40lb', weight: '40lb', isDefault: true, defaultPrice: 45.00 },
+            { id: '25lb', name: '25lb', weight: '25lb', defaultPrice: 32.50 },
+            { id: '35lb', name: '35lb', weight: '35lb', defaultPrice: 38.75 }
+          ],
         fruitCounts: [
           { id: '56s', name: '56s', description: 'Extra Large', isDefault: true },
           { id: '72s', name: '72s', description: 'Large' },
@@ -71,9 +72,9 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
         name: 'Bag',
         type: 'bag',
         sizes: [
-          { id: '3lb', name: '3lb', weight: '3lb', isDefault: true },
-          { id: '5lb', name: '5lb', weight: '5lb' },
-          { id: '1lb', name: '1lb', weight: '1lb' }
+          { id: '3lb', name: '3lb', weight: '3lb', isDefault: true, defaultPrice: 8.50 },
+          { id: '5lb', name: '5lb', weight: '5lb', defaultPrice: 12.75 },
+          { id: '1lb', name: '1lb', weight: '1lb', defaultPrice: 3.25 }
         ]
         // No fruit counts for retail bags
       }
@@ -97,9 +98,9 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Case',
             type: 'case',
             sizes: [
-              { id: '14ct', name: '14ct', count: '14ct', isDefault: true },
-              { id: '18ct', name: '18ct', count: '18ct' },
-              { id: '12ct', name: '12ct', count: '12ct' }
+              { id: '14ct', name: '14ct', count: '14ct', isDefault: true, defaultPrice: 28.50 },
+              { id: '18ct', name: '18ct', count: '18ct', defaultPrice: 35.75 },
+              { id: '12ct', name: '12ct', count: '12ct', defaultPrice: 24.00 }
             ],
             isDefault: true
           },
@@ -108,8 +109,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Box',
             type: 'carton',
             sizes: [
-              { id: '25lb', name: '25lb', weight: '25lb', isDefault: true },
-              { id: '20lb', name: '20lb', weight: '20lb' }
+              { id: '25lb', name: '25lb', weight: '25lb', isDefault: true, defaultPrice: 42.50 },
+              { id: '20lb', name: '20lb', weight: '20lb', defaultPrice: 35.00 }
             ]
           }
         ],
@@ -125,8 +126,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Case',
             type: 'case',
             sizes: [
-              { id: '14ct', name: '14ct', count: '14ct', isDefault: true },
-              { id: '18ct', name: '18ct', count: '18ct' }
+              { id: '14ct', name: '14ct', count: '14ct', isDefault: true, defaultPrice: 26.50 },
+              { id: '18ct', name: '18ct', count: '18ct', defaultPrice: 32.75 }
             ],
             isDefault: true
           },
@@ -135,8 +136,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Bunch',
             type: 'bunch',
             sizes: [
-              { id: '1ct', name: '1ct', count: '1ct', isDefault: true },
-              { id: '3ct', name: '3ct', count: '3ct' }
+              { id: '1ct', name: '1ct', count: '1ct', isDefault: true, defaultPrice: 2.25 },
+              { id: '3ct', name: '3ct', count: '3ct', defaultPrice: 6.50 }
             ]
           }
         ]
@@ -151,10 +152,10 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Bag',
             type: 'bag',
             sizes: [
-              { id: '2lb', name: '2lb', weight: '2lb', isDefault: true },
-              { id: '1lb', name: '1lb', weight: '1lb' },
-              { id: '5lb', name: '5lb', weight: '5lb' },
-              { id: '12oz', name: '12oz', weight: '12oz' }
+              { id: '2lb', name: '2lb', weight: '2lb', isDefault: true, defaultPrice: 8.75 },
+              { id: '1lb', name: '1lb', weight: '1lb', defaultPrice: 4.50 },
+              { id: '5lb', name: '5lb', weight: '5lb', defaultPrice: 20.50 },
+              { id: '12oz', name: '12oz', weight: '12oz', defaultPrice: 3.25 }
             ],
             isDefault: true
           },
@@ -255,9 +256,9 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Carton',
             type: 'carton',
             sizes: [
-              { id: '30ct', name: '30ct', count: '30ct', isDefault: true },
-              { id: '36ct', name: '36ct', count: '36ct' },
-              { id: '24ct', name: '24ct', count: '24ct' }
+              { id: '30ct', name: '30ct', count: '30ct', isDefault: true, defaultPrice: 24.50 },
+              { id: '36ct', name: '36ct', count: '36ct', defaultPrice: 28.75 },
+              { id: '24ct', name: '24ct', count: '24ct', defaultPrice: 19.50 }
             ],
             isDefault: true
           }
@@ -274,8 +275,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Bag',
             type: 'bag',
             sizes: [
-              { id: '2lb', name: '2lb', weight: '2lb', isDefault: true },
-              { id: '5lb', name: '5lb', weight: '5lb' }
+              { id: '2lb', name: '2lb', weight: '2lb', isDefault: true, defaultPrice: 9.50 },
+              { id: '5lb', name: '5lb', weight: '5lb', defaultPrice: 22.75 }
             ],
             isDefault: true
           }
@@ -291,8 +292,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Bag',
             type: 'bag',
             sizes: [
-              { id: '2lb', name: '2lb', weight: '2lb', isDefault: true },
-              { id: '1lb', name: '1lb', weight: '1lb' }
+              { id: '2lb', name: '2lb', weight: '2lb', isDefault: true, defaultPrice: 9.25 },
+              { id: '1lb', name: '1lb', weight: '1lb', defaultPrice: 4.75 }
             ],
             isDefault: true
           }
@@ -318,8 +319,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Carton',
             type: 'carton',
             sizes: [
-              { id: '24ct', name: '24ct', count: '24ct', isDefault: true },
-              { id: '30ct', name: '30ct', count: '30ct' }
+              { id: '24ct', name: '24ct', count: '24ct', isDefault: true, defaultPrice: 18.50 },
+              { id: '30ct', name: '30ct', count: '30ct', defaultPrice: 22.75 }
             ],
             isDefault: true
           }
@@ -336,9 +337,9 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Bag',
             type: 'bag',
             sizes: [
-              { id: '1lb', name: '1lb', weight: '1lb', isDefault: true },
-              { id: '2lb', name: '2lb', weight: '2lb' },
-              { id: '5lb', name: '5lb', weight: '5lb' }
+              { id: '1lb', name: '1lb', weight: '1lb', isDefault: true, defaultPrice: 4.25 },
+              { id: '2lb', name: '2lb', weight: '2lb', defaultPrice: 8.50 },
+              { id: '5lb', name: '5lb', weight: '5lb', defaultPrice: 19.75 }
             ],
             isDefault: true
           },
@@ -347,8 +348,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Clamshell',
             type: 'clamshell',
             sizes: [
-              { id: '5oz', name: '5oz', weight: '5oz', isDefault: true },
-              { id: '10oz', name: '10oz', weight: '10oz' }
+              { id: '5oz', name: '5oz', weight: '5oz', isDefault: true, defaultPrice: 2.75 },
+              { id: '10oz', name: '10oz', weight: '10oz', defaultPrice: 4.95 }
             ]
           }
         ]
@@ -363,8 +364,8 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             name: 'Bag',
             type: 'bag',
             sizes: [
-              { id: '1lb', name: '1lb', weight: '1lb', isDefault: true },
-              { id: '2lb', name: '2lb', weight: '2lb' }
+              { id: '1lb', name: '1lb', weight: '1lb', isDefault: true, defaultPrice: 4.50 },
+              { id: '2lb', name: '2lb', weight: '2lb', defaultPrice: 8.75 }
             ],
             isDefault: true
           }

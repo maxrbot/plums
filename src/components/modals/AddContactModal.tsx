@@ -12,14 +12,11 @@ interface AddContactModalProps {
   onSave: (contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt' | 'interactions' | 'totalOrders' | 'lifetimeValue' | 'lastContactDate' | 'firstOrderDate' | 'lastOrderDate'>) => void
 }
 
-// Available tags for quick selection
+// Available status-based tags for contact classification
 const availableTags = [
-  { id: 'premium', name: 'Premium', color: 'bg-purple-100 text-purple-800' },
-  { id: 'priority', name: 'Priority', color: 'bg-red-100 text-red-800' },
-  { id: 'organic', name: 'Organic', color: 'bg-green-100 text-green-800' },
-  { id: 'volume', name: 'Volume', color: 'bg-orange-100 text-orange-800' },
-  { id: 'local', name: 'Local', color: 'bg-blue-100 text-blue-800' },
-  { id: 'new_customer', name: 'New Customer', color: 'bg-yellow-100 text-yellow-800' }
+  { id: 'active', name: 'Active', color: 'bg-green-100 text-green-800' },
+  { id: 'prospect', name: 'Prospect', color: 'bg-blue-100 text-blue-800' },
+  { id: 'inactive', name: 'Inactive', color: 'bg-gray-100 text-gray-800' }
 ]
 
 // Industry options
@@ -100,14 +97,14 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
     state: '',
     zipCode: '',
     country: 'USA',
-    tags: [] as string[],
+    selectedTag: '' as string,
     primaryCrops: [] as string[],
     orderFrequency: '' as 'weekly' | 'monthly' | 'seasonal' | 'sporadic' | '',
     averageOrderValue: '',
     preferredContactMethod: 'email' as 'email' | 'phone' | 'text',
     status: 'prospect' as 'prospect' | 'active' | 'inactive' | 'do_not_contact',
-    relationshipStage: 'cold' as 'cold' | 'warm' | 'hot' | 'customer',
-    pricingTier: 'new_prospect' as 'premium' | 'standard' | 'volume' | 'new_prospect',
+    relationshipStage: '' as 'cold' | 'warm' | 'hot' | 'customer' | '',
+    pricingTier: '' as 'premium' | 'standard' | 'volume' | 'new_prospect' | '',
     pricingAdjustment: 0,
     specialTerms: '',
     source: 'manual' as 'manual' | 'csv_import' | 'lead_form' | 'referral',
@@ -135,9 +132,12 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
     // Prepare contact data
     const contactData = {
       ...formData,
+      tags: formData.selectedTag ? [formData.selectedTag] : [], // Convert single tag to array
       averageOrderValue: formData.averageOrderValue ? parseFloat(formData.averageOrderValue) : undefined,
       companySize: formData.companySize || undefined,
-      orderFrequency: formData.orderFrequency || undefined
+      orderFrequency: formData.orderFrequency || undefined,
+      relationshipStage: formData.relationshipStage || undefined, // Don't send empty strings
+      pricingTier: formData.pricingTier || undefined // Don't send empty strings
     }
 
     onSave(contactData)
@@ -151,7 +151,8 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
         email: '',
         phone: '',
         title: '',
-        notes: ''
+        notes: '',
+        selectedTag: ''
       }))
     } else {
       handleClose()
@@ -174,14 +175,14 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
       state: '',
       zipCode: '',
       country: 'USA',
-      tags: [],
+      selectedTag: '',
       primaryCrops: [],
       orderFrequency: '',
       averageOrderValue: '',
       preferredContactMethod: 'email',
       status: 'prospect',
-      relationshipStage: 'cold',
-      pricingTier: 'new_prospect',
+      relationshipStage: '',
+      pricingTier: '',
       pricingAdjustment: 0,
       specialTerms: '',
       source: 'manual',
@@ -191,12 +192,10 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
     onClose()
   }
 
-  const toggleTag = (tagId: string) => {
+  const selectTag = (tagId: string) => {
     setFormData(prev => ({
       ...prev,
-      tags: prev.tags.includes(tagId) 
-        ? prev.tags.filter(id => id !== tagId)
-        : [...prev.tags, tagId]
+      selectedTag: tagId
     }))
   }
 
@@ -390,26 +389,27 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
                         </div>
                       </div>
 
-                      {/* Tags */}
+                      {/* Contact Status */}
                       <div>
                         <div className="flex items-center space-x-2 mb-3">
                           <TagIcon className="h-4 w-4 text-gray-600" />
-                          <h4 className="text-sm font-medium text-gray-900">Tags</h4>
+                          <h4 className="text-sm font-medium text-gray-900">Contact Status</h4>
                         </div>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="space-y-2">
                           {availableTags.map((tag) => (
-                            <button
-                              key={tag.id}
-                              type="button"
-                              onClick={() => toggleTag(tag.id)}
-                              className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                                formData.tags.includes(tag.id)
-                                  ? tag.color
-                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              }`}
-                            >
-                              {tag.name}
-                            </button>
+                            <label key={tag.id} className="flex items-center cursor-pointer">
+                              <input
+                                type="radio"
+                                name="contactStatus"
+                                value={tag.id}
+                                checked={formData.selectedTag === tag.id}
+                                onChange={() => selectTag(tag.id)}
+                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                              />
+                              <span className={`ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${tag.color}`}>
+                                {tag.name}
+                              </span>
+                            </label>
                           ))}
                         </div>
                       </div>

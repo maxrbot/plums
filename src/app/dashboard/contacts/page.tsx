@@ -67,8 +67,9 @@ export default function Contacts() {
     }
   }
 
-  // Demo contacts data - 4 Retail, 3 CPG, 1 Food Service
+  // Demo contacts data - 10 total: 5 Retail, 4 CPG, 1 Wholesale | 7 Active, 3 Prospect
   const demoContactsData = [
+    // RETAIL CONTACTS (5) - 4 Active, 1 Prospect
     {
       firstName: "Mike",
       lastName: "Rodriguez",
@@ -83,14 +84,14 @@ export default function Contacts() {
       state: "California",
       zipCode: "",
       country: "USA",
-      tags: ["volume"],
-      primaryCrops: ["strawberry", "lettuce", "spinach"],
+      tags: ["active"],
+      primaryCrops: ["lettuce", "broccoli"],
       preferredContactMethod: "email" as const,
       status: "active" as const,
-      relationshipStage: "customer" as const,
-      pricingTier: "volume" as const,
-      pricingAdjustment: -10,
-      specialTerms: "Volume discounts apply",
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
       source: "lead_form" as const,
       notes: "Large volume buyer, seasonal contracts"
     },
@@ -108,14 +109,14 @@ export default function Contacts() {
       state: "California",
       zipCode: "",
       country: "USA", 
-      tags: ["premium"],
-      primaryCrops: ["lettuce", "carrot", "broccoli"],
+      tags: ["active"],
+      primaryCrops: ["lettuce", "celery", "broccoli", "orange"],
       preferredContactMethod: "phone" as const,
       status: "active" as const,
-      relationshipStage: "warm" as const,
-      pricingTier: "premium" as const,
-      pricingAdjustment: 5,
-      specialTerms: "Net 15 payment terms",
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
       source: "referral" as const,
       notes: "Prefers organic options when available"
     },
@@ -133,14 +134,14 @@ export default function Contacts() {
       state: "Oregon",
       zipCode: "",
       country: "USA",
-      tags: ["organic", "premium"],
-      primaryCrops: ["apple", "pear", "cherry"],
+      tags: ["active"],
+      primaryCrops: ["broccoli", "celery"],
       preferredContactMethod: "email" as const,
-      status: "prospect" as const,
-      relationshipStage: "hot" as const,
-      pricingTier: "premium" as const,
-      pricingAdjustment: 8,
-      specialTerms: "Organic certification required",
+      status: "active" as const,
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
       source: "manual" as const,
       notes: "Only interested in certified organic produce"
     },
@@ -158,17 +159,44 @@ export default function Contacts() {
       state: "Vermont", 
       zipCode: "",
       country: "USA",
-      tags: ["new_customer"],
-      primaryCrops: ["apple", "apricot"],
+      tags: ["prospect"],
+      primaryCrops: ["orange"],
       preferredContactMethod: "email" as const,
       status: "prospect" as const,
-      relationshipStage: "cold" as const,
-      pricingTier: "standard" as const,
+      relationshipStage: "",
+      pricingTier: "",
       pricingAdjustment: 0,
       specialTerms: "",
       source: "manual" as const,
       notes: "Regional grocery chain expanding produce selection"
     },
+    {
+      firstName: "Maria",
+      lastName: "Gonzalez",
+      email: "mgonzalez@freshfoods.com",
+      phone: "(714) 892-3456",
+      title: "Produce Manager",
+      company: "Fresh Foods Market",
+      industry: "Retail",
+      website: "freshfoods.com",
+      address: "",
+      city: "Anaheim",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["active"],
+      primaryCrops: ["lettuce", "orange", "celery"],
+      preferredContactMethod: "phone" as const,
+      status: "active" as const,
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
+      source: "referral" as const,
+      notes: "Family-owned grocery chain, quality focused"
+    },
+    
+    // CPG CONTACTS (4) - 2 Active, 2 Prospect
     {
       firstName: "Robert",
       lastName: "Johnson",
@@ -183,14 +211,14 @@ export default function Contacts() {
       state: "California",
       zipCode: "",
       country: "USA",
-      tags: ["processing", "volume"],
-      primaryCrops: ["tomato", "peach", "apricot"],
+      tags: ["active"],
+      primaryCrops: ["broccoli", "celery", "lettuce"],
       preferredContactMethod: "phone" as const,
       status: "active" as const,
-      relationshipStage: "customer" as const,
-      pricingTier: "volume" as const,
-      pricingAdjustment: -15,
-      specialTerms: "Processing grade acceptable",
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
       source: "manual" as const,
       notes: "Large CPG manufacturer, flexible on quality grades"
     },
@@ -208,14 +236,14 @@ export default function Contacts() {
       state: "California", 
       zipCode: "",
       country: "USA",
-      tags: ["premium", "organic"],
-      primaryCrops: ["tomato", "pepper", "cucumber"],
+      tags: ["prospect"],
+      primaryCrops: ["lettuce", "celery", "broccoli", "orange"],
       preferredContactMethod: "email" as const,
       status: "prospect" as const,
-      relationshipStage: "warm" as const,
-      pricingTier: "premium" as const,
-      pricingAdjustment: 12,
-      specialTerms: "Organic sourcing preferred",
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
       source: "referral" as const,
       notes: "Premium CPG brand focused on natural ingredients"
     },
@@ -233,41 +261,68 @@ export default function Contacts() {
       state: "California",
       zipCode: "",
       country: "USA",
-      tags: ["cpg", "volume"],
-      primaryCrops: ["apple", "orange", "strawberry"],
+      tags: ["active"],
+      primaryCrops: ["orange", "broccoli"],
       preferredContactMethod: "email" as const,
-      status: "prospect" as const,
-      relationshipStage: "hot" as const,
-      pricingTier: "standard" as const,
+      status: "active" as const,
+      relationshipStage: "",
+      pricingTier: "",
       pricingAdjustment: 0,
-      specialTerms: "Long-term contracts preferred",
+      specialTerms: "",
       source: "lead_form" as const,
       notes: "CPG company developing new fruit-based products"
     },
     {
+      firstName: "Kevin",
+      lastName: "Martinez",
+      email: "kmartinez@organicbrand.com",
+      phone: "(408) 445-7890",
+      title: "Supply Chain Manager",
+      company: "Organic Brand Co",
+      industry: "CPG (Consumer Packaged Goods)",
+      website: "organicbrand.com",
+      address: "",
+      city: "San Jose",
+      state: "California",
+      zipCode: "",
+      country: "USA",
+      tags: ["prospect"],
+      primaryCrops: ["celery", "lettuce"],
+      preferredContactMethod: "email" as const,
+      status: "prospect" as const,
+      relationshipStage: "",
+      pricingTier: "",
+      pricingAdjustment: 0,
+      specialTerms: "",
+      source: "manual" as const,
+      notes: "Organic CPG startup looking for reliable suppliers"
+    },
+    
+    // WHOLESALE CONTACT (1) - 1 Active
+    {
       firstName: "David",
       lastName: "Park",
-      email: "dpark@metropolitanfoods.com",
+      email: "dpark@westcoastdist.com",
       phone: "(206) 445-8901",
-      title: "Category Manager",
-      company: "Metropolitan Foods",
-      industry: "Food Service",
-      website: "metropolitanfoods.com",
+      title: "Procurement Director",
+      company: "West Coast Distributors",
+      industry: "Wholesaler",
+      website: "westcoastdist.com",
       address: "",
       city: "Seattle", 
       state: "Washington",
       zipCode: "",
       country: "USA",
-      tags: ["foodservice"],
-      primaryCrops: ["potato", "onion", "carrot"],
+      tags: ["active"],
+      primaryCrops: ["lettuce", "celery", "broccoli", "orange"],
       preferredContactMethod: "phone" as const,
       status: "active" as const,
-      relationshipStage: "warm" as const,
-      pricingTier: "standard" as const,
+      relationshipStage: "",
+      pricingTier: "",
       pricingAdjustment: 0,
       specialTerms: "",
       source: "csv_import" as const,
-      notes: "Supplies restaurants in Seattle metro area"
+      notes: "Large wholesale distributor serving Pacific Northwest"
     }
   ]
 
@@ -536,7 +591,7 @@ export default function Contacts() {
                       disabled={isGeneratingDemo}
                       className="text-sm text-blue-600 hover:text-blue-800 underline disabled:text-gray-400 disabled:no-underline"
                     >
-                      {isGeneratingDemo ? 'Generating contacts...' : 'Generate 8 Demo Contacts'}
+                      {isGeneratingDemo ? 'Generating contacts...' : 'Generate 10 Demo Contacts'}
                     </button>
                   </div>
                 </div>
@@ -558,25 +613,26 @@ export default function Contacts() {
                       </>
                     )}
                     
-                    {/* Primary pricing tier badge */}
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      contact.pricingTier === 'premium' ? 'bg-purple-100 text-purple-800' :
-                      contact.pricingTier === 'volume' ? 'bg-orange-100 text-orange-800' :
-                      contact.pricingTier === 'standard' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {contact.pricingTier.replace('_', ' ')}
-                    </span>
-                    
-                    {/* Relationship stage indicator */}
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      contact.relationshipStage === 'customer' ? 'bg-green-100 text-green-800' :
-                      contact.relationshipStage === 'hot' ? 'bg-red-100 text-red-800' :
-                      contact.relationshipStage === 'warm' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {contact.relationshipStage}
-                    </span>
+                    {/* Contact Status Tags */}
+                    {contact.tags && contact.tags.length > 0 ? (
+                      contact.tags.map((tag) => (
+                        <span key={tag} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                          tag === 'active' ? 'bg-green-100 text-green-800' :
+                          tag === 'prospect' ? 'bg-blue-100 text-blue-800' :
+                          tag === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {tag === 'active' ? 'Active' : 
+                           tag === 'prospect' ? 'Prospect' : 
+                           tag === 'inactive' ? 'Inactive' : 
+                           tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        No status
+                      </span>
+                    )}
                   </div>
                   
                   <div className="flex items-center space-x-6 text-sm text-gray-500">

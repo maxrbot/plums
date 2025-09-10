@@ -18,8 +18,17 @@ export const metadata: Metadata = {
   description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
   keywords: ["agriculture", "supplier tools", "price sheets", "AI chatbot", "agricultural business", "farming", "premium buyers", "sales"],
   authors: [{ name: "AcreList" }],
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
+      { url: '/favicon-sample.png', sizes: '192x192', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   openGraph: {
-    title: "AcreList - Get Discovered by Premium Buyers",
+    title: "AcreList for Agriculture - Produce Pricelists Made Simple",
     description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
     type: "website",
   },

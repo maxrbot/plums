@@ -76,35 +76,14 @@ export default function DemoPage() {
           <div className="mx-auto max-w-5xl">
             <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
               <div className="relative bg-black" style={{ paddingBottom: '56.25%' /* 16:9 aspect ratio */ }}>
-                {/* Placeholder for now - replace with actual YouTube embed */}
-                <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-gray-900 to-gray-800">
-                  <div className="text-center">
-                    <PlayIcon className="h-20 w-20 text-white mx-auto mb-6 opacity-75" />
-                    <p className="text-white text-2xl font-medium mb-4">Demo Video Coming Soon</p>
-                    <p className="text-gray-300 text-lg max-w-md mx-auto mb-8">
-                      We&apos;re putting the finishing touches on our comprehensive demo video. 
-                      Join our early access list to be notified when it&apos;s ready!
-                    </p>
-                    <button
-                      onClick={openWaitlistModal}
-                      className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-gray-900 bg-lime-400 hover:bg-lime-300"
-                    >
-                      Join Early Access
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Future YouTube embed will go here */}
-                {/* 
+                {/* Loom Video Embed */}
                 <iframe
-                  className="absolute inset-0 w-full h-full"
-                  src="https://www.youtube.com/embed/YOUR_VIDEO_ID?autoplay=1&rel=0&modestbranding=1"
-                  title="AcreList Demo - See How Farmers Transform Their Sales"
+                  src="https://www.loom.com/embed/e5a297c9e8f64961938b2c23f4e8dbb3?sid=cf5e01d8-fcb5-4abd-8c90-7cd1d598c180"
                   frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                />
-                */}
+                  className="absolute inset-0 w-full h-full"
+                  title="AcreList Product Demo"
+                ></iframe>
               </div>
             </div>
           </div>

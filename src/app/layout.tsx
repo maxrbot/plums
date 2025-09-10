@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AcreList - Get Discovered by Premium Buyers",
+  title: "AcreList for Agriculture",
   description: "Professional price sheets, smart customer engagement, and AI support that puts your agricultural products in front of the buyers who matter most. Everything suppliers need to attract quality customers.",
   keywords: ["agriculture", "supplier tools", "price sheets", "AI chatbot", "agricultural business", "farming", "premium buyers", "sales"],
   authors: [{ name: "AcreList" }],
@@ -35,6 +36,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <Analytics />
       </body>
     </html>
   );

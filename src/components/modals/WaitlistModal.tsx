@@ -85,7 +85,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
               <Dialog.Panel className="w-full max-w-md transform overflow-hidden rounded-2xl bg-white p-6 text-left align-middle shadow-xl transition-all">
                 <div className="flex items-center justify-between mb-4">
                   <Dialog.Title as="h3" className="text-lg font-semibold text-gray-900">
-                    {isSubmitted ? 'You\'re on the list!' : 'Join Early Access'}
+                    {isSubmitted ? "You're on the list!" : 'Join Early Access'}
                   </Dialog.Title>
                   <button
                     type="button"

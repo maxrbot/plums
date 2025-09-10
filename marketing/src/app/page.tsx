@@ -75,8 +75,7 @@ export default function Home() {
           {/* Hero Text */}
           <div className="text-center mb-12">
             <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl">
-              Turn Your Farm Into a{' '}
-              <span className="text-lime-500">24/7 Sales Machine</span>
+              <span className="text-lime-500">Produce Pricelists</span> Made Simple
             </h1>
             <p className="mt-6 text-xl leading-8 text-gray-600 max-w-3xl mx-auto">
               See how AcreList puts your agricultural products in front of premium buyers. 

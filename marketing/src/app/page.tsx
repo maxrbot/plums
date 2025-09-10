@@ -315,7 +315,7 @@ export default function Home() {
               <span className="text-sm text-gray-600">Your Farm&apos;s Command Center</span>
             </div>
             <p className="text-sm text-gray-500">
-              © 2024 AcreList. All rights reserved.
+              © 2025 AcreList. All rights reserved.
             </p>
           </div>
         </div>

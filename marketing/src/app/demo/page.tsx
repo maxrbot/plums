@@ -98,7 +98,7 @@ export default function DemoPage() {
               What You&apos;ll See in the Demo
             </h2>
             <p className="mt-6 text-lg leading-8 text-gray-600">
-              A complete walkthrough of how AcreList transforms your farm&apos;s sales process
+              A complete walkthrough of how AcreList transforms your sales process
             </p>
           </div>
           
@@ -173,7 +173,7 @@ export default function DemoPage() {
       <div className="bg-slate-800 py-16">
         <div className="mx-auto max-w-4xl px-6 lg:px-8 text-center">
           <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to Transform Your Farm&apos;s Sales?
+            Ready to Transform Your Price Lists?
           </h2>
           <p className="text-xl text-gray-300 mb-8">
             Join hundreds of farmers already using AcreList to connect with premium buyers.
@@ -208,7 +208,7 @@ export default function DemoPage() {
               <span className="text-sm text-gray-600">Your Farm&apos;s Command Center</span>
             </div>
             <p className="text-sm text-gray-500">
-              © 2024 AcreList. All rights reserved.
+              © 2025 AcreList. All rights reserved.
             </p>
           </div>
         </div>

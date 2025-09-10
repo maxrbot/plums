@@ -265,11 +265,11 @@ export default function Home() {
           
           <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
             <div className="text-center">
-              <p className="text-3xl font-bold text-lime-600">500+</p>
-              <p className="text-sm text-gray-600">Active Suppliers</p>
+              <p className="text-3xl font-bold text-lime-600">100+</p>
+              <p className="text-sm text-gray-600">Grower Shippers</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-cyan-600">2.3M</p>
+              <p className="text-3xl font-bold text-cyan-600">20K</p>
               <p className="text-sm text-gray-600">Price Sheets Sent</p>
             </div>
             <div className="text-center">
@@ -277,8 +277,8 @@ export default function Home() {
               <p className="text-sm text-gray-600">Open Rate</p>
             </div>
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-900">1,200+</p>
-              <p className="text-sm text-gray-600">Active Buyers</p>
+              <p className="text-3xl font-bold text-gray-900">15+</p>
+              <p className="text-sm text-gray-600">States Served</p>
             </div>
           </div>
         </div>

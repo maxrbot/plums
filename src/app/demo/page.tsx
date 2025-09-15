@@ -11,13 +11,15 @@ import {
   PaperAirplaneIcon,
   ChartBarIcon
 } from '@heroicons/react/24/outline'
-import WaitlistModal from '@/components/modals/WaitlistModal'
+import LoginModal from '@/components/modals/LoginModal'
 
 export default function DemoPage() {
-  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const [loginMode, setLoginMode] = useState<'login' | 'signup'>('signup')
 
-  const openWaitlistModal = () => {
-    setIsWaitlistModalOpen(true)
+  const openLoginModal = (mode: 'login' | 'signup' = 'signup') => {
+    setLoginMode(mode)
+    setIsLoginModalOpen(true)
   }
 
   return (
@@ -44,7 +46,7 @@ export default function DemoPage() {
           </div>
           <div className="flex items-center space-x-4">
             <button 
-              onClick={openWaitlistModal}
+              onClick={() => openLoginModal('signup')}
               className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
             >
               Join Early Access
@@ -86,7 +88,7 @@ export default function DemoPage() {
                       Join our early access list to be notified when it's ready!
                     </p>
                     <button
-                      onClick={openWaitlistModal}
+                      onClick={() => openLoginModal('signup')}
                       className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-gray-900 bg-lime-400 hover:bg-lime-300"
                     >
                       Join Early Access
@@ -201,7 +203,7 @@ export default function DemoPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={openWaitlistModal}
+              onClick={() => openLoginModal('signup')}
               className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-slate-800 bg-lime-400 hover:bg-lime-300"
             >
               Join Early Access
@@ -236,9 +238,10 @@ export default function DemoPage() {
       </footer>
 
       {/* Waitlist Modal */}
-      <WaitlistModal
-        isOpen={isWaitlistModalOpen}
-        onClose={() => setIsWaitlistModalOpen(false)}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        initialMode={loginMode}
       />
     </div>
   )

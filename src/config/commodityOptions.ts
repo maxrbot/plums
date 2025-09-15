@@ -1,3 +1,53 @@
+/*
+ * FUTURE SCALABILITY ANALYSIS: MEAT & DAIRY
+ * 
+ * This commodity structure is highly adaptable for expansion beyond produce:
+ * 
+ * MEAT EXAMPLE:
+ * {
+ *   id: 'beef',
+ *   category: 'meat',
+ *   processing: {
+ *     hasProcessing: true,
+ *     types: [
+ *       { id: 'steaks', name: 'Steaks', packageTypes: [...] },
+ *       { id: 'ground', name: 'Ground Beef', packageTypes: [...] },
+ *       { id: 'roasts', name: 'Roasts', packageTypes: [...] }
+ *     ]
+ *   },
+ *   varieties: {
+ *     'ribeye': { itemWeight: { base: 0.75 }, pricing: { basePricePerLb: 18.95 } },
+ *     'sirloin': { itemWeight: { base: 0.5 }, pricing: { basePricePerLb: 12.45 } }
+ *   }
+ * }
+ * 
+ * DAIRY EXAMPLE:
+ * {
+ *   id: 'cheese',
+ *   category: 'dairy',
+ *   processing: {
+ *     hasProcessing: true,
+ *     types: [
+ *       { id: 'aged', name: 'Aged', packageTypes: [...] },
+ *       { id: 'fresh', name: 'Fresh', packageTypes: [...] }
+ *     ]
+ *   },
+ *   varieties: {
+ *     'cheddar': { itemWeight: { base: 1.0 }, pricing: { basePricePerLb: 8.95 } },
+ *     'gouda': { itemWeight: { base: 0.5 }, pricing: { basePricePerLb: 12.45 } }
+ *   }
+ * }
+ * 
+ * ADAPTATIONS NEEDED:
+ * - Item weights → Cut weights or Package standards
+ * - Seasonality → Shelf life and Aging periods  
+ * - USDA confidence → USDA grade certifications
+ * - Size variations → Cut specifications (thickness, marbling)
+ * 
+ * The core framework (Category → Commodity → Variety + Processing + Packaging + Pricing) 
+ * scales beautifully across all food categories.
+ */
+
 export interface CommoditySubtype {
   id: string
   name: string

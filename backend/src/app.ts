@@ -31,7 +31,10 @@ async function registerPlugins() {
   
   // CORS
   await fastify.register(cors, {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3002' // Allow development on alternate port
+    ],
     credentials: true
   })
   

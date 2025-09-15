@@ -10,7 +10,7 @@ import {
   CurrencyDollarIcon,
   PaperAirplaneIcon
 } from '@heroicons/react/24/outline'
-import WaitlistModal from '@/components/modals/WaitlistModal'
+import LoginModal from '@/components/modals/LoginModal'
 
 // Mock dashboard data
 const mockProducts = [
@@ -27,10 +27,12 @@ const mockBuyerActivity = [
 ]
 
 export default function Home() {
-  const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false)
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
+  const [loginMode, setLoginMode] = useState<'login' | 'signup'>('login')
 
-  const openWaitlistModal = () => {
-    setIsWaitlistModalOpen(true)
+  const openLoginModal = (mode: 'login' | 'signup' = 'login') => {
+    setLoginMode(mode)
+    setIsLoginModalOpen(true)
   }
 
   return (
@@ -54,10 +56,10 @@ export default function Home() {
           </div>
           <div className="flex lg:flex-1 lg:justify-end gap-x-4">
             <button 
-              onClick={openWaitlistModal}
+              onClick={() => openLoginModal('login')}
               className="text-sm font-medium text-gray-700 hover:text-lime-600"
             >
-              Login
+              Sign In
             </button>
             <Link 
               href="/demo"
@@ -193,14 +195,22 @@ export default function Home() {
 
           {/* CTA */}
           <div className="text-center mt-12">
-            <button
-              onClick={openWaitlistModal}
-              className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
-            >
-              Join Early Access
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-4">
+              <button
+                onClick={() => openLoginModal('signup')}
+                className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600"
+              >
+                Start Free Trial
+              </button>
+              <button
+                onClick={() => openLoginModal('signup')}
+                className="inline-flex items-center px-8 py-4 border border-lime-500 text-lg font-medium rounded-md shadow-sm text-lime-600 bg-white hover:bg-lime-50"
+              >
+                Join Early Access
+              </button>
+            </div>
             <p className="mt-4 text-sm text-gray-600">
-              Be the first to know when we launch • No spam, ever
+              No credit card required • Get started in 2 minutes
             </p>
           </div>
         </div>
@@ -295,10 +305,10 @@ export default function Home() {
             Be among the first to experience the future of agricultural sales.
           </p>
           <button
-            onClick={openWaitlistModal}
+            onClick={() => openLoginModal('signup')}
             className="inline-flex items-center px-8 py-4 border border-transparent text-lg font-medium rounded-md shadow-sm text-slate-800 bg-lime-400 hover:bg-lime-300"
           >
-            Join Early Access
+            Start Free Trial
           </button>
           <p className="mt-4 text-sm text-gray-400">
             Early access • Be the first to know • No spam, ever
@@ -322,10 +332,11 @@ export default function Home() {
         </div>
       </footer>
 
-      {/* Waitlist Modal */}
-      <WaitlistModal
-        isOpen={isWaitlistModalOpen}
-        onClose={() => setIsWaitlistModalOpen(false)}
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        initialMode={loginMode}
       />
     </div>
   )

@@ -40,7 +40,7 @@ export default function Home() {
         <nav className="flex items-center justify-between p-4 lg:px-8" aria-label="Global">
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <Image
+        <Image
                 src="/acrelist-logo.png" 
                 alt="AcreList" 
                 width={160} 

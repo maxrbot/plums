@@ -11,20 +11,23 @@ import {
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal, { type PriceSheetProduct } from '../../../../components/modals/PriceSheetPreviewModal'
 import { getPackagingSpecs } from '../../../../config/packagingSpecs'
-import { commodityOptions } from '../../../../config/commodityOptions'
 import { 
-  getCommodityPackaging, 
-  getDefaultProcessingType, 
-  getDefaultPackageType, 
+  getLegacyCommodityOptions,
+  getLegacyCommodityPackaging,
+  getDefaultProcessingType,
+  getDefaultPackageType,
   getDefaultSize,
   getDefaultFruitCount,
   getDefaultGrade,
-  type CommodityPackaging,
+  getDefaultVariety,
+  type LegacyCategoryOption,
+  type LegacyCommodityOption,
   type ProcessingType,
   type PackageType,
   type PackageSize,
   type FruitCount
-} from '../../../../config/commodityPackaging'
+} from '../../../../config'
+import { getMarketDataSample, fallbackMarketData } from '../../../../config/market-data-samples'
 import { 
   getCommodityConfig, 
   getBasePricePerLb, 
@@ -242,61 +245,81 @@ export default function NewPriceSheet() {
     return parseFloat((pricePerLb * packWeight).toFixed(2))
   }
   
-  // Helper to get default variety for a commodity
-  const getDefaultVariety = (commodity: string): string => {
-    const config = getCommodityConfig(commodity)
-    return config?.defaultVariety || 'standard'
-  }
 
-  // Enhanced Price Guidance Component
-  const PriceGuidancePanel = ({ row }: { row: ProductRow }) => {
-    const product = products.find(p => parseInt(p.id) === row.productId)
-    if (!product) return null
+  // Enhanced Price Guidance Component  
+  const PriceGuidancePanel = ({ productId }: { productId: string }) => {
+    // Find the product directly by the clicked product ID
+    const product = products.find(p => p.id === productId)
+    
+    if (!product) {
+      console.log(`❌ No product found for productId: ${productId}`)
+      return null
+    }
+    
+    console.log(`✅ Found product for lightbulb:`, {
+      id: product.id,
+      name: product.name,
+      commodity: product.commodity,
+      variety: product.variety
+    })
 
     // Market intelligence data (from real APIs: USDA NASS + AMS, NOAA Weather, EIA)
     // Get commodity-specific market data
     const getCommodityMarketData = (commodity: string, variety?: string) => {
       try {
         const actualVariety = variety || getDefaultVariety(commodity)
-        const basePrice = getBasePricePerLb(commodity, actualVariety)
-        const confidence = getUsdaConfidence(commodity, actualVariety)
+        // Get realistic sample data for this commodity/variety combination
+        const sampleData = getMarketDataSample(commodity, actualVariety) || fallbackMarketData
+        console.log(`🔍 Looking for sample data: commodity="${commodity}", variety="${actualVariety}"`)
+        console.log(`📊 Found sample data:`, !!getMarketDataSample(commodity, actualVariety))
+        console.log(`🎯 Using data:`, sampleData === fallbackMarketData ? 'FALLBACK' : 'SAMPLE')
+        console.log(`💰 Sample data price: $${sampleData.basePrice}/lb, trend: ${sampleData.trend}`)
         
-        // Generate market data based on base price with realistic variations
+        // Use sample data for realistic market intelligence
+        const basePrice = sampleData.basePrice
         const marketAvg = (basePrice * 0.95).toFixed(2)  // Market avg slightly below suggested
         const suggestedPrice = basePrice.toFixed(2)
+        
+        // Calculate price range based on volatility
+        const volatilityMultiplier = sampleData.volatility === 'high' ? 0.20 : sampleData.volatility === 'medium' ? 0.15 : 0.10
         const priceRange = {
-          low: (basePrice * 0.85).toFixed(2),
-          high: (basePrice * 1.15).toFixed(2)
+          low: (basePrice * (1 - volatilityMultiplier)).toFixed(2),
+          high: (basePrice * (1 + volatilityMultiplier)).toFixed(2)
         }
         
-        // Commodity-specific regional data
-        const regionalData = {
-          'lettuce': { region: 'Salinas Valley', insights: ['Salinas Valley harvest peak ending, prices rising', 'Cool weather extending shelf life, quality premium'] },
-          'orange': { region: 'San Joaquin Valley', insights: ['Early season premium, limited supply until November', 'Heat stress affecting sizing in Central Valley'] },
-          'broccoli': { region: 'Monterey County', insights: ['Strong demand from food service recovery', 'Optimal growing conditions in coastal regions'] },
-          'celery': { region: 'Oxnard Plains', insights: ['Steady demand, consistent supply from Ventura County', 'Fuel costs impacting transport from growing regions'] }
-        }
-        
-        const regional = regionalData[commodity as keyof typeof regionalData] || { region: 'California', insights: ['Market conditions stable', 'Normal seasonal patterns'] }
+        // Get USDA confidence from commodity config (for future API integration)
+        const confidence = getUsdaConfidence(commodity, actualVariety)
         
         return {
           marketAvg,
           suggestedPrice,
           priceRange,
-          trend: '+8%',
-          trendDirection: 'up' as const,
-          regionalPrices: [{ region: regional.region, price: (basePrice * 0.97).toFixed(2), date: 'Sep 11' }],
+          trend: sampleData.trend,
+          trendDirection: sampleData.trendDirection,
+          regionalPrices: [{ 
+            region: sampleData.primaryRegion, 
+            price: sampleData.regionalPrice.toFixed(2), 
+            date: 'Sep 15' 
+          }],
           calculation: { 
             base: marketAvg, 
             weather: (basePrice * 0.03).toFixed(2), 
             transport: (basePrice * 0.02).toFixed(2) 
           },
-          retailBenchmark: { store: 'Whole Foods', price: (basePrice * 2.1).toFixed(2), unit: getRetailUnit(commodity) },
-          insights: regional.insights.map((text: string) => ({ text, source: confidence === 'high' ? 'USDA AMS' : 'Regional Markets' })),
+          retailBenchmark: { 
+            store: 'Whole Foods', 
+            price: (basePrice * sampleData.retailMultiplier).toFixed(2), 
+            unit: sampleData.retailUnit 
+          },
+          insights: sampleData.insights.map((text: string) => ({ 
+            text, 
+            source: confidence === 'high' ? 'USDA AMS' : 'Regional Markets' 
+          })),
           usdaConfidence: confidence
         }
       } catch (error) {
         // Fallback to original system
+        console.error(`Error getting market data for ${commodity}:`, error)
         return {
           marketAvg: '1.45',
           suggestedPrice: '1.50',
@@ -323,11 +346,18 @@ export default function NewPriceSheet() {
     }
 
     const mockMarketData = {
-      ...getCommodityMarketData(product.commodity, product.variety),
+      ...getCommodityMarketData(product.commodity, product.variety || getDefaultVariety(product.commodity)),
       confidence: 'High',
       dataPoints: 8,
       lastUpdated: '2 hours ago'
     }
+    
+    // Debug: Log the final market data being used in the UI
+    console.log(`💡 Lightbulb UI data for ${product.commodity}/${product.variety}:`, {
+      suggestedPrice: mockMarketData.suggestedPrice,
+      trend: mockMarketData.trend,
+      calculation: mockMarketData.calculation
+    })
 
     const getTrendIcon = (direction: string) => {
       if (direction === 'up') return '📈'
@@ -350,102 +380,187 @@ export default function NewPriceSheet() {
     const closestTerminal = getClosestTerminal()
 
     return (
-      <div className="mt-2 p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-        {/* Suggested Price at Top */}
-        <div className="mb-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded border border-blue-200">
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <div className="text-sm font-semibold text-gray-900">Suggested Price</div>
-              <div className="text-xs text-gray-600 mt-0.5">
-                ${mockMarketData.calculation.base}/lb + ${mockMarketData.calculation.weather} weather + ${mockMarketData.calculation.transport} transport
+      <div className="mt-2 p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+
+        {/* 3-Column Market Data - Clean & Analytical */}
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          {/* USDA Combined - Terminal + Supply */}
+          <div className="p-4 bg-white rounded border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs text-gray-600 font-medium">Market Intelligence</div>
+              <span className="inline-flex items-center px-2 py-1 bg-blue-600 text-white text-xs font-semibold rounded">
+                USDA
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm text-gray-600">Los Angeles Terminal</div>
+                <div className="text-lg font-bold text-gray-900">${mockMarketData.priceRange.low} - ${mockMarketData.priceRange.high}</div>
+                <div className="text-xs text-gray-500">Average: ${mockMarketData.marketAvg}/lb</div>
+              </div>
+              <div className="border-t border-gray-100 pt-2">
+                <div className="text-sm text-gray-600">Supply Conditions</div>
+                <div className="text-base font-semibold text-gray-900">High Volume • 15% above seasonal avg</div>
+                <div className="text-xs text-gray-500">Quality: 85% Grade A, 15% Grade B</div>
               </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <div className="text-right">
-                {row.packageType ? (
-                  (() => {
-                    const packWeight = getPackWeight(row.packageType, product.commodity)
+          </div>
+
+          {/* Retail Benchmark */}
+          <div className="p-4 bg-white rounded border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs text-gray-600 font-medium">Retail Benchmark</div>
+              <span className="inline-flex items-center px-2 py-1 bg-purple-600 text-white text-xs font-semibold rounded">
+                Retail
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="text-sm text-gray-600">Whole Foods</div>
+                <div className="text-lg font-bold text-gray-900">${mockMarketData.retailBenchmark.price}/{mockMarketData.retailBenchmark.unit}</div>
+                <div className="text-xs text-gray-500">Consumer price</div>
+              </div>
+              <div className="border-t border-gray-100 pt-2">
+                <div className="text-sm text-gray-600">Markup Analysis</div>
+                <div className="text-base font-semibold text-green-600">
+                  {Math.round(((parseFloat(mockMarketData.retailBenchmark.price) / parseFloat(mockMarketData.suggestedPrice)) - 1) * 100)}% above wholesale
+                </div>
+                <div className="text-xs text-gray-500">Strong retail demand • Premium pricing opportunity</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Weather Impact */}
+          <div className="p-4 bg-white rounded border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-xs text-gray-600 font-medium">Price Movement</div>
+              <span className="inline-flex items-center px-2 py-1 bg-green-600 text-white text-xs font-semibold rounded">
+                NOAA
+              </span>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <div className="flex items-center space-x-3">
+                  <div className={`text-lg font-bold ${mockMarketData.trendDirection === 'up' ? 'text-green-600' : mockMarketData.trendDirection === 'down' ? 'text-red-600' : 'text-gray-600'}`}>
+                    {mockMarketData.trend}
+                  </div>
+                  <div className="text-lg">
+                    {getTrendIcon(mockMarketData.trendDirection)}
+                  </div>
+                </div>
+                <div className="text-xs text-gray-500">7-day price trend</div>
+              </div>
+              <div className="border-t border-gray-100 pt-2">
+                <div className="text-sm text-gray-600">Growing Conditions</div>
+                <div className="text-base font-semibold text-gray-900">Salinas: 72°F Clear</div>
+                <div className="text-xs text-gray-500">Frost risk: Low • Harvest quality: Excellent</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Price Calculation Breakdown */}
+        <div className="border-t border-gray-200 pt-4">
+          <div className="text-xs text-gray-600 space-y-1 mb-3">
+            <div className="flex items-center justify-between">
+              <span>USDA Terminal Average:</span>
+              <span className="font-mono">${mockMarketData.calculation.base}/lb</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>+ Supply Premium (USDA):</span>
+              <span className="font-mono text-green-600">+${mockMarketData.calculation.transport}/lb</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>+ Weather Impact (NOAA):</span>
+              <span className="font-mono text-green-600">+${mockMarketData.calculation.weather}/lb</span>
+            </div>
+          </div>
+          
+          {/* Final Suggested Price with Button */}
+          <div className="border-t border-gray-200 pt-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-baseline space-x-3">
+                <span className="text-sm font-semibold text-black">Suggested Price:</span>
+                {(() => {
+                  // Get current packaging info for this product
+                  const packaging = productPackaging[product.id]
+                  let packageTypeString = ''
+                  
+                  if (packaging?.size) {
+                    const config = getLegacyCommodityPackaging(product.commodity)
+                    let packageType
+                    if (config?.hasProcessing && packaging.processingType) {
+                      const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+                      packageType = processingType?.packageTypes.find(pt => pt.id === packaging.packageType)
+                    } else {
+                      packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+                    }
+                    const sizeConfig = packageType?.sizes.find(s => s.id === packaging.size)
+                    if (sizeConfig && packageType) {
+                      packageTypeString = `${sizeConfig.weight || sizeConfig.count} ${packageType.type}`
+                    }
+                  }
+                  
+                  if (packageTypeString) {
+                    const packWeight = getPackWeight(packageTypeString, product.commodity)
                     const packPrice = (parseFloat(mockMarketData.suggestedPrice) * packWeight).toFixed(2)
                     return (
-                      <>
-                        <div className="text-xl font-bold text-blue-600">${packPrice}</div>
-                        <div className="text-sm text-gray-600">${mockMarketData.suggestedPrice}/lb • {row.packageType}</div>
-                      </>
+                      <div className="flex items-baseline space-x-2">
+                        <div className="text-xl font-bold text-black">${packPrice}</div>
+                        <div className="text-sm text-gray-600">(${mockMarketData.suggestedPrice}/lb)</div>
+                      </div>
                     )
-                  })()
-                ) : (
-                  <div className="text-xl font-bold text-blue-600">${mockMarketData.suggestedPrice}/lb</div>
-                )}
+                  } else {
+                    return (
+                      <div className="flex items-baseline space-x-2">
+                        <div className="text-xl font-bold text-black">${mockMarketData.suggestedPrice}</div>
+                        <div className="text-sm text-gray-600">per lb</div>
+                      </div>
+                    )
+                  }
+                })()}
               </div>
               <button 
                 onClick={() => {
+                  // Get current packaging info for this product
+                  const packaging = productPackaging[product.id]
+                  let packageTypeString = ''
+                  
+                  if (packaging?.size) {
+                    const config = getLegacyCommodityPackaging(product.commodity)
+                    let packageType
+                    if (config?.hasProcessing && packaging.processingType) {
+                      const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
+                      packageType = processingType?.packageTypes.find(pt => pt.id === packaging.packageType)
+                    } else {
+                      packageType = config?.packageTypes?.find(pt => pt.id === packaging.packageType)
+                    }
+                    const sizeConfig = packageType?.sizes.find(s => s.id === packaging.size)
+                    if (sizeConfig && packageType) {
+                      packageTypeString = `${sizeConfig.weight || sizeConfig.count} ${packageType.type}`
+                    }
+                  }
+                  
                   let packPrice = mockMarketData.suggestedPrice
                   
-                  if (row.packageType) {
-                    const packWeight = getPackWeight(row.packageType, product.commodity)
+                  if (packageTypeString) {
+                    const packWeight = getPackWeight(packageTypeString, product.commodity)
                     packPrice = (parseFloat(mockMarketData.suggestedPrice) * packWeight).toFixed(2)
                   }
                   
+                  // Update the price input for this product
+                  setProductPrices(prev => ({
+                    ...prev,
+                    [product.id]: packPrice
+                  }))
+                  
                   console.log('Use suggested price:', packPrice)
                 }}
-                className="px-2 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
+                className="px-4 py-2 bg-black text-white text-sm font-medium rounded hover:bg-gray-800 transition-colors"
               >
-                Use
+                Use Price
               </button>
             </div>
-          </div>
-        </div>
-
-        {/* 2x2 Market Data Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-            <div>
-              <div className="text-xs text-gray-600">USDA Range (per lb)</div>
-              <div className="font-semibold text-gray-900">${mockMarketData.priceRange.low} - ${mockMarketData.priceRange.high}</div>
-              <div className="text-xs text-gray-500">Avg: ${mockMarketData.marketAvg}</div>
-            </div>
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-blue-100 text-blue-800 text-xs rounded">
-              USDA
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-            <div>
-              <div className="text-xs text-gray-600">Trend</div>
-              <div className={`font-semibold flex items-center ${mockMarketData.trendDirection === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                {getTrendIcon(mockMarketData.trendDirection)} {mockMarketData.trend}
-              </div>
-            </div>
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-green-100 text-green-800 text-xs rounded">
-              NOAA
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-            <div>
-              <div className="text-xs text-gray-600">Terminal (per lb)</div>
-              <div className="font-semibold text-gray-900">{closestTerminal.region} ${closestTerminal.price}</div>
-            </div>
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-orange-100 text-orange-800 text-xs rounded">
-              EIA
-            </span>
-          </div>
-          <div className="flex justify-between items-center p-2 bg-gray-50 rounded">
-            <div>
-              <div className="text-xs text-gray-600">Retail Benchmark</div>
-              <div className="font-semibold text-gray-900">{mockMarketData.retailBenchmark.store} ${mockMarketData.retailBenchmark.price}</div>
-            </div>
-            <span className="inline-flex items-center px-1.5 py-0.5 bg-purple-100 text-purple-800 text-xs rounded">
-              Retail
-            </span>
-          </div>
-        </div>
-
-        {/* Minimized Insights */}
-        <div className="pt-2 border-t border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="text-xs text-gray-600">
-              <span className="font-medium">Latest:</span> {mockMarketData.insights[0].text.substring(0, 60)}...
-            </div>
-            <div className="text-xs text-gray-500">Updated {mockMarketData.lastUpdated}</div>
           </div>
         </div>
       </div>
@@ -455,6 +570,7 @@ export default function NewPriceSheet() {
   // Helper function to get available categories based on user's products
   const getAvailableCategories = () => {
     const userCommodities = new Set(products.map(p => p.commodity.toLowerCase()))
+    const commodityOptions = getLegacyCommodityOptions()
     const availableCategories = commodityOptions
       .filter(category => 
         category.commodities.some(commodity => 
@@ -473,6 +589,7 @@ export default function NewPriceSheet() {
     const filtered = products.filter(product => {
       // Filter by category
       if (selectedCategory !== 'all') {
+        const commodityOptions = getLegacyCommodityOptions()
         const category = commodityOptions.find(cat => 
           cat.commodities.some(c => c.id === product.commodity)
         )
@@ -507,7 +624,7 @@ export default function NewPriceSheet() {
   }
 
   const initializeProductPackaging = (productId: string, commodity: string) => {
-    const config = getCommodityPackaging(commodity)
+    const config = getLegacyCommodityPackaging(commodity)
     if (!config) return
 
     const defaults: any = {}
@@ -622,7 +739,7 @@ export default function NewPriceSheet() {
         // Set default price based on the packaging settings
         const product = products.find(p => p.id === productId)
         if (product && mainPackaging.size) {
-          const config = getCommodityPackaging(product.commodity)
+          const config = getLegacyCommodityPackaging(product.commodity)
           if (config) {
             let packageType
             if (config.hasProcessing && mainPackaging.processingType) {
@@ -701,7 +818,7 @@ export default function NewPriceSheet() {
           if (defaultSize) {
             updated.size = defaultSize.id
             // Set default price if available
-            const config = getCommodityPackaging(product.commodity)
+            const config = getLegacyCommodityPackaging(product.commodity)
             if (config?.hasProcessing) {
               const processingType = config.processingTypes?.find(pt => pt.id === value)
               const packageType = processingType?.packageTypes.find(pt => pt.id === defaultPackage.id)
@@ -727,7 +844,7 @@ export default function NewPriceSheet() {
         if (defaultSize) {
           updated.size = defaultSize.id
           // Set default price if available
-          const config = getCommodityPackaging(product.commodity)
+          const config = getLegacyCommodityPackaging(product.commodity)
           if (config) {
             let packageType
             if (config.hasProcessing && current.processingType) {
@@ -754,7 +871,7 @@ export default function NewPriceSheet() {
         // Handle size changes - update pricing
         const product = products.find(p => p.id === productId)
         if (product) {
-          const config = getCommodityPackaging(product.commodity)
+          const config = getLegacyCommodityPackaging(product.commodity)
           if (config) {
             let packageType
             if (config.hasProcessing && current.processingType) {
@@ -906,6 +1023,7 @@ export default function NewPriceSheet() {
 
     // Filter by category
     if (selectedCategory !== 'all') {
+      const commodityOptions = getLegacyCommodityOptions()
       const selectedCategoryData = commodityOptions.find(cat => cat.id === selectedCategory)
       if (selectedCategoryData) {
         const categoryCommmodityIds = selectedCategoryData.commodities.map(c => c.id)
@@ -1340,7 +1458,7 @@ export default function NewPriceSheet() {
     // Build package description
     let packageDescription = ''
     if (packaging?.packageType && packaging?.size) {
-      const config = getCommodityPackaging(product.commodity)
+      const config = getLegacyCommodityPackaging(product.commodity)
       let packageType: PackageType | undefined
       
       if (config?.hasProcessing && packaging?.processingType) {
@@ -1412,7 +1530,7 @@ export default function NewPriceSheet() {
     
     // Add processing type if available
     if (packaging?.processingType) {
-      const config = getCommodityPackaging(product.commodity)
+      const config = getLegacyCommodityPackaging(product.commodity)
       const processingType = config?.processingTypes?.find(pt => pt.id === packaging.processingType)
       if (processingType) {
         productName += ` - ${processingType.name}`
@@ -1424,7 +1542,7 @@ export default function NewPriceSheet() {
     // Build package description
     let packageDescription = ''
     if (packaging?.packageType && packaging?.size) {
-      const config = getCommodityPackaging(product.commodity)
+      const config = getLegacyCommodityPackaging(product.commodity)
       let packageType: PackageType | undefined
       
       if (config?.hasProcessing && packaging?.processingType) {
@@ -1932,7 +2050,7 @@ export default function NewPriceSheet() {
 
                             {/* Processing Type - 2 columns (if applicable) */}
                             {(() => {
-                              const config = getCommodityPackaging(product.commodity)
+                              const config = getLegacyCommodityPackaging(product.commodity)
                               return config?.hasProcessing ? (
                                 <div className="col-span-2">
                                   <select 
@@ -1958,7 +2076,7 @@ export default function NewPriceSheet() {
                                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               >
                                 {(() => {
-                                  const config = getCommodityPackaging(product.commodity)
+                                  const config = getLegacyCommodityPackaging(product.commodity)
                                   const packaging = productPackaging[product.id]
                                   
                                   if (config?.hasProcessing && packaging?.processingType) {
@@ -1984,7 +2102,7 @@ export default function NewPriceSheet() {
                                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               >
                                 {(() => {
-                                  const config = getCommodityPackaging(product.commodity)
+                                  const config = getLegacyCommodityPackaging(product.commodity)
                                   const packaging = productPackaging[product.id]
                                   
                                   let packageType: PackageType | undefined
@@ -2006,7 +2124,7 @@ export default function NewPriceSheet() {
                             {/* Fruit Count - 1 column (for citrus only) */}
                             <div className="col-span-1">
                               {(() => {
-                                const config = getCommodityPackaging(product.commodity)
+                                const config = getLegacyCommodityPackaging(product.commodity)
                                 const packaging = productPackaging[product.id]
                                 
                                 let packageType: PackageType | undefined
@@ -2041,7 +2159,7 @@ export default function NewPriceSheet() {
                                 className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                               >
                                 {(() => {
-                                  const config = getCommodityPackaging(product.commodity)
+                                  const config = getLegacyCommodityPackaging(product.commodity)
                                   return config?.grades.map(grade => (
                                     <option key={grade} value={grade}>{grade}</option>
                                   )) || [<option key="standard" value="Standard">Standard</option>]
@@ -2068,7 +2186,7 @@ export default function NewPriceSheet() {
                                     const price = parseFloat(productPrices[product.id])
                                     const packaging = productPackaging[product.id]
                                     if (price && packaging?.size) {
-                                      const config = getCommodityPackaging(product.commodity)
+                                      const config = getLegacyCommodityPackaging(product.commodity)
                                       let packageType
                                       if (config?.hasProcessing && packaging.processingType) {
                                         const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
@@ -2095,6 +2213,12 @@ export default function NewPriceSheet() {
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    console.log(`🔘 Lightbulb clicked for product:`, {
+                                      id: product.id,
+                                      name: product.name,
+                                      commodity: product.commodity,
+                                      variety: product.variety
+                                    })
                                     togglePriceGuidance(product.id)
                                   }}
                                   className="flex-shrink-0 w-8 h-6 flex items-center justify-center rounded bg-blue-100 hover:bg-blue-200 border border-blue-300 transition-colors"
@@ -2133,7 +2257,7 @@ export default function NewPriceSheet() {
                             let packageTypeString = ''
                             
                             if (packaging?.size) {
-                              const config = getCommodityPackaging(product.commodity)
+                              const config = getLegacyCommodityPackaging(product.commodity)
                               let packageType
                               if (config?.hasProcessing && packaging.processingType) {
                                 const processingType = config.processingTypes?.find(pt => pt.id === packaging.processingType)
@@ -2149,18 +2273,7 @@ export default function NewPriceSheet() {
                             
                             return (
                               <div className="mt-6">
-                                <PriceGuidancePanel 
-                                  row={{ 
-                                    id: product.id, 
-                                    productId: parseInt(product.id), 
-                                    price: productPrices[product.id] || '', 
-                                    isSelected: true, 
-                                    availability: 'Available', 
-                                    packageType: packageTypeString,
-                                    marketPrice: '2.85', 
-                                    marketPriceConfidence: 'medium' 
-                                  }} 
-                                />
+                                <PriceGuidancePanel productId={product.id} />
                               </div>
                             )
                           })()}
@@ -2221,7 +2334,7 @@ export default function NewPriceSheet() {
 
                               {/* Processing Type - same as main */}
                               {(() => {
-                                const config = getCommodityPackaging(product.commodity)
+                                const config = getLegacyCommodityPackaging(product.commodity)
                                 return config?.hasProcessing ? (
                                   <div className="col-span-2">
                                     <select 
@@ -2247,7 +2360,7 @@ export default function NewPriceSheet() {
                                   className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                   {(() => {
-                                    const config = getCommodityPackaging(product.commodity)
+                                    const config = getLegacyCommodityPackaging(product.commodity)
                                     const packaging = productPackaging[`${product.id}-pack-${packIndex}`] || productPackaging[product.id]
                                     
                                     if (config?.hasProcessing && packaging?.processingType) {
@@ -2273,7 +2386,7 @@ export default function NewPriceSheet() {
                                   className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                   {(() => {
-                                    const config = getCommodityPackaging(product.commodity)
+                                    const config = getLegacyCommodityPackaging(product.commodity)
                                     const packaging = productPackaging[`${product.id}-pack-${packIndex}`] || productPackaging[product.id]
                                     
                                     let packageType: PackageType | undefined
@@ -2295,7 +2408,7 @@ export default function NewPriceSheet() {
                               {/* Fruit Count - 1 column (for citrus only) */}
                               <div className="col-span-1">
                                 {(() => {
-                                  const config = getCommodityPackaging(product.commodity)
+                                  const config = getLegacyCommodityPackaging(product.commodity)
                                   const packaging = productPackaging[`${product.id}-pack-${packIndex}`] || productPackaging[product.id]
                                   
                                   let packageType: PackageType | undefined
@@ -2330,7 +2443,7 @@ export default function NewPriceSheet() {
                                   className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                   {(() => {
-                                    const config = getCommodityPackaging(product.commodity)
+                                    const config = getLegacyCommodityPackaging(product.commodity)
                                     return config?.grades.map(grade => (
                                       <option key={grade} value={grade}>{grade}</option>
                                     )) || [<option key="standard" value="Standard">Standard</option>]
@@ -2431,7 +2544,7 @@ export default function NewPriceSheet() {
               <p className="text-sm text-gray-500 mt-1">
                 Showing {productRows.filter(row => !row.isPackStyleRow).length} products
                 {selectedCategory !== 'all' && (
-                  <span> in {commodityOptions.find(cat => cat.id === selectedCategory)?.name}</span>
+                  <span> in {getLegacyCommodityOptions().find(cat => cat.id === selectedCategory)?.name}</span>
                 )}
                 {(inSeasonOnly || upcomingSeasonOnly) && (
                   <span>

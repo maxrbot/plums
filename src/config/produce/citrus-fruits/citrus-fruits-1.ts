@@ -53,6 +53,30 @@ export const majorCitrusCommodities: CommodityConfig[] = [
             { id: '113s', name: '113s', description: 'Small', isDefault: false }
           ],
           isDefault: true
+        },
+        {
+          id: 'bag',
+          name: 'Bag',
+          type: 'bag',
+          sizes: [
+            { id: '3lb', name: '3lb', weight: '3lb', isDefault: true },
+            { id: '5lb', name: '5lb', weight: '5lb' },
+            { id: '8lb', name: '8lb', weight: '8lb' }
+          ],
+          fruitCounts: [
+            { id: '6ct', name: '6 Count', description: 'Large', isDefault: false },
+            { id: '8ct', name: '8 Count', description: 'Medium-Large', isDefault: true },
+            { id: '10ct', name: '10 Count', description: 'Medium', isDefault: false },
+            { id: '12ct', name: '12 Count', description: 'Small', isDefault: false }
+          ]
+        },
+        {
+          id: 'bulk',
+          name: 'Bulk',
+          type: 'bulk',
+          sizes: [
+            { id: '1lb', name: 'Per Pound', weight: '1lb', isDefault: true }
+          ]
         }
       ],
       defaultPackage: 'carton',

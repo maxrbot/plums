@@ -11,10 +11,15 @@ export interface PriceSheetProduct {
   packageType: string
   countSize?: string
   grade?: string
-  basePrice: number
-  adjustedPrice: number
+  basePrice: number | null
+  adjustedPrice: number | null
   availability: string
   showStrikethrough?: boolean // whether to show strikethrough for discounts
+  // Extended options
+  isStickered?: boolean
+  specialNotes?: string
+  hasOverride?: boolean
+  overrideComment?: string
 }
 
 interface PriceSheetPreviewModalProps {
@@ -61,7 +66,10 @@ export default function PriceSheetPreviewModal({
     return groups
   }, {} as Record<string, PriceSheetProduct[]>)
 
-  const formatPrice = (price: number) => `$${price.toFixed(2)}`
+  const formatPrice = (price: number | null) => {
+    if (price === null || price === undefined) return '$0.00'
+    return `$${price.toFixed(2)}`
+  }
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
@@ -158,9 +166,16 @@ export default function PriceSheetPreviewModal({
                                     product.grade
                                   ].filter(Boolean).join(' • ')}
                                 </span>
+                                {product.isStickered && (
+                                  <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
+                                    Stickered
+                                  </span>
+                                )}
                                 <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
                                   product.availability === 'Available' ? 'bg-green-100 text-green-700' :
                                   product.availability === 'Limited' ? 'bg-yellow-100 text-yellow-700' :
+                                  product.availability === 'Coming Soon' ? 'bg-blue-100 text-blue-700' :
+                                  product.availability === 'End of Season' ? 'bg-red-100 text-red-700' :
                                   'bg-gray-100 text-gray-700'
                                 }`}>
                                   {product.availability}
@@ -168,17 +183,25 @@ export default function PriceSheetPreviewModal({
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="flex items-center justify-end space-x-2">
-                                {product.showStrikethrough && product.adjustedPrice < product.basePrice && (
-                                  <span className="text-sm text-red-500 line-through">
-                                    {formatPrice(product.basePrice)}
+                              {product.hasOverride && product.overrideComment ? (
+                                <div className="flex items-center justify-end">
+                                  <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
+                                    {product.overrideComment}
                                   </span>
-                                )}
-                                <span className="text-lg font-semibold text-gray-900">
-                                  {formatPrice(product.adjustedPrice)}
-                                </span>
-                              </div>
-                              {product.adjustedPrice < product.basePrice && product.showStrikethrough && (
+                                </div>
+                              ) : (
+                                <div className="flex items-center justify-end space-x-2">
+                                  {product.showStrikethrough && product.adjustedPrice !== null && product.basePrice !== null && product.adjustedPrice < product.basePrice && (
+                                    <span className="text-sm text-red-500 line-through">
+                                      {formatPrice(product.basePrice)}
+                                    </span>
+                                  )}
+                                  <span className="text-lg font-semibold text-gray-900">
+                                    {formatPrice(product.adjustedPrice)}
+                                  </span>
+                                </div>
+                              )}
+                              {!product.hasOverride && product.adjustedPrice !== null && product.basePrice !== null && product.adjustedPrice < product.basePrice && product.showStrikethrough && (
                                 <div className="text-xs text-green-600 font-medium">
                                   Save {formatPrice(product.basePrice - product.adjustedPrice)}
                                 </div>

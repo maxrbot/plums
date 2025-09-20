@@ -51,7 +51,7 @@ interface PriceSheetProduct {
   packageType: string
   countSize?: string
   grade?: string
-  price: number
+  price: number | null
   marketPrice?: number
   marketPriceUnit?: string
   marketPriceDate?: string
@@ -59,6 +59,13 @@ interface PriceSheetProduct {
   isSelected: boolean
   customNote?: string
   discountPercent?: number
+  
+  // Extended options (from expanded options section)
+  isStickered?: boolean
+  specialNotes?: string
+  hasOverride?: boolean
+  overrideComment?: string
+  
   createdAt: string
   updatedAt: string
 }
@@ -89,21 +96,33 @@ const convertToPreviewFormat = async (products: PriceSheetProduct[]): Promise<Ar
   packageType: string
   countSize?: string
   grade?: string
-  basePrice: number
-  adjustedPrice: number
+  basePrice: number | null
+  adjustedPrice: number | null
   availability: string
+  showStrikethrough?: boolean
+  isStickered?: boolean
+  specialNotes?: string
+  hasOverride?: boolean
+  overrideComment?: string
 }>> => {
   // No need for complex lookups - data is already denormalized!
   return products.map(product => ({
     id: product._id,
-    productName: product.productName || 'Unknown Product', // Direct from denormalized data
-    region: product.regionName || 'Unknown Region', // Direct from denormalized data
+    productName: product.isStickered ? 
+      `${product.productName || 'Unknown Product'} (Stickered)` : 
+      (product.productName || 'Unknown Product'),
+    region: product.regionName || 'Unknown Region',
     packageType: product.packageType,
     countSize: product.countSize,
     grade: product.grade,
-    basePrice: product.price,
-    adjustedPrice: product.price,
-    availability: product.availability
+    basePrice: product.hasOverride || product.price === null ? null : product.price,
+    adjustedPrice: product.hasOverride || product.price === null ? null : product.price,
+    availability: product.availability || 'Available',
+    showStrikethrough: false,
+    isStickered: product.isStickered,
+    specialNotes: product.specialNotes,
+    hasOverride: product.hasOverride,
+    overrideComment: product.overrideComment
   }))
 }
 
@@ -144,9 +163,16 @@ export default function SendPriceSheets() {
     productName: string
     region: string
     packageType: string
-    basePrice: number
-    adjustedPrice: number
+    countSize?: string
+    grade?: string
+    basePrice: number | null
+    adjustedPrice: number | null
     availability: string
+    showStrikethrough?: boolean
+    isStickered?: boolean
+    specialNotes?: string
+    hasOverride?: boolean
+    overrideComment?: string
   }>>([])
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
 
@@ -271,29 +297,41 @@ export default function SendPriceSheets() {
         let adjustedPrice = product.price
         const pricesheetSettings = contact.pricesheetSettings || {}
         
-        // Apply global adjustment if exists
-        if (pricesheetSettings.globalAdjustment) {
-          adjustedPrice = adjustedPrice * (1 + pricesheetSettings.globalAdjustment / 100)
-        }
-        
-        // Apply individual crop adjustments if exists
-        const cropAdjustments = pricesheetSettings.cropAdjustments || []
-        const cropAdjustment = cropAdjustments.find(adj => 
-          adj.cropId === product.cropId && adj.variationId === product.variationId
-        )
-        if (cropAdjustment) {
-          adjustedPrice = product.price * (1 + cropAdjustment.adjustment / 100)
+        // Skip price adjustments if product has override or null price
+        if (!product.hasOverride && product.price !== null && product.price > 0) {
+          // Apply global adjustment if exists
+          if (pricesheetSettings.globalAdjustment) {
+            adjustedPrice = adjustedPrice * (1 + pricesheetSettings.globalAdjustment / 100)
+          }
+          
+          // Apply individual crop adjustments if exists
+          const cropAdjustments = pricesheetSettings.cropAdjustments || []
+          const cropAdjustment = cropAdjustments.find((adj: any) => 
+            adj.cropId === product.cropId && adj.variationId === product.variationId
+          )
+          if (cropAdjustment) {
+            adjustedPrice = product.price * (1 + cropAdjustment.adjustment / 100)
+          }
         }
         
         return {
           id: product._id,
-          productName: product.productName || `${product.commodity} ${product.variety}`,
+          productName: product.isStickered ? 
+            `${product.productName || `${product.commodity} ${product.variety}`} (Stickered)` : 
+            (product.productName || `${product.commodity} ${product.variety}`),
           region: product.regionName || 'Unknown Region',
           packageType: product.packageType,
-          basePrice: product.price,
-          adjustedPrice: adjustedPrice,
+          countSize: product.countSize,
+          grade: product.grade,
+          basePrice: product.hasOverride || product.price === null ? null : product.price,
+          adjustedPrice: product.hasOverride || product.price === null ? null : adjustedPrice,
           availability: product.availability || 'Available',
-          showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustedPrice < product.price
+          showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustedPrice < product.price && !product.hasOverride && product.price !== null,
+          // Extended options
+          isStickered: product.isStickered,
+          specialNotes: product.specialNotes,
+          hasOverride: product.hasOverride,
+          overrideComment: product.overrideComment
         }
       })
       

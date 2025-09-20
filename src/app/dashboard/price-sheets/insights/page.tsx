@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowPathIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
+import { Breadcrumbs } from '../../../../components/ui'
 import { fetchUsdaPrice, getAvailableMarkets } from '@/lib/usdaApi'
 import { cropsApi } from '@/lib/api'
 import { allCommodities as commodities, type CommodityConfig } from '@/config'
@@ -756,48 +757,30 @@ export default function MarketInsightsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <ArrowPathIcon className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading market intelligence...</p>
-            </div>
-          </div>
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <ArrowPathIcon className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading market intelligence...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Breadcrumbs */}
-        <nav className="flex mb-6" aria-label="Breadcrumb">
-          <ol className="inline-flex items-center space-x-1 md:space-x-3">
-            <li className="inline-flex items-center">
-              <Link 
-                href="/dashboard/price-sheets" 
-                className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-blue-600"
-              >
-                Price Sheets
-              </Link>
-            </li>
-            <li>
-              <div className="flex items-center">
-                <ChevronRightIcon className="w-4 h-4 text-gray-400 mx-1" />
-                <span className="ml-1 text-sm font-medium text-gray-500 md:ml-2">Market Intelligence</span>
-              </div>
-            </li>
-          </ol>
-        </nav>
-
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Market Intelligence</h1>
-              <p className="text-gray-600">USDA pricing data and retail market insights for your crops</p>
+    <>
+      {/* Header */}
+      <div className="mb-8">
+        <Breadcrumbs 
+          items={[
+            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Market Intelligence', current: true }
+          ]} 
+          className="mb-4"
+        />
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Market Intelligence</h1>
+            <p className="text-gray-600">USDA pricing data and retail market insights for your crops</p>
             </div>
             <button
               onClick={refreshMarketData}
@@ -1136,15 +1119,14 @@ export default function MarketInsightsPage() {
           </div>
         )}
 
-        {/* Footer notes */}
-        <div className="mt-6 space-y-2 text-center">
-          <p className="text-sm text-gray-500">
-            Market data sourced from USDA Market News. Retail prices scraped from public websites.
-          </p>
-          <p className="text-xs text-gray-400">
-            Retail pricing data is for informational purposes only and may not reflect current in-store prices.
-          </p>
-        </div>
+      {/* Footer notes */}
+      <div className="mt-6 space-y-2 text-center">
+        <p className="text-sm text-gray-500">
+          Market data sourced from USDA Market News. Retail prices scraped from public websites.
+        </p>
+        <p className="text-xs text-gray-400">
+          Retail pricing data is for informational purposes only and may not reflect current in-store prices.
+        </p>
       </div>
 
       {/* Confidence Modal */}
@@ -1596,6 +1578,6 @@ export default function MarketInsightsPage() {
             </div>
           </div>
         )}
-    </div>
+    </>
   )
 }

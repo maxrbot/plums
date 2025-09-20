@@ -23,6 +23,15 @@ export interface MarketDataSample {
   // Retail benchmark
   retailMultiplier: number // Multiplier for retail price (e.g., 2.1 = 210% markup)
   retailUnit: string // 'lb', 'head', 'bunch', etc.
+  
+  // Detailed price breakdown components
+  priceBreakdown: {
+    usdaTerminalAverage: number    // USDA Terminal Market average price
+    supplyPremiumAMS: number       // Supply premium from USDA AMS data
+    weatherImpact: number          // Weather-related price adjustment
+    transportCost: number          // Transportation cost factor
+    seasonalAdjustment?: number    // Optional seasonal price adjustment
+  }
 }
 
 // Commodity-specific market data samples
@@ -57,7 +66,14 @@ export const marketDataSamples: Record<string, Record<string, MarketDataSample>>
         'Organic premium increasing due to limited supply'
       ],
       retailMultiplier: 2.1,
-      retailUnit: 'head'
+      retailUnit: 'head',
+      priceBreakdown: {
+        usdaTerminalAverage: 1.85,
+        supplyPremiumAMS: 0.18,
+        weatherImpact: 0.08,
+        transportCost: 0.04,
+        seasonalAdjustment: 0.00
+      }
     },
     'red-leaf': {
       basePrice: 2.45,
@@ -259,6 +275,51 @@ export const marketDataSamples: Record<string, Record<string, MarketDataSample>>
     }
   },
 
+  // CRUCIFEROUS VEGETABLES
+  broccoli: {
+    marathon: {
+      basePrice: 2.25,
+      volatility: 'medium',
+      trend: '+6%',
+      trendDirection: 'up',
+      primaryRegion: 'Salinas Valley',
+      regionalPrice: 2.18,
+      insights: [
+        'Cool weather extending harvest season',
+        'Health-conscious consumers driving steady demand',
+        'Food service recovery boosting wholesale prices'
+      ],
+      retailMultiplier: 2.2,
+      retailUnit: 'head',
+      priceBreakdown: {
+        usdaTerminalAverage: 1.95,
+        supplyPremiumAMS: 0.15,
+        weatherImpact: 0.10,
+        transportCost: 0.05,
+        seasonalAdjustment: 0.00
+      }
+    }
+  },
+
+  // STEM VEGETABLES  
+  celery: {
+    pascal: {
+      basePrice: 1.95,
+      volatility: 'medium',
+      trend: '+4%',
+      trendDirection: 'up',
+      primaryRegion: 'Salinas Valley',
+      regionalPrice: 1.88,
+      insights: [
+        'Juice trend supporting premium pricing',
+        'Consistent food service demand',
+        'Good growing conditions maintaining quality'
+      ],
+      retailMultiplier: 2.1,
+      retailUnit: 'head'
+    }
+  },
+
   // TREE FRUITS
   apple: {
     fuji: {
@@ -274,7 +335,14 @@ export const marketDataSamples: Record<string, Record<string, MarketDataSample>>
         'Export demand from Asia supporting domestic prices'
       ],
       retailMultiplier: 2.4,
-      retailUnit: 'lb'
+      retailUnit: 'lb',
+      priceBreakdown: {
+        usdaTerminalAverage: 1.45,
+        supplyPremiumAMS: 0.12,
+        weatherImpact: 0.05,
+        transportCost: 0.03,
+        seasonalAdjustment: 0.00
+      }
     },
     gala: {
       basePrice: 1.55,

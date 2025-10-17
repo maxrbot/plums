@@ -240,7 +240,7 @@ export default function IFPAPage() {
                                     <div className="grid grid-cols-4 gap-2">
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Cut</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>Whole Head</option>
                                           <option>Chopped</option>
                                           <option>Shredded</option>
@@ -248,7 +248,7 @@ export default function IFPAPage() {
                                       </div>
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Package</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>Carton</option>
                                           <option>Bag</option>
                                           <option>Clamshell</option>
@@ -256,7 +256,7 @@ export default function IFPAPage() {
                                       </div>
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Size</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>24ct</option>
                                           <option>18ct</option>
                                           <option>30ct</option>
@@ -293,7 +293,7 @@ export default function IFPAPage() {
                                     <div className="grid grid-cols-4 gap-2">
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Cut</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>Whole</option>
                                           <option>Juiced</option>
                                           <option>Sectioned</option>
@@ -301,7 +301,7 @@ export default function IFPAPage() {
                                       </div>
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Package</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>Carton</option>
                                           <option>Mesh Bag</option>
                                           <option>Tray Pack</option>
@@ -309,7 +309,7 @@ export default function IFPAPage() {
                                       </div>
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Size</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>40lb</option>
                                           <option>25lb</option>
                                           <option>50lb</option>
@@ -349,7 +349,7 @@ export default function IFPAPage() {
                                     <div className="grid grid-cols-4 gap-2">
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Cut</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>Whole</option>
                                           <option>Baby Cut</option>
                                           <option>Diced</option>
@@ -357,7 +357,7 @@ export default function IFPAPage() {
                                       </div>
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Package</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>Bag</option>
                                           <option>Carton</option>
                                           <option>Bulk Bin</option>
@@ -365,7 +365,7 @@ export default function IFPAPage() {
                                       </div>
                                       <div className="col-span-1">
                                         <label className="text-xs text-gray-800 font-medium block mb-1">Size</label>
-                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 font-medium">
                                           <option>25lb</option>
                                           <option>50lb</option>
                                           <option>10lb</option>
@@ -452,9 +452,9 @@ export default function IFPAPage() {
 
                             {/* Message Customization */}
                             <div className="border rounded-lg p-3 sm:p-4 mb-4">
-                              <h4 className="font-medium text-sm sm:text-base mb-3">Personalized Message</h4>
+                              <h4 className="font-semibold text-sm sm:text-base mb-3 text-gray-900">Personalized Message</h4>
                               <textarea 
-                                className="w-full border rounded p-3 text-sm h-20 resize-none"
+                                className="w-full border rounded p-3 text-sm h-20 resize-none text-gray-900 font-medium"
                                 placeholder="Hi [Name], fresh harvest available this week..."
                                 defaultValue="Hi [Name], fresh harvest available this week. Special pricing on [YourSKUs] including premium romaine and sweet navels. Limited quantities - order by Friday!"
                                 readOnly
@@ -470,11 +470,11 @@ export default function IFPAPage() {
                               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 text-sm">
                                 <label className="flex items-center">
                                   <input type="checkbox" className="mr-2" defaultChecked readOnly />
-                                  Schedule for 8 AM
+                                  <span className="text-gray-900 font-medium">Schedule for 8 AM</span>
                                 </label>
                                 <label className="flex items-center">
                                   <input type="checkbox" className="mr-2" readOnly />
-                                  Follow-up reminder
+                                  <span className="text-gray-900 font-medium">Follow-up reminder</span>
                                 </label>
                               </div>
                               <button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200">
@@ -512,7 +512,7 @@ export default function IFPAPage() {
                                       <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
                                         <span className="text-orange-600 font-semibold text-sm">🍊</span>
                                       </div>
-                                      <span className="font-semibold text-sm sm:text-base">Navel (40lb)</span>
+                                      <span className="font-semibold text-sm sm:text-base text-gray-900">Navel (40lb)</span>
                                     </div>
                                     <span className="text-blue-700 font-bold text-lg">$78.00</span>
                                   </div>
@@ -529,7 +529,7 @@ export default function IFPAPage() {
                                       <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center mr-3">
                                         <span className="text-red-600 font-semibold text-sm">🍅</span>
                                       </div>
-                                      <span className="font-semibold text-sm sm:text-base">Tomatoes (25lb)</span>
+                                      <span className="font-semibold text-sm sm:text-base text-gray-900">Tomatoes (25lb)</span>
                                     </div>
                                     <span className="text-yellow-700 font-bold text-lg">$67.50</span>
                                   </div>
@@ -546,7 +546,7 @@ export default function IFPAPage() {
                                       <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center mr-3">
                                         <span className="text-orange-600 font-semibold text-sm">🥕</span>
                                       </div>
-                                      <span className="font-semibold text-sm sm:text-base">Organic Carrots (25lb)</span>
+                                      <span className="font-semibold text-sm sm:text-base text-gray-900">Organic Carrots (25lb)</span>
                                     </div>
                                     <span className="text-purple-700 font-bold text-lg">$42.50</span>
                                   </div>
@@ -723,7 +723,7 @@ export default function IFPAPage() {
                     <div className="flex items-center">
                       <span className="text-lg mr-3">🥬</span>
                       <div>
-                        <div className="font-medium text-sm">Romaine Lettuce</div>
+                                        <div className="font-semibold text-sm text-gray-900">Romaine Lettuce</div>
                         <div className="text-xs text-gray-600">Whole Head • Carton • 24ct</div>
                       </div>
                     </div>
@@ -738,7 +738,7 @@ export default function IFPAPage() {
                     <div className="flex items-center">
                       <span className="text-lg mr-3">🍊</span>
                       <div>
-                        <div className="font-medium text-sm">Navel Orange</div>
+                                        <div className="font-semibold text-sm text-gray-900">Navel Orange</div>
                         <div className="text-xs text-gray-600">Whole • Carton • 40lb</div>
                       </div>
                     </div>
@@ -753,7 +753,7 @@ export default function IFPAPage() {
                     <div className="flex items-center">
                       <span className="text-lg mr-3">🥕</span>
                       <div>
-                        <div className="font-medium text-sm">Organic Carrots</div>
+                                        <div className="font-semibold text-sm text-gray-900">Organic Carrots</div>
                         <div className="text-xs text-gray-600">Whole • Bag • 25lb</div>
                       </div>
                     </div>

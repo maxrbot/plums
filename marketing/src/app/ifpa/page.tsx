@@ -403,26 +403,26 @@ export default function IFPAPage() {
                             {/* Header */}
                             <div className="flex items-center justify-between mb-3 sm:mb-4">
                               <h3 className="text-base sm:text-lg font-semibold">Send Price Sheet</h3>
-                              <span className="text-xs sm:text-sm text-gray-500">Draft saved 2 min ago</span>
+                              <span className="text-xs sm:text-sm text-gray-800 font-medium">Draft saved 2 min ago</span>
                             </div>
 
                             {/* Buyer Selection */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
                               <div className="border rounded-lg p-3 sm:p-4">
                                 <div className="flex items-center justify-between mb-3">
-                                  <h4 className="font-medium text-sm sm:text-base">Premium Buyers</h4>
+                                  <h4 className="font-semibold text-sm sm:text-base text-gray-900">Premium Buyers</h4>
                                   <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">-5% pricing</span>
                                 </div>
                                 <div className="space-y-2">
-                                  <label className="flex items-center text-sm">
+                                  <label className="flex items-center text-sm text-gray-800 font-medium">
                                     <input type="checkbox" className="mr-3" defaultChecked readOnly />
                                     Restaurant Group A
                                   </label>
-                                  <label className="flex items-center text-sm">
+                                  <label className="flex items-center text-sm text-gray-800 font-medium">
                                     <input type="checkbox" className="mr-3" defaultChecked readOnly />
                                     Grocery Chain B
                                   </label>
-                                  <label className="flex items-center text-sm">
+                                  <label className="flex items-center text-sm text-gray-800 font-medium">
                                     <input type="checkbox" className="mr-3" readOnly />
                                     Hotel Chain C
                                   </label>
@@ -430,19 +430,19 @@ export default function IFPAPage() {
                               </div>
                               <div className="border rounded-lg p-3 sm:p-4">
                                 <div className="flex items-center justify-between mb-3">
-                                  <h4 className="font-medium text-sm sm:text-base">Standard Buyers</h4>
+                                  <h4 className="font-semibold text-sm sm:text-base text-gray-900">Standard Buyers</h4>
                                   <span className="text-xs bg-gray-100 text-gray-800 px-2 py-1 rounded">List pricing</span>
                                 </div>
                                 <div className="space-y-2">
-                                  <label className="flex items-center text-sm">
+                                  <label className="flex items-center text-sm text-gray-800 font-medium">
                                     <input type="checkbox" className="mr-3" defaultChecked readOnly />
                                     Local Market D
                                   </label>
-                                  <label className="flex items-center text-sm">
+                                  <label className="flex items-center text-sm text-gray-800 font-medium">
                                     <input type="checkbox" className="mr-3" readOnly />
                                     Distributor E
                                   </label>
-                                  <label className="flex items-center text-sm">
+                                  <label className="flex items-center text-sm text-gray-800 font-medium">
                                     <input type="checkbox" className="mr-3" readOnly />
                                     Cafe Chain F
                                   </label>
@@ -495,12 +495,12 @@ export default function IFPAPage() {
                                       <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
                                         <span className="text-green-600 font-semibold text-sm">🥬</span>
                                       </div>
-                                      <span className="font-semibold text-sm sm:text-base">Romaine (24ct)</span>
+                                      <span className="font-semibold text-sm sm:text-base text-gray-900">Romaine (24ct)</span>
                                     </div>
                                     <span className="text-green-700 font-bold text-lg">$61.92</span>
                                   </div>
                                   <div className="text-sm text-green-700 mb-2 font-medium">↗ Increase recommended (+12%)</div>
-                                  <div className="text-sm text-gray-600 mb-3">Based on USDA data + demand surge. High demand, limited supply.</div>
+                                  <div className="text-sm text-gray-800 mb-3 font-medium">Based on USDA data + demand surge. High demand, limited supply.</div>
                                   <button className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                                     Apply Price
                                   </button>
@@ -517,7 +517,7 @@ export default function IFPAPage() {
                                     <span className="text-blue-700 font-bold text-lg">$78.00</span>
                                   </div>
                                   <div className="text-sm text-blue-700 mb-2 font-medium">→ Maintain current (Stable)</div>
-                                  <div className="text-sm text-gray-600 mb-3">Optimal pricing for season. Peak availability with steady demand.</div>
+                                  <div className="text-sm text-gray-800 mb-3 font-medium">Optimal pricing for season. Peak availability with steady demand.</div>
                                   <button className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                                     Keep Price
                                   </button>
@@ -534,7 +534,7 @@ export default function IFPAPage() {
                                     <span className="text-yellow-700 font-bold text-lg">$67.50</span>
                                   </div>
                                   <div className="text-sm text-yellow-700 mb-2 font-medium">⚠ Consider decrease (-8%)</div>
-                                  <div className="text-sm text-gray-600 mb-3">Market oversupply detected. Seasonal peak production.</div>
+                                  <div className="text-sm text-gray-800 mb-3 font-medium">Market oversupply detected. Seasonal peak production.</div>
                                   <button className="bg-yellow-600 hover:bg-yellow-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                                     Review Price
                                   </button>
@@ -551,7 +551,7 @@ export default function IFPAPage() {
                                     <span className="text-purple-700 font-bold text-lg">$42.50</span>
                                   </div>
                                   <div className="text-sm text-purple-700 mb-2 font-medium">↗ Slight increase (+3%)</div>
-                                  <div className="text-sm text-gray-600 mb-3">Organic premium justified. Strong consumer demand trend.</div>
+                                  <div className="text-sm text-gray-800 mb-3 font-medium">Organic premium justified. Strong consumer demand trend.</div>
                                   <button className="bg-purple-600 hover:bg-purple-700 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors">
                                     Apply Price
                                   </button>

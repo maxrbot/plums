@@ -34,6 +34,86 @@ export const allCommodities: CommodityConfig[] = [
 // Helper functions for backward compatibility and convenience
 
 // =============================================================================
+// NEW STRUCTURE HELPER FUNCTIONS
+// =============================================================================
+// Helper functions for the AddVariationModal and other components
+
+export function getNewCategoryNames(): { id: string; name: string }[] {
+  const categories = new Set<string>()
+  allCommodities.forEach(commodity => {
+    categories.add(commodity.category)
+  })
+  
+  return Array.from(categories).sort().map(category => ({
+    id: category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and'),
+    name: category
+  }))
+}
+
+export function getNewCommodityNames(categoryId?: string): { id: string; name: string; categoryName: string; categoryId: string }[] {
+  const categoryName = categoryId ? 
+    categoryId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ').replace('And', '&') :
+    undefined
+    
+  return allCommodities
+    .filter(commodity => !categoryName || commodity.category === categoryName)
+    .map(commodity => ({
+      id: commodity.id,
+      name: commodity.name,
+      categoryName: commodity.category,
+      categoryId: commodity.category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and')
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export function getNewVarietiesByCommodity(commodityId: string): string[] {
+  const commodity = allCommodities.find(c => c.id === commodityId)
+  if (!commodity?.varieties) return []
+  
+  return Object.keys(commodity.varieties).sort()
+}
+
+export function getNewSubtypesByCommodity(commodityId: string): Array<{ id: string; name: string; varieties: string[] }> {
+  const commodity = allCommodities.find(c => c.id === commodityId)
+  if (!commodity?.varieties) return []
+  
+  // Group varieties by subtype
+  const subtypeGroups: Record<string, string[]> = {}
+  
+  Object.entries(commodity.varieties).forEach(([varietyId, variety]) => {
+    if (variety.subtype) {
+      if (!subtypeGroups[variety.subtype]) {
+        subtypeGroups[variety.subtype] = []
+      }
+      subtypeGroups[variety.subtype].push(varietyId)
+    }
+  })
+  
+  return Object.entries(subtypeGroups).map(([subtypeId, varieties]) => ({
+    id: subtypeId,
+    name: subtypeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
+    varieties: varieties.sort()
+  })).sort((a, b) => a.name.localeCompare(b.name))
+}
+
+export function getNewVarietiesBySubtype(commodityId: string, subtypeId: string): string[] {
+  const commodity = allCommodities.find(c => c.id === commodityId)
+  if (!commodity?.varieties) return []
+  
+  return Object.entries(commodity.varieties)
+    .filter(([_, variety]) => variety.subtype === subtypeId)
+    .map(([varietyId, _]) => varietyId)
+    .sort()
+}
+
+export function newCommodityHasSubtypes(commodityId: string): boolean {
+  const commodity = allCommodities.find(c => c.id === commodityId)
+  if (!commodity?.varieties) return false
+  
+  return Object.values(commodity.varieties).some(variety => variety.subtype)
+}
+
+// =============================================================================
 // COMPATIBILITY LAYER FOR PRICE SHEET CREATION
 // =============================================================================
 // These functions provide the same interface as the old commodityOptions/commodityPackaging

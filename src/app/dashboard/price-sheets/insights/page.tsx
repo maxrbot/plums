@@ -1180,7 +1180,7 @@ export default function MarketInsightsPage() {
                   <div>
                     <h3 className="text-lg font-medium text-gray-900">Commodity Structure Overview</h3>
                     <p className="mt-1 text-sm text-gray-600">
-                      Complete breakdown of processing, packaging, and sizing specifications for all supported commodities.
+                      Complete breakdown of processing, packaging, and sizing specifications for all supported commodities. Now includes Root Vegetables and Vine Crops!
                     </p>
                   </div>
                   <div className="flex space-x-2">

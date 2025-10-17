@@ -78,6 +78,7 @@ export interface FruitCount {
 export interface VarietyConfig {
   id: string
   name: string
+  subtype?: string // Optional subtype for hierarchical commodities (e.g., potato types)
   
   // === WEIGHT SPECIFICATIONS ===
   itemWeight: {
@@ -88,7 +89,7 @@ export interface VarietyConfig {
   // === PRICING ===
   pricing: {
     basePricePerLb: number
-    priceVolatility: 'low' | 'medium' | 'high'
+    priceVolatility?: 'low' | 'medium' | 'high' // Made optional since we're not using it yet
   }
   
   // === USDA MAPPING (Variety-Specific) ===

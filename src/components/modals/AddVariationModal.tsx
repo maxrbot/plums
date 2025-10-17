@@ -4,7 +4,7 @@ import { Fragment, useState, useEffect, useCallback } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, SparklesIcon, ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline'
 import { CropManagement, CropVariation, GrowingRegion } from '../../types'
-import { getCategoryNames, getCommodityNames, getVarietiesByCommodity, getSubtypesByCommodity, getVarietiesBySubtype, hasSubtypes, commodityOptions } from '../../config/commodityOptions'
+import { getNewCategoryNames, getNewCommodityNames, getNewVarietiesByCommodity, getNewSubtypesByCommodity, getNewVarietiesBySubtype, newCommodityHasSubtypes } from '../../config'
 
 interface AddVariationModalProps {
   isOpen: boolean
@@ -79,29 +79,11 @@ export default function AddVariationModal({
     notes: ''
   })
 
-  // Get available options
-  const categories = getCategoryNames()
+  // Get available options using new structure
+  const categories = getNewCategoryNames()
   
   // Get all commodities (flattened from all categories) or filtered by category
-  const getAllCommodities = () => {
-    const allCommodities: { id: string; name: string; categoryName: string; categoryId: string }[] = []
-    
-    commodityOptions.forEach(category => {
-      category.commodities.forEach(commodity => {
-        allCommodities.push({
-          id: commodity.id,
-          name: commodity.name,
-          categoryName: category.name,
-          categoryId: category.id
-        })
-      })
-    })
-    
-    return allCommodities.sort((a, b) => a.name.localeCompare(b.name))
-  }
-  
-  // Filter commodities based on selected category (if any)
-  const allCommodities = getAllCommodities()
+  const allCommodities = getNewCommodityNames()
   const filteredCommodities = formData.category 
     ? allCommodities.filter(c => c.categoryId === formData.category)
     : allCommodities
@@ -111,17 +93,17 @@ export default function AddVariationModal({
 
   
   // Check if commodity has hierarchical structure
-  const commodityHasSubtypes = (formData.category && formData.commodity) ? hasSubtypes(formData.category, formData.commodity) : false
+  const commodityHasSubtypes = formData.commodity ? newCommodityHasSubtypes(formData.commodity) : false
   
   // Get subtypes if commodity has them
-  const subtypes = (formData.category && formData.commodity && commodityHasSubtypes) ? 
-    getSubtypesByCommodity(formData.category, formData.commodity) : []
+  const subtypes = (formData.commodity && commodityHasSubtypes) ? 
+    getNewSubtypesByCommodity(formData.commodity) : []
   
   // Get varieties - either from subtype or directly from commodity
-  const varieties = (formData.category && formData.commodity) ? 
+  const varieties = formData.commodity ? 
     (commodityHasSubtypes && currentVariation.subtype ? 
-      getVarietiesBySubtype(formData.category, formData.commodity, currentVariation.subtype) :
-      getVarietiesByCommodity(formData.category, formData.commodity)
+      getNewVarietiesBySubtype(formData.commodity, currentVariation.subtype) :
+      getNewVarietiesByCommodity(formData.commodity)
     ) : []
 
   // Simple commodity selection handler

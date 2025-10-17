@@ -16,9 +16,9 @@ export default function IFPAPage() {
   const demoSections = [
     {
       id: 'generate',
-      title: 'Generate New Price Sheet',
+      title: 'From iceberg lettuce to dragon fruit - build professional price sheets in minutes, not hours. Powered by real-time market data.',
       subtitle: '',
-      description: 'From iceberg lettuce to dragon fruit - build professional price sheets in minutes, not hours.',
+      description: 'Create comprehensive price sheets with 300+ varieties, custom specifications, and professional templates.',
       stats: '15 hours → 15 minutes per week',
       mockupImage: '/api/placeholder/800/500', // We'll create this
       highlights: [
@@ -30,7 +30,7 @@ export default function IFPAPage() {
     },
     {
       id: 'send',
-      title: 'Dynamic Price Sheets for All Your Buyers',
+      title: 'Reach every buyer with tailored pricing and messaging that converts 3x better than generic sheets.',
       subtitle: '',
       description: 'Send personalized price sheets with buyer-specific pricing, custom messages, and automated follow-ups.',
       stats: '3x higher response rates',
@@ -43,9 +43,9 @@ export default function IFPAPage() {
     },
     {
       id: 'insights',
-      title: 'USDA and Retail Insights for Confident Price Setting',
+      title: 'Never guess at pricing again with comprehensive USDA and retail insights, plus AI-powered recommendations.',
       subtitle: '',
-      description: 'Make informed pricing decisions with real-time market data, commodity insights, and pricing recommendations.',
+      description: 'Make confident pricing decisions with real-time market data, commodity trends, and seasonal availability insights.',
       stats: '25% margin improvement',
       mockupImage: '/api/placeholder/800/500',
       highlights: [
@@ -56,9 +56,9 @@ export default function IFPAPage() {
     },
     {
       id: 'analytics',
-      title: 'Track Engagement & Optimize Performance',
+      title: 'Track every interaction and optimize your pricing strategy with detailed performance insights.',
       subtitle: '',
-      description: 'Know who\'s buying, what\'s selling, and optimize your margins with comprehensive analytics.',
+      description: 'Know who\'s buying, what\'s selling, and optimize your margins with comprehensive buyer engagement analytics.',
       stats: '',
       mockupImage: '/api/placeholder/800/500',
       highlights: [
@@ -94,62 +94,34 @@ export default function IFPAPage() {
         </div>
       </div>
 
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-4xl md:text-5xl lg:text-6xl">
-            Produce Price Sheet Automation
-          </h1>
-        </div>
-      </div>
 
-      {/* Tab Navigation - 2x2 Grid */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+      {/* Tab Navigation - 4x1 Grid */}
+      <div className="max-w-4xl mx-auto px-2 sm:px-4 lg:px-8 mb-6 mt-8 sm:mt-12">
+        <div className="grid grid-cols-4 gap-1 sm:gap-2">
           {demoSections.map((section, index) => (
             <button
               key={section.id}
               onClick={() => setActiveDemo(index)}
               className={`${
                 activeDemo === index
-                  ? 'bg-green-600 text-white shadow-lg'
+                  ? 'bg-green-600 text-white shadow-md'
                   : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
-              } p-4 sm:p-6 rounded-lg font-semibold text-sm sm:text-base transition-all duration-200 shadow-sm hover:shadow-md`}
+              } p-2 sm:p-3 rounded-lg font-medium text-xs sm:text-sm transition-all duration-200 shadow-sm hover:shadow-md`}
             >
-              <div className="flex flex-col items-center text-center">
-                <div className="mb-2">
+              <div className="flex items-center justify-center text-center">
+                <div className="leading-tight">
                   {section.id === 'generate' && (
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
+                    <span>Create<br className="sm:hidden" /><span className="hidden sm:inline"> </span>Sheet</span>
                   )}
                   {section.id === 'send' && (
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M12 19l9-7-9-7v4H0v6h12v4z"/>
-                    </svg>
+                    <span>Dynamic<br className="sm:hidden" /><span className="hidden sm:inline"> </span>Outreach</span>
                   )}
                   {section.id === 'insights' && (
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/>
-                    </svg>
+                    <span>Market<br className="sm:hidden" /><span className="hidden sm:inline"> </span>Insights</span>
                   )}
                   {section.id === 'analytics' && (
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
-                    </svg>
+                    <span>Sheet<br className="sm:hidden" /><span className="hidden sm:inline"> </span>Analytics</span>
                   )}
-                </div>
-                <div className="hidden sm:block">
-                  {section.id === 'generate' && 'Create Price Sheet'}
-                  {section.id === 'send' && 'Dynamic Outreach'}
-                  {section.id === 'insights' && 'Market Insights'}
-                  {section.id === 'analytics' && 'Price Sheet Analytics'}
-                </div>
-                <div className="sm:hidden">
-                  {section.id === 'generate' && 'Create Price Sheet'}
-                  {section.id === 'send' && 'Dynamic Outreach'}
-                  {section.id === 'insights' && 'Market Insights'}
-                  {section.id === 'analytics' && 'Price Sheet Analytics'}
                 </div>
               </div>
             </button>
@@ -172,17 +144,9 @@ export default function IFPAPage() {
                   {/* Content */}
                   <div>
                     <div className="mb-4">
-                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-2">
+                      <h2 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-gray-900 mb-4 sm:mb-6">
                         {section.title}
                       </h2>
-                      {section.subtitle && (
-                        <p className="text-base sm:text-lg text-green-600 font-medium mb-3 sm:mb-4">
-                          {section.subtitle}
-                        </p>
-                      )}
-                      <p className="text-gray-600 text-sm sm:text-base lg:text-lg leading-relaxed mb-4 sm:mb-6">
-                        {section.description}
-                      </p>
                       
                       {/* Stats Badge */}
                       {section.stats && (
@@ -195,7 +159,6 @@ export default function IFPAPage() {
 
                     {/* Highlights */}
                     <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2 sm:mb-3">Key Features:</h3>
                       <ul className="space-y-2">
                         {section.highlights.map((highlight, idx) => (
                           <li key={idx} className="flex items-center">
@@ -216,7 +179,12 @@ export default function IFPAPage() {
                           <div className="w-6 h-6 bg-green-600 rounded flex items-center justify-center">
                             <span className="text-white font-bold text-xs">A</span>
                           </div>
-                          <span className="font-semibold text-gray-900">{section.title}</span>
+                          <span className="font-semibold text-gray-900">
+                            {section.id === 'generate' && 'Generate New Price Sheet'}
+                            {section.id === 'send' && 'Send Price Sheet'}
+                            {section.id === 'insights' && 'AI Pricing Recommendations'}
+                            {section.id === 'analytics' && 'Price Sheet Analytics'}
+                          </span>
                         </div>
                         <div className="flex items-center space-x-2">
                           <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -257,7 +225,7 @@ export default function IFPAPage() {
                                         </div>
                                         <div>
                                           <div className="font-semibold text-sm sm:text-base text-gray-900">Romaine Lettuce</div>
-                                          <div className="text-xs text-gray-500">Fresh • Premium Grade</div>
+                                          <div className="text-xs text-gray-700 font-medium">Fresh • Premium Grade</div>
                                         </div>
                                       </div>
                                       <div className="flex items-center space-x-2">
@@ -271,7 +239,7 @@ export default function IFPAPage() {
                                     </div>
                                     <div className="grid grid-cols-4 gap-2">
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Cut</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Cut</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>Whole Head</option>
                                           <option>Chopped</option>
@@ -279,7 +247,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Package</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Package</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>Carton</option>
                                           <option>Bag</option>
@@ -287,7 +255,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Size</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Size</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>24ct</option>
                                           <option>18ct</option>
@@ -295,7 +263,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Price</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Price</label>
                                         <input className="w-full border-2 border-green-300 rounded px-2 py-1 text-xs font-bold text-green-700 bg-green-50" value="$61.92" readOnly />
                                       </div>
                                     </div>
@@ -310,7 +278,7 @@ export default function IFPAPage() {
                                         </div>
                                         <div>
                                           <div className="font-semibold text-sm sm:text-base text-gray-900">Navel Orange</div>
-                                          <div className="text-xs text-gray-500">California • Extra Large</div>
+                                          <div className="text-xs text-gray-700 font-medium">California • Extra Large</div>
                                         </div>
                                       </div>
                                       <div className="flex items-center space-x-2">
@@ -324,7 +292,7 @@ export default function IFPAPage() {
                                     </div>
                                     <div className="grid grid-cols-4 gap-2">
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Cut</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Cut</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>Whole</option>
                                           <option>Juiced</option>
@@ -332,7 +300,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Package</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Package</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>Carton</option>
                                           <option>Mesh Bag</option>
@@ -340,7 +308,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Size</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Size</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>40lb</option>
                                           <option>25lb</option>
@@ -348,7 +316,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Price</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Price</label>
                                         <input className="w-full border-2 border-green-300 rounded px-2 py-1 text-xs font-bold text-green-700 bg-green-50" value="$78.00" readOnly />
                                       </div>
                                     </div>
@@ -363,7 +331,7 @@ export default function IFPAPage() {
                                         </div>
                                         <div>
                                           <div className="font-semibold text-sm sm:text-base text-gray-900">Organic Carrots</div>
-                                          <div className="text-xs text-gray-500 flex items-center">
+                                          <div className="text-xs text-gray-700 font-medium flex items-center">
                                             <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs mr-2">Organic</span>
                                             Premium Grade
                                           </div>
@@ -380,7 +348,7 @@ export default function IFPAPage() {
                                     </div>
                                     <div className="grid grid-cols-4 gap-2">
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Cut</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Cut</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>Whole</option>
                                           <option>Baby Cut</option>
@@ -388,7 +356,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Package</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Package</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>Bag</option>
                                           <option>Carton</option>
@@ -396,7 +364,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Size</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Size</label>
                                         <select className="w-full border border-gray-300 rounded px-2 py-1 text-xs bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                           <option>25lb</option>
                                           <option>50lb</option>
@@ -404,7 +372,7 @@ export default function IFPAPage() {
                                         </select>
                                       </div>
                                       <div className="col-span-1">
-                                        <label className="text-xs text-gray-500 block mb-1">Price</label>
+                                        <label className="text-xs text-gray-800 font-medium block mb-1">Price</label>
                                         <input className="w-full border-2 border-green-300 rounded px-2 py-1 text-xs font-bold text-green-700 bg-green-50" value="$42.50" readOnly />
                                       </div>
                                     </div>
@@ -491,7 +459,7 @@ export default function IFPAPage() {
                                 defaultValue="Hi [Name], fresh harvest available this week. Special pricing on [YourSKUs] including premium romaine and sweet navels. Limited quantities - order by Friday!"
                                 readOnly
                               />
-                              <div className="flex items-center justify-between mt-3 text-xs text-gray-500">
+                              <div className="flex items-center justify-between mt-3 text-xs text-gray-800 font-medium">
                                 <span>Variables: [Name], [Company], [LastOrder], [YourSKUs]</span>
                                 <span>Characters: 151/500</span>
                               </div>
@@ -518,19 +486,8 @@ export default function IFPAPage() {
 
                         {section.id === 'insights' && (
                           <div className="min-h-full">
-                            {/* Header */}
-                            <div className="mb-4">
-                              <h3 className="text-base sm:text-lg font-semibold">Market Intelligence</h3>
-                            </div>
-
                             {/* AI Pricing Recommendations - Single Column */}
                             <div>
-                              <h4 className="font-medium mb-4 text-sm sm:text-base flex items-center">
-                                <svg className="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                                </svg>
-                                AI Pricing Recommendations
-                              </h4>
                               <div className="space-y-3">
                                 <div className="bg-green-50 border border-green-200 rounded-lg p-4 shadow-sm">
                                   <div className="flex items-center justify-between mb-2">
@@ -608,13 +565,13 @@ export default function IFPAPage() {
                           <div className="min-h-full">
                             {/* Header */}
                             <div className="mb-4">
-                              <h3 className="text-base sm:text-lg font-semibold">Price Sheet Sent 10/14/25</h3>
-                              <p className="text-sm text-gray-600 mt-1">Weekly Fresh Produce List - 85 contacts</p>
+                              <h3 className="text-base sm:text-lg font-semibold text-gray-900">Price Sheet Sent 10/14/25</h3>
+                              <p className="text-sm text-gray-800 mt-1 font-medium">Weekly Fresh Produce List - 85 contacts</p>
                             </div>
 
                             {/* Engagement Performance - Single Column */}
                             <div>
-                              <h4 className="font-medium mb-4 text-sm sm:text-base flex items-center">
+                              <h4 className="font-semibold mb-4 text-sm sm:text-base flex items-center text-gray-900">
                                 <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
                                   <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                 </svg>

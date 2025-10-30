@@ -56,11 +56,18 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  
+  // Overview tab editable fields
+  const [editedContact, setEditedContact] = useState<Contact | null>(null)
 
   // Load crop data when modal opens
   useEffect(() => {
     if (isOpen && contact) {
       loadCropData()
+      // Initialize edited contact state
+      setEditedContact(contact)
+      setHasUnsavedChanges(false)
+      
       // Load existing pricesheet settings for this contact (if any)
       const existingSettings = contact.pricesheetSettings || {
         deliveryMethod: contact.preferredContactMethod === 'phone' ? 'sms' : 'email',
@@ -229,9 +236,48 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
     setHasUnsavedChanges(true)
   }
 
+  const updateContactField = (field: keyof Contact, value: any) => {
+    if (!editedContact) return
+    setEditedContact({
+      ...editedContact,
+      [field]: value
+    })
+    setHasUnsavedChanges(true)
+  }
+
+  const handleSaveOverview = async () => {
+    if (!editedContact || !contact) return
+    
+    try {
+      setIsSaving(true)
+      // Use _id if available, otherwise fall back to id
+      const contactId = (contact as any)._id || contact.id
+      
+      // Ensure tags array is in sync with status field
+      const updatedContact = {
+        ...editedContact,
+        tags: editedContact.tags && editedContact.tags.length > 0 
+          ? editedContact.tags 
+          : (editedContact.status ? [editedContact.status] : [])
+      }
+      
+      await contactsApi.update(contactId, updatedContact)
+      setHasUnsavedChanges(false)
+      // Optionally reload or update the parent component
+    } catch (error) {
+      console.error('Failed to save contact details:', error)
+      // You might want to show a toast notification here
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   const handleSavePricesheetSettings = async () => {
     try {
       setIsSaving(true)
+      
+      // Use _id if available, otherwise fall back to id
+      const contactId = (contact as any)._id || contact.id
       
       // Save pricesheet settings to the contact record
       const updatedContact = {
@@ -239,7 +285,7 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
         pricesheetSettings: pricesheetSettings
       }
       
-      await contactsApi.update(contact.id, updatedContact)
+      await contactsApi.update(contactId, updatedContact)
       setHasUnsavedChanges(false)
     } catch (error) {
       console.error('Failed to save pricesheet settings:', error)
@@ -341,105 +387,178 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
 
                 {/* Content */}
                 <div className="bg-white px-6 py-6 max-h-96 overflow-y-auto">
-                  {activeTab === 'overview' && (
+                  {activeTab === 'overview' && editedContact && (
                     <div className="space-y-6">
-                      {/* Contact Information */}
+                      {/* Basic Information */}
                       <div>
-                        <h4 className="text-sm font-medium text-gray-900 mb-4">Contact Information</h4>
+                        <h4 className="text-sm font-medium text-gray-900 mb-4">Basic Information</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="flex items-center space-x-3">
-                            <EnvelopeIcon className="h-5 w-5 text-gray-400" />
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Email</label>
-                              <span className="text-sm text-gray-900">{contact.email}</span>
-                            </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">First Name *</label>
+                            <input
+                              type="text"
+                              value={editedContact.firstName || ''}
+                              onChange={(e) => updateContactField('firstName', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
                           </div>
-                          {contact.phone && (
-                            <div className="flex items-center space-x-3">
-                              <PhoneIcon className="h-5 w-5 text-gray-400" />
-                              <div>
-                                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</label>
-                                <span className="text-sm text-gray-900">{contact.phone}</span>
-                              </div>
-                            </div>
-                          )}
-                          <div className="flex items-center space-x-3">
-                            <BuildingOfficeIcon className="h-5 w-5 text-gray-400" />
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Company</label>
-                              <span className="text-sm text-gray-900">{contact.company}</span>
-                            </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Last Name *</label>
+                            <input
+                              type="text"
+                              value={editedContact.lastName || ''}
+                              onChange={(e) => updateContactField('lastName', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
                           </div>
-                          {contact.title && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Title</label>
-                              <span className="text-sm text-gray-900">{contact.title}</span>
-                            </div>
-                          )}
-                          {contact.website && (
-                            <div className="flex items-center space-x-3">
-                              <GlobeAltIcon className="h-5 w-5 text-gray-400" />
-                              <div>
-                                <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Website</label>
-                                <span className="text-sm text-gray-900">{contact.website}</span>
-                              </div>
-                            </div>
-                          )}
-
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                            <input
+                              type="email"
+                              value={editedContact.email || ''}
+                              onChange={(e) => updateContactField('email', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+                            <input
+                              type="tel"
+                              value={editedContact.phone || ''}
+                              onChange={(e) => updateContactField('phone', e.target.value)}
+                              placeholder="(555) 123-4567"
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Title/Position</label>
+                            <input
+                              type="text"
+                              value={editedContact.title || ''}
+                              onChange={(e) => updateContactField('title', e.target.value)}
+                              placeholder="e.g., Purchasing Manager"
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Company *</label>
+                            <input
+                              type="text"
+                              value={editedContact.company || ''}
+                              onChange={(e) => updateContactField('company', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Industry</label>
+                            <select
+                              value={editedContact.industry || ''}
+                              onChange={(e) => updateContactField('industry', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            >
+                              <option value="">Select industry...</option>
+                              <option value="CPG (Consumer Packaged Goods)">CPG (Consumer Packaged Goods)</option>
+                              <option value="Retail">Retail</option>
+                              <option value="Food Service">Food Service</option>
+                              <option value="Restaurant">Restaurant</option>
+                              <option value="Grocery Chain">Grocery Chain</option>
+                              <option value="Distributor">Distributor</option>
+                              <option value="Wholesaler">Wholesaler</option>
+                              <option value="Food Processor">Food Processor</option>
+                              <option value="Catering">Catering</option>
+                              <option value="Institutional (Schools/Hospitals)">Institutional (Schools/Hospitals)</option>
+                              <option value="Export">Export</option>
+                              <option value="Other">Other</option>
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Website</label>
+                            <input
+                              type="url"
+                              value={editedContact.website || ''}
+                              onChange={(e) => updateContactField('website', e.target.value)}
+                              placeholder="https://"
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
                         </div>
                       </div>
 
                       {/* Address */}
-                      {(contact.address || contact.city || contact.state) && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-3">Address</h4>
-                          <div className="flex items-start space-x-3">
-                            <MapPinIcon className="h-5 w-5 text-gray-400 mt-0.5" />
-                            <div className="text-sm text-gray-900">
-                              {contact.address && <div>{contact.address}</div>}
-                              <div>
-                                {contact.city}{contact.city && contact.state && ', '}{contact.state} {contact.zipCode}
-                              </div>
-                              {contact.country && contact.country !== 'USA' && <div>{contact.country}</div>}
-                            </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-4">Address</h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="sm:col-span-2">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Street Address</label>
+                            <input
+                              type="text"
+                              value={editedContact.address || ''}
+                              onChange={(e) => updateContactField('address', e.target.value)}
+                              placeholder="123 Main St"
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">City</label>
+                            <input
+                              type="text"
+                              value={editedContact.city || ''}
+                              onChange={(e) => updateContactField('city', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">State</label>
+                            <input
+                              type="text"
+                              value={editedContact.state || ''}
+                              onChange={(e) => updateContactField('state', e.target.value)}
+                              placeholder="CA"
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">ZIP Code</label>
+                            <input
+                              type="text"
+                              value={editedContact.zipCode || ''}
+                              onChange={(e) => updateContactField('zipCode', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Country</label>
+                            <input
+                              type="text"
+                              value={editedContact.country || 'USA'}
+                              onChange={(e) => updateContactField('country', e.target.value)}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            />
                           </div>
                         </div>
-                      )}
+                      </div>
 
                       {/* Business Details */}
                       <div>
                         <h4 className="text-sm font-medium text-gray-900 mb-4">Business Details</h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                           <div>
-                            <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Status</label>
-                            <div className="flex flex-wrap gap-1">
-                              {contact.tags && contact.tags.length > 0 ? (
-                                contact.tags.map((tag) => (
-                                  <span key={tag} className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                                    tag === 'active' ? 'bg-green-100 text-green-800' :
-                                    tag === 'prospect' ? 'bg-blue-100 text-blue-800' :
-                                    tag === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                                    'bg-gray-100 text-gray-800'
-                                  }`}>
-                                    {tag === 'active' ? 'Active' : 
-                                     tag === 'prospect' ? 'Prospect' : 
-                                     tag === 'inactive' ? 'Inactive' : 
-                                     tag}
-                                  </span>
-                                ))
-                              ) : (
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                                  {contact.status || 'No status'}
-                                </span>
-                              )}
-                            </div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                            <select
+                              value={editedContact.tags?.[0] || editedContact.status || ''}
+                              onChange={(e) => {
+                                const value = e.target.value
+                                updateContactField('tags', value ? [value] : [])
+                                updateContactField('status', value as any)
+                              }}
+                              className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            >
+                              <option value="">Select status...</option>
+                              <option value="active">Active</option>
+                              <option value="prospect">Prospect</option>
+                              <option value="inactive">Inactive</option>
+                            </select>
                           </div>
-                          {contact.industry && (
-                            <div>
-                              <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider">Industry</label>
-                              <p className="text-sm text-gray-900">{contact.industry}</p>
-                            </div>
-                          )}
                         </div>
                       </div>
                       
@@ -458,20 +577,28 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                       )}
                       
                       {/* Notes */}
-                      {contact.notes && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-3">Notes</h4>
-                          <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded-md">{contact.notes}</p>
-                        </div>
-                      )}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Notes</h4>
+                        <textarea
+                          value={editedContact.notes || ''}
+                          onChange={(e) => updateContactField('notes', e.target.value)}
+                          rows={3}
+                          placeholder="Add notes about this contact..."
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
 
                       {/* Special Terms */}
-                      {contact.specialTerms && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-3">Special Terms</h4>
-                          <p className="text-sm text-gray-700 bg-yellow-50 p-3 rounded-md border border-yellow-200">{contact.specialTerms}</p>
-                        </div>
-                      )}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-900 mb-3">Special Terms</h4>
+                        <textarea
+                          value={editedContact.specialTerms || ''}
+                          onChange={(e) => updateContactField('specialTerms', e.target.value)}
+                          rows={2}
+                          placeholder="Add special pricing or delivery terms..."
+                          className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-yellow-50 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                        />
+                      </div>
                     </div>
                   )}
                   
@@ -496,34 +623,24 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                             </label>
                           </div>
                           {contact.phone && (
-                            <div className="flex items-center">
+                            <div className="flex items-center opacity-50 cursor-not-allowed">
                               <input
                                 id="delivery-sms"
                                 name="delivery-method"
                                 type="radio"
-                                checked={pricesheetSettings.deliveryMethod === 'sms'}
-                                onChange={() => updateDeliveryMethod('sms')}
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                                checked={false}
+                                disabled
+                                className="h-4 w-4 text-gray-400 border-gray-300 cursor-not-allowed"
                               />
                               <label htmlFor="delivery-sms" className="ml-3 flex items-center">
                                 <PhoneIcon className="h-4 w-4 text-gray-400 mr-2" />
-                                <span className="text-sm text-gray-900">SMS ({contact.phone})</span>
+                                <span className="text-sm text-gray-500">SMS ({contact.phone})</span>
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Coming Soon
+                                </span>
                               </label>
                             </div>
                           )}
-                          <div className="flex items-center">
-                            <input
-                              id="delivery-both"
-                              name="delivery-method"
-                              type="radio"
-                              checked={pricesheetSettings.deliveryMethod === 'both'}
-                              onChange={() => updateDeliveryMethod('both')}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                            />
-                            <label htmlFor="delivery-both" className="ml-3">
-                              <span className="text-sm text-gray-900">Both Email & SMS</span>
-                            </label>
-                          </div>
                         </div>
                       </div>
 
@@ -792,10 +909,10 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                     Contact created {formatDate(contact.createdAt)}
                   </div>
                   <div className="flex items-center space-x-3">
-                    {hasUnsavedChanges && activeTab === 'pricesheet' && (
+                    {hasUnsavedChanges && (
                       <button
                         type="button"
-                        onClick={handleSavePricesheetSettings}
+                        onClick={activeTab === 'overview' ? handleSaveOverview : handleSavePricesheetSettings}
                         disabled={isSaving}
                         className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                       >

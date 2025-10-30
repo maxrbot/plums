@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { ArrowPathIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
-import { Breadcrumbs } from '../../../../components/ui'
 import { fetchUsdaPrice, getAvailableMarkets } from '@/lib/usdaApi'
 import { cropsApi } from '@/lib/api'
 import { allCommodities as commodities, type CommodityConfig } from '@/config'
@@ -770,13 +769,6 @@ export default function MarketInsightsPage() {
     <>
       {/* Header */}
       <div className="mb-8">
-        <Breadcrumbs 
-          items={[
-            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Market Intelligence', current: true }
-          ]} 
-          className="mb-4"
-        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Market Intelligence</h1>

@@ -132,7 +132,8 @@ export default function AddContactModal({ isOpen, onClose, onSave }: AddContactM
     // Prepare contact data
     const contactData = {
       ...formData,
-      tags: formData.selectedTag ? [formData.selectedTag] : [], // Convert single tag to array
+      // Ensure tags array includes the status (selectedTag or status field)
+      tags: formData.selectedTag ? [formData.selectedTag] : (formData.status ? [formData.status] : []),
       averageOrderValue: formData.averageOrderValue ? parseFloat(formData.averageOrderValue) : undefined,
       companySize: formData.companySize || undefined,
       orderFrequency: formData.orderFrequency || undefined,

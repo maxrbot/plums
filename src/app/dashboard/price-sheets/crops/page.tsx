@@ -850,11 +850,16 @@ export default function CropManagement() {
                             {crop.variations.map((variation, index) => (
                               <tr key={variation.id || `${crop.id || crop.commodity}-var-${index}`} className="hover:bg-gray-50">
                                 <td className="px-3 py-3 text-sm text-gray-900">
-                                  <div className="font-medium">
+                                  <div className="font-medium capitalize">
+                                    {/* Build variation name: Type + Variety (or either one) */}
                                     {variation.subtype && typeof variation.subtype === 'string' && (
-                                      <span className="text-gray-500 capitalize">{variation.subtype.replace('-', ' ')} • </span>
+                                      <span className="text-gray-700">{variation.subtype.replace('-', ' ')}</span>
                                     )}
-                                    <span className="capitalize">{variation.variety || 'Standard'}</span>
+                                    {variation.subtype && variation.variety && ' '}
+                                    {variation.variety && (
+                                      <span className="text-gray-900">{variation.variety}</span>
+                                    )}
+                                    {!variation.subtype && !variation.variety && 'Standard'}
                                   </div>
                                 </td>
                                 <td className="px-3 py-3 text-sm">

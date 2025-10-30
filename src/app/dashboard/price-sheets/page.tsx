@@ -230,16 +230,16 @@ export default function PriceSheets() {
         </Link>
 
         <Link
-          href="/dashboard/price-sheets/insights"
-          className="group bg-orange-50 border border-orange-200 hover:bg-orange-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
+          href="/dashboard/price-sheets/library"
+          className="group bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
         >
           <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-all">
-              <CurrencyDollarIcon className="h-8 w-8 text-orange-700" />
+            <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-all">
+              <DocumentTextIcon className="h-8 w-8 text-green-700" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Market Intelligence</h3>
-              <p className="text-sm text-gray-600">USDA pricing & retail insights</p>
+              <h3 className="text-lg font-semibold text-gray-900">Created Price Sheets</h3>
+              <p className="text-sm text-gray-600">View & manage your sheets</p>
             </div>
           </div>
         </Link>

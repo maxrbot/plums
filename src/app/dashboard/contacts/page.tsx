@@ -58,6 +58,14 @@ export default function Contacts() {
       const contactsData = response.contacts || []
       console.log('loadContacts - setting contacts:', contactsData)
       
+      // Debug: Check tags for each contact
+      contactsData.forEach((contact: Contact) => {
+        console.log(`Contact ${contact.firstName} ${contact.lastName}:`, {
+          tags: contact.tags,
+          status: contact.status
+        })
+      })
+      
       setContacts(contactsData)
     } catch (err) {
       console.error('Failed to load contacts:', err)

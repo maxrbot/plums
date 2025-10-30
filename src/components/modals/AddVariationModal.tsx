@@ -260,10 +260,7 @@ export default function AddVariationModal({
   }
 
   const addVariation = () => {
-    if (!currentVariation.variety) {
-      alert('Please select a variety')
-      return
-    }
+    // Variety is optional - subtype alone (e.g., "Red") is sufficient
     if (currentVariation.shippingPoints.length === 0) {
       alert('Please select at least one shipping point')
       return
@@ -507,8 +504,17 @@ export default function AddVariationModal({
                         {formData.variations.map((variation, index) => (
                           <div key={`variation-${variation.variety}-${variation.isOrganic}-${index}`} className="flex items-center justify-between bg-white rounded-md p-3 border">
                             <div className="flex items-center space-x-3">
-                              <span className="text-sm font-medium text-gray-900">
-                                {variation.variety} ({variation.isOrganic ? 'Organic' : 'Conventional'})
+                              <span className="text-sm font-medium text-gray-900 capitalize">
+                                {/* Build variation name: Type + Variety (or either one) */}
+                                {variation.subtype && typeof variation.subtype === 'string' && (
+                                  <span className="text-gray-700">{variation.subtype.replace('-', ' ')}</span>
+                                )}
+                                {variation.subtype && variation.variety && ' '}
+                                {variation.variety && (
+                                  <span className="text-gray-900">{variation.variety}</span>
+                                )}
+                                {!variation.subtype && !variation.variety && 'Standard'}
+                                <span className="text-gray-500 font-normal"> ({variation.isOrganic ? 'Organic' : 'Conventional'})</span>
                               </span>
                               <span className="text-xs text-gray-500">
                                 {variation.shippingPoints?.length || variation.growingRegions?.length || 0} shipping point(s)

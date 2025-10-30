@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { 
   PaperAirplaneIcon,
   EyeIcon,
@@ -8,7 +9,8 @@ import {
   MagnifyingGlassIcon,
   EnvelopeIcon,
   DevicePhoneMobileIcon,
-  CalendarIcon
+  CalendarIcon,
+  ArrowRightIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
@@ -189,9 +191,25 @@ export default function SendPriceSheets() {
       const sheets = response.priceSheets || []
       setPriceSheets(sheets)
       
-      // Auto-select the most recent price sheet
-      if (sheets.length > 0 && !selectedPriceSheet) {
-        setSelectedPriceSheet(sheets[0]._id)
+      // Check URL for sheetId parameter
+      const urlParams = new URLSearchParams(window.location.search)
+      const sheetIdFromUrl = urlParams.get('sheetId')
+      
+      let sheetToSelect = ''
+      
+      // If sheetId in URL and exists in sheets, select it
+      if (sheetIdFromUrl && sheets.some(sheet => sheet._id === sheetIdFromUrl)) {
+        sheetToSelect = sheetIdFromUrl
+      }
+      // Otherwise auto-select the most recent price sheet and add to URL
+      else if (sheets.length > 0) {
+        sheetToSelect = sheets[0]._id
+      }
+      
+      if (sheetToSelect) {
+        setSelectedPriceSheet(sheetToSelect)
+        // Update URL to reflect selected sheet
+        updateURLWithSheet(sheetToSelect)
       }
     } catch (error) {
       console.error('Error loading price sheets:', error)
@@ -199,6 +217,13 @@ export default function SendPriceSheets() {
     } finally {
       setIsLoadingPriceSheets(false)
     }
+  }
+  
+  // Helper function to update URL with sheet ID
+  const updateURLWithSheet = (sheetId: string) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('sheetId', sheetId)
+    window.history.replaceState({}, '', url.toString())
   }
 
   const loadContacts = async () => {
@@ -661,44 +686,85 @@ david@graniteridgeproduce.com | (559) 555-0234`
               <p className="text-gray-500">No price sheets found. Create one first in the Price Sheet Generator.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {priceSheets.map((sheet) => (
-                <div
-                  key={sheet._id}
-                  onClick={() => setSelectedPriceSheet(sheet._id)}
-                  className={`relative cursor-pointer rounded-lg border-2 p-4 transition-colors ${
-                    selectedPriceSheet === sheet._id
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <h3 className="text-sm font-medium text-gray-900">{sheet.title}</h3>
-                      <div className="mt-1 text-sm text-gray-500">
-                        <p>{sheet.productsCount} products • {sheet.status}</p>
-                        <p className="text-xs mt-1 text-blue-600 font-medium">{getRelativeTime(sheet.createdAt)}</p>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(() => {
+                  // Smart display logic: Show selected sheet + 3 most recent (or 4 most recent if none selected)
+                  let displaySheets: PriceSheet[] = []
+                  
+                  if (selectedPriceSheet) {
+                    // Find the selected sheet
+                    const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
+                    
+                    if (selectedSheet) {
+                      // Start with selected sheet
+                      displaySheets = [selectedSheet]
+                      
+                      // Add up to 3 most recent sheets (excluding the selected one)
+                      const otherSheets = priceSheets.filter(s => s._id !== selectedPriceSheet).slice(0, 3)
+                      displaySheets = [...displaySheets, ...otherSheets]
+                    } else {
+                      // Selected sheet not found, show 4 most recent
+                      displaySheets = priceSheets.slice(0, 4)
+                    }
+                  } else {
+                    // No selection, show 4 most recent
+                    displaySheets = priceSheets.slice(0, 4)
+                  }
+                  
+                  return displaySheets.map((sheet) => (
+                    <div
+                      key={sheet._id}
+                      onClick={() => {
+                        setSelectedPriceSheet(sheet._id)
+                        updateURLWithSheet(sheet._id)
+                      }}
+                      className={`relative cursor-pointer rounded-lg border-2 p-4 transition-colors ${
+                        selectedPriceSheet === sheet._id
+                          ? 'border-blue-600 bg-blue-50'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <h3 className="text-sm font-medium text-gray-900">{sheet.title}</h3>
+                          <div className="mt-1 text-sm text-gray-500">
+                            <p>{sheet.productsCount} products • {sheet.status}</p>
+                            <p className="text-xs mt-1 text-blue-600 font-medium">{getRelativeTime(sheet.createdAt)}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handlePreviewPriceSheet(sheet._id)
+                            }}
+                            className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
+                            title="Preview price sheet"
+                          >
+                            <EyeIcon className="h-4 w-4" />
+                          </button>
+                          {selectedPriceSheet === sheet._id && (
+                            <CheckIcon className="h-5 w-5 text-blue-600" />
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          handlePreviewPriceSheet(sheet._id)
-                        }}
-                        className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
-                        title="Preview price sheet"
-                      >
-                        <EyeIcon className="h-4 w-4" />
-                      </button>
-                      {selectedPriceSheet === sheet._id && (
-                        <CheckIcon className="h-5 w-5 text-blue-600" />
-                      )}
-                    </div>
-                  </div>
+                  ))
+                })()}
+              </div>
+              {priceSheets.length > 4 && (
+                <div className="mt-4 text-center">
+                  <Link
+                    href="/dashboard/price-sheets/library"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    View All {priceSheets.length} Price Sheets
+                    <ArrowRightIcon className="ml-2 h-4 w-4" />
+                  </Link>
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
           
           {!selectedPriceSheet && (

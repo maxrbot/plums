@@ -170,7 +170,9 @@ export default function PriceSheetsLibrary() {
         adjustedPrice: product.price, // For library preview, base = adjusted (no contact-specific pricing)
         availability: product.availability || 'In Stock',
         showStrikethrough: false, // No strikethrough in library view
-        isOrganic: product.isOrganic || false
+        isOrganic: product.isOrganic || false,
+        hasOverride: product.hasOverride || false,
+        overrideComment: product.overrideComment
       }))
       
       console.log('Formatted preview products:', previewProducts)
@@ -206,6 +208,9 @@ export default function PriceSheetsLibrary() {
       const duplicateProducts = products.map((product: any) => ({
         id: product._id,
         productName: product.productName || `${product.commodity || ''} ${product.variety || ''}`.trim() || 'Unknown Product',
+        commodity: product.commodity,
+        variety: product.variety,
+        subtype: product.subtype,
         region: product.regionName || 'N/A',
         packageType: product.packageType || 'N/A',
         countSize: product.countSize,
@@ -213,6 +218,7 @@ export default function PriceSheetsLibrary() {
         price: product.price,
         availability: product.availability || 'In Stock',
         isOrganic: product.isOrganic || false,
+        isStickered: product.isStickered || false,
         // Store original product data for API call
         _originalData: product
       }))

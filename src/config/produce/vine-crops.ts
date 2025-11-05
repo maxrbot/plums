@@ -458,13 +458,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '25lb'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 45, max: 55, unit: 'F' },
-      shelfLife: { duration: 14, unit: 'days' },
-      ethyleneProducer: false,
-      ethyleneSensitive: true
+      grades: ['US Fancy', 'US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   },
 
@@ -644,13 +640,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '10lb'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 45, max: 55, unit: 'F' },
-      shelfLife: { duration: 10, unit: 'days' },
-      ethyleneProducer: false,
-      ethyleneSensitive: true
+      grades: ['US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   },
 
@@ -759,13 +751,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '24ct'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 50, max: 55, unit: 'F' },
-      shelfLife: { duration: 10, unit: 'days' },
-      ethyleneProducer: false,
-      ethyleneSensitive: true
+      grades: ['US Fancy', 'US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   },
 
@@ -859,13 +847,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '20lb'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 50, max: 55, unit: 'F' },
-      shelfLife: { duration: 7, unit: 'days' },
-      ethyleneProducer: false,
-      ethyleneSensitive: true
+      grades: ['US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   },
 
@@ -965,13 +949,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '35lb'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 50, max: 55, unit: 'F' },
-      shelfLife: { duration: 60, unit: 'days' },
-      ethyleneProducer: false,
-      ethyleneSensitive: false
+      grades: ['US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   },
 
@@ -1261,13 +1241,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '40lb'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 36, max: 41, unit: 'F' },
-      shelfLife: { duration: 14, unit: 'days' },
-      ethyleneProducer: true,
-      ethyleneSensitive: true
+      grades: ['US Fancy', 'US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   },
 
@@ -1487,13 +1463,9 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultSize: '25lb'
     },
     
-    grades: ['No. 1', 'No. 2'],
-    
     quality: {
-      storageTemp: { min: 50, max: 55, unit: 'F' },
-      shelfLife: { duration: 7, unit: 'days' },
-      ethyleneProducer: false,
-      ethyleneSensitive: true
+      grades: ['US Fancy', 'US No. 1', 'US No. 2'],
+      defaultGrade: 'US No. 1'
     }
   }
 ]

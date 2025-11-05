@@ -390,14 +390,31 @@ export default function SendPriceSheets() {
       file.type.includes('document')
     )
     
-    const newFiles = [...attachedFiles, ...validFiles]
+    // Limit to 5 files total
+    const remainingSlots = 5 - attachedFiles.length
+    const filesToAdd = validFiles.slice(0, remainingSlots)
+    
+    if (validFiles.length > remainingSlots) {
+      alert(`You can only attach up to 5 files. ${validFiles.length - remainingSlots} file(s) were not added.`)
+    }
+    
+    const newFiles = [...attachedFiles, ...filesToAdd]
     handleFilesChange(newFiles)
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files)
-      const newFiles = [...attachedFiles, ...files]
+      
+      // Limit to 5 files total
+      const remainingSlots = 5 - attachedFiles.length
+      const filesToAdd = files.slice(0, remainingSlots)
+      
+      if (files.length > remainingSlots) {
+        alert(`You can only attach up to 5 files. ${files.length - remainingSlots} file(s) were not added.`)
+      }
+      
+      const newFiles = [...attachedFiles, ...filesToAdd]
       handleFilesChange(newFiles)
     }
   }
@@ -409,7 +426,7 @@ export default function SendPriceSheets() {
 
   // Check if step 3 has content and update state
   const checkStep3Content = () => {
-    const hasContent = customMessage.trim().length > 0 || attachedFiles.length > 0
+    const hasContent = attachedFiles.length > 0
     setStep3HasContent(hasContent)
     return hasContent
   }
@@ -844,15 +861,9 @@ export default function SendPriceSheets() {
             {/* Collapsed Content Summary */}
             {isStep3Collapsed && step3HasContent && (
               <div className="ml-11 mb-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
-                {customMessage && (
-                  <div className="mb-3">
-                    <p className="text-sm font-medium text-gray-700 mb-1">Custom Message:</p>
-                    <p className="text-sm text-gray-600 italic">"{customMessage.length > 100 ? customMessage.substring(0, 100) + '...' : customMessage}"</p>
-                  </div>
-                )}
                 {attachedFiles.length > 0 && (
                   <div>
-                    <p className="text-sm font-medium text-gray-700 mb-1">Attached Files ({attachedFiles.length}):</p>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Attached Files ({attachedFiles.length}):</p>
                     <div className="flex flex-wrap gap-2">
                       {attachedFiles.map((file, index) => (
                         <span key={`attached-file-${index}-${file.name}`} className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-orange-300 text-xs text-gray-700">
@@ -869,119 +880,121 @@ export default function SendPriceSheets() {
             {!isStep3Collapsed && (
               <>
                 <p className="text-sm text-gray-600 mb-6 ml-11">
-                  Add photos, documents, and custom messaging to make your price sheet more compelling.
+                  Upload photos and videos to showcase your product quality and build buyer confidence.
                 </p>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* File Attachments - Now First */}
+            <div className="max-w-3xl ml-11">
+              {/* File Upload Section */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Showcase Your Product Quality
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Upload Images & Documents
                 </label>
                 <div
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
+                  onDragOver={attachedFiles.length < 5 ? handleDragOver : undefined}
+                  onDragLeave={attachedFiles.length < 5 ? handleDragLeave : undefined}
+                  onDrop={attachedFiles.length < 5 ? handleDrop : undefined}
                   className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                    isDragOver 
-                      ? 'border-orange-400 bg-orange-50' 
-                      : 'border-gray-300 hover:border-gray-400'
+                    attachedFiles.length >= 5
+                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+                      : isDragOver 
+                        ? 'border-orange-400 bg-orange-50' 
+                        : 'border-gray-300 hover:border-gray-400'
                   }`}
                 >
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*,video/*,.pdf,.doc,.docx"
-                    onChange={handleFileSelect}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div className="space-y-2">
-                    <div className="mx-auto h-12 w-12 text-gray-400">
+                  {attachedFiles.length < 5 && (
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*,video/*,.pdf,.doc,.docx"
+                      onChange={handleFileSelect}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                  )}
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className={`h-10 w-10 ${attachedFiles.length >= 5 ? 'text-gray-300' : 'text-gray-400'}`}>
                       <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
                     </div>
-                    <div className="text-sm text-gray-600">
-                      <span className="font-medium text-orange-600">Click to upload</span> or drag and drop
+                    <div className="text-left">
+                      {attachedFiles.length >= 5 ? (
+                        <>
+                          <p className="text-sm text-gray-500">
+                            Maximum of 5 files reached
+                          </p>
+                          <p className="text-xs text-gray-400">
+                            Remove a file to add more
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold text-orange-600 hover:text-orange-500">Click to upload</span> or drag files here
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Images, videos, PDFs • Max 10MB each • {5 - attachedFiles.length} remaining
+                          </p>
+                        </>
+                      )}
                     </div>
-                    <p className="text-xs text-gray-500">
-                      Add photos of your fresh produce, videos showing quality, or spec sheets
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Max 10MB each • Photos, videos, PDFs, documents
-                    </p>
                   </div>
                 </div>
 
-                {/* Attached Files List */}
+                {/* Attached Files Grid */}
                 {attachedFiles.length > 0 && (
-                  <div className="mt-4 space-y-2">
-                    <p className="text-sm font-medium text-gray-700">Attached Files:</p>
-                    {attachedFiles.map((file, index) => (
-                      <div key={`summary-file-${index}-${file.name}`} className="flex items-center justify-between p-2 bg-gray-50 rounded-md">
-                        <div className="flex items-center space-x-2">
-                          <div className="flex-shrink-0">
-                            {file.type.startsWith('image/') ? (
-                              <span className="text-green-600">📷</span>
-                            ) : file.type.startsWith('video/') ? (
-                              <span className="text-purple-600">🎥</span>
-                            ) : file.type === 'application/pdf' ? (
-                              <span className="text-red-600">📄</span>
-                            ) : (
-                              <span className="text-blue-600">📎</span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">{file.name}</p>
-                            <p className="text-xs text-gray-500">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                  <div className="mt-6">
+                    <p className="text-sm font-medium text-gray-700 mb-3">Attached Files ({attachedFiles.length}):</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {attachedFiles.map((file, index) => (
+                        <div key={`summary-file-${index}-${file.name}`} className="relative group">
+                          <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-orange-300 transition-colors">
+                            <div className="flex-shrink-0 mb-2">
+                              {file.type.startsWith('image/') ? (
+                                <span className="text-3xl">📷</span>
+                              ) : file.type.startsWith('video/') ? (
+                                <span className="text-3xl">🎥</span>
+                              ) : file.type === 'application/pdf' ? (
+                                <span className="text-3xl">📄</span>
+                              ) : (
+                                <span className="text-3xl">📎</span>
+                              )}
+                            </div>
+                            <div className="text-center w-full">
+                              <p className="text-xs font-medium text-gray-900 truncate">{file.name}</p>
+                              <p className="text-xs text-gray-500 mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                            </div>
+                            <button
+                              onClick={() => removeFile(index)}
+                              className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
+                            >
+                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
-                        <button
-                          onClick={() => removeFile(index)}
-                          className="text-gray-400 hover:text-red-600 transition-colors"
-                        >
-                          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 )}
-              </div>
-
-              {/* Custom Message Input - Now Second */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  What would you like to emphasize?
-                </label>
-                <textarea
-                  value={customMessage}
-                  onChange={(e) => handleCustomMessageChange(e.target.value)}
-                  rows={4}
-                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm"
-                  placeholder="e.g., 'Just harvested our first strawberries of the season' or 'Limited quantities - first come, first served'"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  This will be included in your personalized email message.
-                </p>
               </div>
             </div>
             
             {/* Action Buttons - Bottom Right */}
-            <div className="flex justify-end space-x-2 mt-6">
-              <button
-                onClick={handleSkipStep3}
-                className="text-sm font-medium text-gray-600 hover:text-gray-500"
-              >
-                Skip
-              </button>
-              {step3HasContent && (
+            <div className="flex justify-end space-x-3 mt-6">
+              {attachedFiles.length > 0 ? (
                 <button
                   onClick={handleSaveStep3}
-                  className="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-orange-700 bg-orange-100 hover:bg-orange-200"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700"
                 >
-                  Save & Continue
+                  Done Adding Attachments
+                </button>
+              ) : (
+                <button
+                  onClick={handleSkipStep3}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Skip Adding Attachments
                 </button>
               )}
             </div>

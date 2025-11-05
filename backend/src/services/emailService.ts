@@ -22,6 +22,7 @@ export interface SendPriceSheetEmailParams {
   customMessage?: string
   productsCount: number
   customContent?: string // Raw custom email content (overrides template)
+  bcc?: string // BCC email address
 }
 
 export interface EmailSendResult {
@@ -237,7 +238,7 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
     console.log('📧 Reply-To will be:', params.from.email, '(user email)')
     console.log('📧 Price Sheet URL:', params.priceSheetUrl)
     
-    const msg = {
+    const msg: any = {
       to: {
         email: params.to.email,
         name: params.to.name
@@ -248,11 +249,6 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
       },
       replyTo: {
         email: params.from.email, // User's actual email
-        name: params.from.name
-      },
-      // BCC the sender so they get a copy in their inbox
-      bcc: {
-        email: params.from.email,
         name: params.from.name
       },
       subject: params.subject,
@@ -272,6 +268,14 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
       customArgs: {
         priceSheetId: params.priceSheetId,
         recipientEmail: params.to.email
+      }
+    }
+    
+    // Add BCC if requested
+    if (params.bcc) {
+      msg.bcc = {
+        email: params.bcc,
+        name: params.from.name
       }
     }
 

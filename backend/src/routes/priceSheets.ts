@@ -491,11 +491,13 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/:id/send', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
     const { id } = request.params as { id: string }
-    const { contactIds, subject, customMessage, customEmailContent } = request.body as {
+    const { contactIds, subject, customMessage, customEmailContent, customPricing, bccSender } = request.body as {
       contactIds: string[]
       subject?: string
       customMessage?: string
       customEmailContent?: Record<string, { subject?: string; content?: string }>
+      customPricing?: Record<string, Record<string, number>> // contactId -> productId -> price
+      bccSender?: boolean
     }
     
     if (!ObjectId.isValid(id)) {
@@ -604,7 +606,9 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             priceSheetUrl: personalizedUrl, // Use personalized URL with hash
             productsCount: priceSheet.productsCount || 0,
             // Use the template with custom message (not customContent)
-            ...(emailMessage && { customMessage: emailMessage })
+            ...(emailMessage && { customMessage: emailMessage }),
+            // BCC sender if requested
+            ...(bccSender && { bcc: userDoc.email })
           })
           sent++
         } catch (error) {
@@ -634,17 +638,24 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         }
       )
       
-      // Log sent emails (simplified - we don't have individual results anymore)
+      // Log sent emails with custom pricing if provided
       if (sent > 0) {
-        const sentEmails = contacts.slice(0, sent).map((contact) => ({
-          priceSheetId: priceSheet._id,
-          userId: userDoc._id,
-          contactId: contact._id,
-          contactEmail: contact.email,
-          subject: subject || priceSheet.title,
-          sentAt: new Date(),
-          success: true
-        }))
+        const sentEmails = contacts.slice(0, sent).map((contact) => {
+          const contactId = contact._id.toString()
+          const contactCustomPricing = customPricing?.[contactId]
+          
+          return {
+            priceSheetId: priceSheet._id,
+            userId: userDoc._id,
+            contactId: contact._id,
+            contactEmail: contact.email,
+            subject: subject || priceSheet.title,
+            sentAt: new Date(),
+            success: true,
+            // Store custom pricing overrides (productId -> price)
+            ...(contactCustomPricing && { customPricing: contactCustomPricing })
+          }
+        })
         
         await db.collection('sentEmails').insertMany(sentEmails)
       }

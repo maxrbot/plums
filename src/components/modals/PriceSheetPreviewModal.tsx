@@ -1,8 +1,8 @@
 "use client"
 
-import { Fragment } from 'react'
+import { Fragment, useState } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
-import { XMarkIcon, BookmarkIcon, RocketLaunchIcon } from '@heroicons/react/24/outline'
+import { XMarkIcon, BookmarkIcon, RocketLaunchIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
 
 export interface PriceSheetProduct {
   id: string
@@ -12,7 +12,8 @@ export interface PriceSheetProduct {
   subtype?: string // Type field (e.g., "Red", "Green" for Table Grapes)
   region: string
   packageType: string
-  countSize?: string
+  size?: string // Weight-based size (e.g., "40lb")
+  countSize?: string // Count-based size or fruit count (e.g., "4 Count", "88s")
   grade?: string
   basePrice: number | null
   adjustedPrice: number | null
@@ -44,6 +45,8 @@ interface PriceSheetPreviewModalProps {
   isSaving?: boolean
   hasSaved?: boolean
   mode?: 'save' | 'send' // 'save' shows save button, 'send' is for preview only
+  onSaveCustomPricing?: (productId: string, customValue: number | string) => void // Callback for saving custom pricing or comment
+  allowPriceEditing?: boolean // Whether to allow price editing (for send mode)
 }
 
 export default function PriceSheetPreviewModal({
@@ -59,8 +62,82 @@ export default function PriceSheetPreviewModal({
   onSendPriceSheet,
   isSaving = false,
   hasSaved = false,
-  mode = 'save'
+  mode = 'save',
+  onSaveCustomPricing,
+  allowPriceEditing = false
 }: PriceSheetPreviewModalProps) {
+  // Edit mode state
+  const [isEditingPrices, setIsEditingPrices] = useState(false)
+  const [editedPrices, setEditedPrices] = useState<Record<string, number | string>>({}) // Can be number (price) or string (comment)
+  const [isSavingPrices, setIsSavingPrices] = useState(false)
+  
+  // Handle price/comment change - flexible input
+  const handlePriceChange = (productId: string, newValue: string) => {
+    // If it's a valid number, store as number; otherwise store as string (comment)
+    const priceValue = parseFloat(newValue)
+    if (!isNaN(priceValue) && priceValue >= 0 && newValue.trim() !== '') {
+      setEditedPrices(prev => ({
+        ...prev,
+        [productId]: priceValue
+      }))
+    } else if (newValue.trim() !== '') {
+      // Store as comment if it's not a valid number
+      setEditedPrices(prev => ({
+        ...prev,
+        [productId]: newValue.trim()
+      }))
+    } else {
+      // Remove if empty
+      setEditedPrices(prev => {
+        const newPrices = { ...prev }
+        delete newPrices[productId]
+        return newPrices
+      })
+    }
+  }
+  
+  // Get price for display (edited or original)
+  const getDisplayPrice = (product: PriceSheetProduct): number | null => {
+    const edited = editedPrices[product.id]
+    if (edited !== undefined) {
+      return typeof edited === 'number' ? edited : null
+    }
+    return product.adjustedPrice
+  }
+  
+  // Get comment for display (edited or original)
+  const getDisplayComment = (product: PriceSheetProduct): string | undefined => {
+    const edited = editedPrices[product.id]
+    if (edited !== undefined && typeof edited === 'string') {
+      return edited
+    }
+    return product.overrideComment
+  }
+  
+  // Save custom pricing
+  const handleSaveCustomPricing = () => {
+    if (!onSaveCustomPricing) return
+    
+    setIsSavingPrices(true)
+    
+    // Call the callback for each edited price/comment
+    Object.entries(editedPrices).forEach(([productId, value]) => {
+      onSaveCustomPricing(productId, value)
+    })
+    
+    setTimeout(() => {
+      setIsSavingPrices(false)
+      setIsEditingPrices(false)
+    }, 300)
+  }
+  
+  // Reset state when modal closes
+  const handleClose = () => {
+    setIsEditingPrices(false)
+    setEditedPrices({})
+    setIsSavingPrices(false)
+    onClose()
+  }
   // Group products by shipping point, then by commodity
   const groupedProducts = products.reduce((acc, product) => {
     const shippingPoint = product.region || 'Other'
@@ -252,13 +329,27 @@ export default function PriceSheetPreviewModal({
                                     <td className="px-3 py-2 text-xs text-gray-900">{product.grade || '-'}</td>
                                     <td className="px-3 py-2">{getAvailabilityBadge(product.availability)}</td>
                                     <td className="px-3 py-2 text-right">
-                                      {product.hasOverride && product.overrideComment ? (
+                                      {isEditingPrices && allowPriceEditing ? (
+                                        <input
+                                          type="text"
+                                          placeholder="Price or comment"
+                                          value={
+                                            editedPrices[product.id] !== undefined 
+                                              ? editedPrices[product.id] 
+                                              : product.hasOverride && product.overrideComment
+                                                ? product.overrideComment
+                                                : (product.adjustedPrice || 0)
+                                          }
+                                          onChange={(e) => handlePriceChange(product.id, e.target.value)}
+                                          className="w-32 px-2 py-1 text-sm font-bold text-gray-900 border border-gray-300 rounded focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
+                                        />
+                                      ) : product.hasOverride && product.overrideComment ? (
                                         <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
-                                          {product.overrideComment}
+                                          {getDisplayComment(product)}
                                         </span>
                                       ) : (
                                         <div className="text-sm font-bold text-gray-900">
-                                          {formatPrice(product.adjustedPrice)}
+                                          {formatPrice(getDisplayPrice(product))}
                                         </div>
                                       )}
                                     </td>
@@ -283,14 +374,65 @@ export default function PriceSheetPreviewModal({
                     {products.length} product{products.length !== 1 ? 's' : ''} • {Object.keys(groupedProducts).length} shipping point{Object.keys(groupedProducts).length !== 1 ? 's' : ''}
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button
-                      type="button"
-                      onClick={onClose}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      Close
-                    </button>
-                    {mode === 'save' && (
+                    {/* Show edit controls when allowPriceEditing is true */}
+                    {allowPriceEditing && !isEditingPrices && (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingPrices(true)}
+                        className="inline-flex items-center px-4 py-2 border border-lime-500 text-sm font-medium rounded-md text-lime-700 bg-white hover:bg-lime-50"
+                      >
+                        <PencilIcon className="h-4 w-4 mr-2" />
+                        Modify Pricing
+                      </button>
+                    )}
+                    
+                    {/* Show save/cancel when editing */}
+                    {isEditingPrices && (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsEditingPrices(false)
+                            setEditedPrices({})
+                          }}
+                          className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSaveCustomPricing}
+                          disabled={isSavingPrices || Object.keys(editedPrices).length === 0}
+                          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                          {isSavingPrices ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Saving...
+                            </>
+                          ) : (
+                            <>
+                              <CheckIcon className="h-4 w-4 mr-2" />
+                              Save Changes
+                            </>
+                          )}
+                        </button>
+                      </>
+                    )}
+                    
+                    {/* Regular close button (hidden when editing) */}
+                    {!isEditingPrices && (
+                      <button
+                        type="button"
+                        onClick={handleClose}
+                        className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Close
+                      </button>
+                    )}
+                    
+                    {/* Save/Send buttons for 'save' mode */}
+                    {mode === 'save' && !isEditingPrices && (
                       <>
                         {!hasSaved && onSave && (
                           <button

@@ -180,6 +180,7 @@ export default function ScheduleSendPage() {
   const [sendTiming, setSendTiming] = useState<'now' | 'scheduled'>('now')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('09:00')
+  const [bccSelf, setBccSelf] = useState(false)
   const [timezone] = useState('America/Los_Angeles') // Would come from user settings
   const [isSending, setIsSending] = useState(false)
   const [sendProgress, setSendProgress] = useState(0)
@@ -192,6 +193,9 @@ export default function ScheduleSendPage() {
   
   // Store custom email content per contact
   const [customEmailContent, setCustomEmailContent] = useState<Record<string, { subject: string; content: string }>>({})
+  
+  // Custom pricing (per contact per product) - can be number (price) or string (comment)
+  const [customPricing, setCustomPricing] = useState<Record<string, Record<string, number | string>>>({})
   
   // Preview modal state
   const [emailPreviewModal, setEmailPreviewModal] = useState<{ isOpen: boolean; contact: Contact | null }>({
@@ -271,6 +275,10 @@ export default function ScheduleSendPage() {
       try {
         const response = await priceSheetsApi.getProducts(sheetId)
         
+        // Get custom pricing for this contact
+        const contactId = contact.id || (contact as any)._id
+        const contactCustomPricing = customPricing[contactId] || {}
+        
         // Apply contact-specific pricing adjustments
         const pricesheetSettings = contact.pricesheetSettings || {}
         const globalAdjustment = pricesheetSettings.globalAdjustment || contact.pricingAdjustment || 0
@@ -285,6 +293,35 @@ export default function ScheduleSendPage() {
         
         // Map products to the format expected by PriceSheetPreviewModal
         const formattedProducts = response.products.map((product: any) => {
+          const productId = product._id
+          
+          // Check for custom pricing first (highest priority)
+          if (contactCustomPricing[productId] !== undefined) {
+            const customValue = contactCustomPricing[productId]
+            // Check if custom value is a price (number) or comment (string)
+            const isComment = typeof customValue === 'string'
+            
+            return {
+              id: productId,
+              productName: product.productName || `${product.commodity} ${product.variety || ''}`.trim(),
+              commodity: product.commodity,
+              variety: product.variety,
+              subtype: product.subtype,
+              region: product.regionName || '-',
+              packageType: product.packageType + (product.countSize ? ` - ${product.countSize}` : ''),
+              grade: product.grade,
+              countSize: product.countSize,
+              basePrice: product.price || 0,
+              adjustedPrice: isComment ? null : customValue,
+              availability: product.availability,
+              isOrganic: product.isOrganic,
+              showStrikethrough: false,
+              hasOverride: isComment,
+              overrideComment: isComment ? customValue : undefined
+            }
+          }
+          
+          // Otherwise, apply percentage-based adjustments
           const cropKey = `${product.cropId}-${product.variationId}`
           const adjustment = cropAdjustmentMap.get(cropKey) ?? globalAdjustment
           
@@ -294,7 +331,7 @@ export default function ScheduleSendPage() {
             : basePrice
           
           return {
-            id: product._id,
+            id: productId,
             productName: product.productName || `${product.commodity} ${product.variety || ''}`.trim(),
             commodity: product.commodity,
             variety: product.variety,
@@ -307,7 +344,9 @@ export default function ScheduleSendPage() {
             adjustedPrice,
             availability: product.availability,
             isOrganic: product.isOrganic,
-            showStrikethrough: pricesheetSettings.showDiscountStrikethrough && basePrice !== adjustedPrice
+            showStrikethrough: pricesheetSettings.showDiscountStrikethrough && basePrice !== adjustedPrice,
+            hasOverride: product.hasOverride || false,
+            overrideComment: product.overrideComment
           }
         })
         
@@ -339,6 +378,17 @@ export default function ScheduleSendPage() {
       [contactId]: { subject, content }
     }))
     // Success message is shown in the modal, no need for alert
+  }
+  
+  // Handle custom pricing for a specific contact and product (can be price or comment)
+  const handleSaveCustomPricing = (contactId: string, productId: string, customValue: number | string) => {
+    setCustomPricing(prev => ({
+      ...prev,
+      [contactId]: {
+        ...(prev[contactId] || {}),
+        [productId]: customValue
+      }
+    }))
   }
 
   const handleGenerateEmails = async () => {
@@ -372,12 +422,22 @@ export default function ScheduleSendPage() {
         }
       })
       
-      // Call real API to send emails with custom content
+      // Build custom pricing map for contacts with modified prices
+      const customPricingMap: Record<string, Record<string, number>> = {}
+      Object.keys(customPricing).forEach(contactId => {
+        if (contactIds.includes(contactId)) {
+          customPricingMap[contactId] = customPricing[contactId]
+        }
+      })
+      
+      // Call real API to send emails with custom content and pricing
       const result = await priceSheetsApi.send(sheetId, {
         contactIds,
         subject: priceSheet?.title,
         customMessage: customMessage || undefined,
-        customEmailContent: Object.keys(customContentMap).length > 0 ? customContentMap : undefined
+        customEmailContent: Object.keys(customContentMap).length > 0 ? customContentMap : undefined,
+        customPricing: Object.keys(customPricingMap).length > 0 ? customPricingMap : undefined,
+        bccSender: bccSelf
       })
 
       // Show success
@@ -537,92 +597,6 @@ export default function ScheduleSendPage() {
                     </div>
                   </div>
 
-                  {/* Delivery Timing */}
-              <div className="mb-8">
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Timing</h3>
-                <div className="grid grid-cols-3 gap-6 mb-4 max-w-2xl">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="send-now"
-                      name="timing"
-                      value="now"
-                      checked={sendTiming === 'now'}
-                      onChange={(e) => setSendTiming(e.target.value as 'now' | 'scheduled')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <label htmlFor="send-now" className="text-sm font-medium text-gray-700">
-                      Send immediately
-                    </label>
-                  </div>
-                  
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="send-scheduled"
-                      name="timing"
-                      value="scheduled"
-                      checked={sendTiming === 'scheduled'}
-                      onChange={(e) => setSendTiming(e.target.value as 'now' | 'scheduled')}
-                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
-                    />
-                    <label htmlFor="send-scheduled" className="text-sm font-medium text-gray-700">
-                      Send on specific date
-                    </label>
-                  </div>
-
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="radio"
-                      id="send-custom"
-                      name="timing"
-                      value="custom"
-                      disabled
-                      className="h-4 w-4 text-gray-400 border-gray-300 cursor-not-allowed"
-                    />
-                    <label htmlFor="send-custom" className="text-sm font-medium text-gray-400">
-                      Custom schedule
-                    </label>
-                  </div>
-                </div>
-                
-                {sendTiming === 'scheduled' && (
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3">
-                      <div>
-                        <input
-                          type="date"
-                          value={scheduledDate}
-                          onChange={(e) => setScheduledDate(e.target.value)}
-                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                        />
-                      </div>
-                      <div className="text-sm text-gray-500">at</div>
-                      <div>
-                        <input
-                          type="time"
-                          value={scheduledTime}
-                          onChange={(e) => setScheduledTime(e.target.value)}
-                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                        />
-                      </div>
-                    </div>
-                    <div className="bg-blue-50 rounded-lg p-3">
-                      <div className="flex items-start space-x-2">
-                        <GlobeAltIcon className="h-4 w-4 text-blue-600 mt-0.5" />
-                        <div>
-                          <p className="text-xs font-medium text-blue-900">Timezone Adjusted</p>
-                          <p className="text-xs text-blue-700 mt-1">
-                            Each contact will receive the email at {scheduledTime} in their local timezone.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-
               {/* Final Review */}
               <div className="mb-8">
                 <div className="mb-4">
@@ -675,7 +649,12 @@ export default function ScheduleSendPage() {
                                           <p className="text-xs text-gray-600 truncate">{contact.firstName} {contact.lastName}</p>
                                           {customEmailContent[contact.id || (contact as any)._id] && (
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-2">
-                                              ✏️ Custom
+                                              ✏️ Custom Email
+                                            </span>
+                                          )}
+                                          {customPricing[contact.id || (contact as any)._id] && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 ml-2">
+                                              💰 Custom Pricing
                                             </span>
                                           )}
                                         </div>
@@ -724,6 +703,11 @@ export default function ScheduleSendPage() {
                                           <p className="text-sm font-medium text-gray-900 truncate">{contact.company}</p>
                                           <span className="text-xs text-gray-400 flex-shrink-0">•</span>
                                           <p className="text-xs text-gray-600 truncate">{contact.firstName} {contact.lastName}</p>
+                                          {customPricing[contact.id || (contact as any)._id] && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 ml-2">
+                                              💰 Custom Pricing
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex items-center space-x-2 flex-shrink-0">
@@ -773,6 +757,16 @@ export default function ScheduleSendPage() {
                                           <p className="text-sm font-medium text-gray-900 truncate">{contact.company}</p>
                                           <span className="text-xs text-gray-400 flex-shrink-0">•</span>
                                           <p className="text-xs text-gray-600 truncate">{contact.firstName} {contact.lastName}</p>
+                                          {customEmailContent[contact.id || (contact as any)._id] && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                                              ✏️ Custom Email
+                                            </span>
+                                          )}
+                                          {customPricing[contact.id || (contact as any)._id] && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 ml-2">
+                                              💰 Custom Pricing
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex items-center space-x-1 flex-shrink-0">
@@ -809,6 +803,111 @@ export default function ScheduleSendPage() {
                     })()}
                   </div>
                   
+                </div>
+              </div>
+
+              {/* Delivery Timing */}
+              <div className="mb-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Timing</h3>
+                <div className="grid grid-cols-3 gap-6 mb-4 max-w-2xl">
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="send-now"
+                      name="timing"
+                      value="now"
+                      checked={sendTiming === 'now'}
+                      onChange={(e) => setSendTiming(e.target.value as 'now' | 'scheduled')}
+                      className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                    />
+                    <label htmlFor="send-now" className="text-sm font-medium text-gray-700">
+                      Send Now
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="send-scheduled"
+                      name="timing"
+                      value="scheduled"
+                      disabled
+                      className="h-4 w-4 text-gray-400 border-gray-300 cursor-not-allowed"
+                    />
+                    <label htmlFor="send-scheduled" className="text-sm font-medium text-gray-400">
+                      Schedule Send
+                    </label>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      id="send-custom"
+                      name="timing"
+                      value="custom"
+                      disabled
+                      className="h-4 w-4 text-gray-400 border-gray-300 cursor-not-allowed"
+                    />
+                    <label htmlFor="send-custom" className="text-sm font-medium text-gray-400">
+                      Custom schedule
+                    </label>
+                  </div>
+                </div>
+                
+                {sendTiming === 'scheduled' && (
+                  <div className="space-y-3">
+                    <div className="flex items-center space-x-3">
+                      <div>
+                        <input
+                          type="date"
+                          value={scheduledDate}
+                          onChange={(e) => setScheduledDate(e.target.value)}
+                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                        />
+                      </div>
+                      <div className="text-sm text-gray-500">at</div>
+                      <div>
+                        <input
+                          type="time"
+                          value={scheduledTime}
+                          onChange={(e) => setScheduledTime(e.target.value)}
+                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                        />
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 rounded-lg p-3">
+                      <div className="flex items-start space-x-2">
+                        <GlobeAltIcon className="h-4 w-4 text-blue-600 mt-0.5" />
+                        <div>
+                          <p className="text-xs font-medium text-blue-900">Timezone Adjusted</p>
+                          <p className="text-xs text-blue-700 mt-1">
+                            Each contact will receive the email at {scheduledTime} in their local timezone.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* BCC Option */}
+                <div className="mt-6 max-w-2xl">
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="bcc-self"
+                      checked={bccSelf}
+                      onChange={(e) => setBccSelf(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 mt-0.5"
+                    />
+                    <div>
+                      <label htmlFor="bcc-self" className="text-sm font-medium text-gray-700">
+                        BCC me on all emails
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Receive a copy of each email sent (hidden from recipients)
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -955,6 +1054,27 @@ export default function ScheduleSendPage() {
           userEmail={user?.profile?.email || user?.email || 'sales@acrelist.com'}
           userPhone={user?.profile?.phone || '(555) 123-4567'}
           mode="send"
+          allowPriceEditing={true}
+          onSaveCustomPricing={(productId, customValue) => {
+            const contactId = priceSheetPreviewModal.contact?.id || (priceSheetPreviewModal.contact as any)?._id
+            if (contactId) {
+              handleSaveCustomPricing(contactId, productId, customValue)
+              
+              // Update the displayed products immediately
+              const isComment = typeof customValue === 'string'
+              setPriceSheetProducts(prev => prev.map(product => 
+                product.id === productId 
+                  ? { 
+                      ...product, 
+                      adjustedPrice: isComment ? null : customValue,
+                      hasOverride: isComment,
+                      overrideComment: isComment ? customValue : undefined,
+                      showStrikethrough: false 
+                    }
+                  : product
+              ))
+            }
+          }}
         />
       )}
     </>

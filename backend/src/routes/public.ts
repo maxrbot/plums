@@ -78,6 +78,16 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           if (contact) {
             showPricing = true
             
+            // Check if there are any custom pricing overrides from the sent email
+            const sentEmail = await db.collection('sentEmails').findOne({
+              priceSheetId: priceSheet._id,
+              contactId: contact._id
+            }, {
+              sort: { sentAt: -1 } // Get the most recent send
+            })
+            
+            const customPricingOverrides = sentEmail?.customPricing || {}
+            
             // Apply contact-specific pricing adjustments
             const pricesheetSettings = contact.pricesheetSettings || {}
             const globalAdjustment = pricesheetSettings.globalAdjustment || contact.pricingAdjustment || 0
@@ -94,7 +104,29 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
             products = products.map(product => {
               if (product.price === null) return product
               
-              // Check for crop-specific adjustment first
+              const productId = product._id.toString()
+              
+              // Check for custom pricing override first (highest priority)
+              if (customPricingOverrides[productId] !== undefined) {
+                const customValue = customPricingOverrides[productId]
+                
+                // Check if it's a comment (string) or price (number)
+                if (typeof customValue === 'string') {
+                  return {
+                    ...product,
+                    price: null, // Hide price when override comment is set
+                    hasOverride: true,
+                    overrideComment: customValue
+                  }
+                } else {
+                  return {
+                    ...product,
+                    price: customValue
+                  }
+                }
+              }
+              
+              // Otherwise, check for crop-specific adjustment
               const cropKey = `${product.cropId}-${product.variationId}`
               const adjustment = cropAdjustmentMap.get(cropKey) ?? globalAdjustment
               

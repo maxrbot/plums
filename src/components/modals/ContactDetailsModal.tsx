@@ -55,6 +55,8 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
   const [showCropDropdown, setShowCropDropdown] = useState(false)
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [priceSheetHistory, setPriceSheetHistory] = useState<any[]>([])
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   
   // Overview tab editable fields
@@ -80,6 +82,29 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
       setGlobalAdjustmentEnabled((existingSettings.globalAdjustment || 0) !== 0)
     }
   }, [isOpen, contact])
+
+  // Load price sheet history when History tab is active
+  useEffect(() => {
+    const loadHistory = async () => {
+      if (activeTab === 'history' && contact) {
+        const contactId = contact.id || (contact as any)._id
+        if (contactId) {
+          setIsLoadingHistory(true)
+          try {
+            const response = await contactsApi.getPriceSheetHistory(contactId)
+            setPriceSheetHistory(response.history || [])
+          } catch (error) {
+            console.error('Failed to load history:', error)
+            setPriceSheetHistory([])
+          } finally {
+            setIsLoadingHistory(false)
+          }
+        }
+      }
+    }
+
+    loadHistory()
+  }, [activeTab, contact])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -892,13 +917,87 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                   
                   {activeTab === 'history' && (
                     <div className="space-y-4">
-                      <div className="text-center py-8">
-                        <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                        <h3 className="text-sm font-medium text-gray-900 mb-2">No Interactions Yet</h3>
-                        <p className="text-sm text-gray-500">
-                          Interaction history will appear here as you communicate with this contact.
-                        </p>
-                      </div>
+                      {isLoadingHistory ? (
+                        <div className="text-center py-8">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                          <p className="text-sm text-gray-500 mt-4">Loading history...</p>
+                        </div>
+                      ) : priceSheetHistory.length === 0 ? (
+                        <div className="text-center py-8">
+                          <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                          <h3 className="text-sm font-medium text-gray-900 mb-2">No Price Sheets Sent Yet</h3>
+                          <p className="text-sm text-gray-500">
+                            Price sheets sent to this contact will appear here.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <h4 className="text-sm font-medium text-gray-700">Price Sheets Sent</h4>
+                          <div className="space-y-3">
+                            {priceSheetHistory.map((item) => (
+                              <div 
+                                key={item.id} 
+                                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                              >
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h5 className="text-sm font-medium text-gray-900">
+                                      {item.priceSheetTitle}
+                                    </h5>
+                                    <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
+                                      <div className="flex items-center">
+                                        <EnvelopeIcon className="h-4 w-4 mr-1" />
+                                        Sent via Email
+                                      </div>
+                                      <div>
+                                        {new Date(item.sentAt).toLocaleDateString('en-US', {
+                                          month: 'short',
+                                          day: 'numeric',
+                                          year: 'numeric',
+                                          hour: 'numeric',
+                                          minute: '2-digit'
+                                        })}
+                                      </div>
+                                    </div>
+                                    {item.opened && (
+                                      <div className="mt-2 flex items-center text-xs">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                          ✓ Opened {item.viewCount} {item.viewCount === 1 ? 'time' : 'times'}
+                                        </span>
+                                        {item.lastViewedAt && (
+                                          <span className="ml-2 text-gray-500">
+                                            Last viewed {new Date(item.lastViewedAt).toLocaleDateString('en-US', {
+                                              month: 'short',
+                                              day: 'numeric'
+                                            })}
+                                          </span>
+                                        )}
+                                      </div>
+                                    )}
+                                    {!item.opened && (
+                                      <div className="mt-2">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
+                                          Not opened yet
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      // Open personalized price sheet with contact-specific pricing
+                                      window.open(item.personalizedUrl, '_blank')
+                                    }}
+                                    className="ml-4 inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md border border-blue-300"
+                                  >
+                                    <DocumentTextIcon className="h-4 w-4 mr-1" />
+                                    View
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -6,6 +6,7 @@ import {
   PaperAirplaneIcon,
   EyeIcon,
   CheckIcon,
+  CheckCircleIcon,
   MagnifyingGlassIcon,
   EnvelopeIcon,
   DevicePhoneMobileIcon,
@@ -145,10 +146,7 @@ export default function SendPriceSheets() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
   const [contactNotes, setContactNotes] = useState<Record<string, string>>({})
-  const [emailContent, setEmailContent] = useState('')
-  const [emailSubject, setEmailSubject] = useState('')
-  const [isEmailGenerated, setIsEmailGenerated] = useState(false)
-  const [isGeneratingEmails, setIsGeneratingEmails] = useState(false)
+  // Removed email generation state - now handled on schedule page
   
   // Step 3: Enhancement state
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
@@ -320,7 +318,7 @@ export default function SendPriceSheets() {
       // Apply contact-specific pricing adjustments
       const adjustedProducts = products.map(product => {
         let adjustedPrice = product.price
-        const pricesheetSettings = contact.pricesheetSettings || {}
+        const pricesheetSettings = (contact as any).pricesheetSettings || {}
         
         // Skip price adjustments if product has override or null price
         if (!product.hasOverride && product.price !== null && product.price > 0) {
@@ -466,141 +464,7 @@ export default function SendPriceSheets() {
     }
   }
 
-  const generateAIEmail = async () => {
-    setIsGeneratingEmails(true)
-    
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 2500))
-    
-    const selectedSheet = priceSheets.find(s => s._id === selectedPriceSheet)
-    const analysis = await analyzePriceSheet(selectedPriceSheet)
-    
-    // Generate subject line based on price sheet title
-    const subjectLine = selectedSheet?.title || selectedSheet?.name || 'Weekly Price Sheet'
-    
-    // Set basic template (not used in display but kept for consistency)
-    const aiEmail = `Personalized emails generated for each contact with custom pricing and messaging.`
-
-    setEmailSubject(subjectLine)
-    setEmailContent(aiEmail)
-    setIsGeneratingEmails(false)
-    setIsEmailGenerated(true)
-  }
-
-  const getPricingDisplay = (contact: Contact, basePrice: number = 100) => {
-    const adjustedPrice = basePrice * (1 + contact.pricingAdjustment / 100)
-    return {
-      base: basePrice,
-      adjusted: adjustedPrice,
-      difference: adjustedPrice - basePrice
-    }
-  }
-
-  // Helper function to generate realistic personalized emails for demo based on actual price sheet
-  const generatePersonalizedEmailForContact = (contact: Contact, index: number) => {
-    const firstName = contact.firstName || 'Friend'
-    const company = contact.company || 'Your Company'
-    
-    // Different email variations for demo purposes based on Granite Ridge Produce Price Sheet
-    const emailVariations = [
-      {
-        subject: `Granite Ridge Produce - Today's Deals`,
-        content: `Hey ${firstName},
-
-Great talking with you on the phone yesterday! Please see the attached Price Sheet and quality photos. We have some featured items that I think you'll be interested in:
-
-🥬 Today's Featured Items:
-• Romaine Lettuce: 24ct cartons, premium grade - $19.00
-• Broccoli: 14ct cases, premium quality - $28.50
-• Celery: 30ct cartons, crisp and fresh - $24.50
-• Valencia Oranges: 40lb cartons (56s), fancy grade - $45.00
-
-${contact.pricingAdjustment !== 0 ? 
-  contact.pricingAdjustment > 0 ? 
-    `As discussed, your premium pricing reflects the priority service and quality grades we reserve for ${company}.` :
-    `Don't forget about your ${Math.abs(contact.pricingAdjustment)}% volume discount - already reflected in the attached sheet.`
-  : 'All pricing is current as of this morning.'
-}
-
-${customMessage ? `Also wanted to mention: ${customMessage}` : ''}
-
-Let me know what quantities work for ${company} and we can get this loaded today.
-
-Talk soon,
-Mike Rodriguez
-Granite Ridge Produce
-mike@graniteridgeproduce.com | (559) 555-0187`
-      },
-      {
-        subject: `Granite Ridge Produce - Today's Deals`,
-        content: `Hi ${firstName},
-
-Hope you're having a good week! Wanted to follow up on our conversation and get you our latest availability. Attached is today's price sheet with some quality shots of the product.
-
-🥬 What's Looking Good:
-• Romaine Lettuce (24ct cartons): $19.00 - really nice heads
-• Broccoli (14ct cases): $28.50 - tight crowns, great color  
-• Celery (30ct cartons): $24.50 - super crisp, good snap
-• Valencia Oranges (40lb/56s): $45.00 - sweet and juicy
-
-${contact.pricingAdjustment !== 0 ? 
-  contact.pricingAdjustment > 0 ? 
-    `Your pricing includes the premium service package we set up for ${company} - priority picking and dedicated logistics.` :
-    `Your ${Math.abs(contact.pricingAdjustment)}% partnership discount is already built into these numbers.`
-  : 'Pricing is competitive and current as of this morning.'
-}
-
-${customMessage ? `Quick note: ${customMessage}` : ''}
-
-Everything's available for pickup or delivery today. Just let me know what ${company} needs!
-
-Best,
-Sarah Martinez
-Granite Ridge Produce
-sarah@graniteridgeproduce.com | (559) 555-0123`
-      },
-      {
-        subject: `Granite Ridge Produce - Today's Deals`,
-        content: `Hey ${firstName},
-
-Thanks for taking my call earlier! As promised, here's today's price sheet with photos. I think you'll like what we have available.
-
-🥬 Today's Highlights:
-• Romaine Lettuce: 24ct cartons at $19.00 - premium quality
-• Broccoli: 14ct cases at $28.50 - fresh cut this morning
-• Celery: 30ct cartons at $24.50 - excellent crunch
-• Valencia Oranges: 40lb cartons (56s) at $45.00 - perfect for retail
-
-${contact.pricingAdjustment !== 0 ? 
-  contact.pricingAdjustment > 0 ? 
-    `As we discussed, the premium pricing ensures ${company} gets first pick of our best grades.` :
-    `Your ${Math.abs(contact.pricingAdjustment)}% volume pricing is already calculated in - no surprises.`
-  : 'Straight pricing, no games - what you see is what you get.'
-}
-
-${customMessage ? `One more thing: ${customMessage}` : ''}
-
-All items are ready to ship and perfect for ${company.includes('Market') || company.includes('Grocery') ? 'your customers' : company.includes('CPG') ? 'processing' : 'your operation'}. 
-
-Give me a shout when you're ready to move!
-
-Cheers,
-David Park
-Granite Ridge Produce
-david@graniteridgeproduce.com | (559) 555-0234`
-      }
-    ]
-    
-    return emailVariations[index % emailVariations.length]
-  }
-
-  // Helper function to personalize email subject for a specific contact
-  const personalizeSubjectForContact = (contact: Contact, template: string) => {
-    const firstName = contact.firstName || 'Friend'
-    return template
-      .replace(/\[FIRST_NAME\]/g, firstName)
-      .replace(/\[COMPANY_NAME\]/g, contact.company || 'Your Company')
-  }
+  // Email generation and sending moved to schedule page
 
   const tierCounts = {
     premium: contacts.filter(c => c.pricingTier === 'premium').length,
@@ -611,7 +475,7 @@ david@graniteridgeproduce.com | (559) 555-0234`
 
   // Helper function to render delivery method
   const renderDeliveryMethod = (contact: Contact) => {
-    const pricesheetSettings = contact.pricesheetSettings || {}
+    const pricesheetSettings = (contact as any).pricesheetSettings || {}
     const deliveryMethod = pricesheetSettings.deliveryMethod || 
       (contact.preferredContactMethod === 'phone' ? 'sms' : 'email')
 
@@ -890,7 +754,7 @@ david@graniteridgeproduce.com | (559) 555-0234`
                         {/* Enhanced Pricing Status Column */}
                         <div className="text-center w-32">
                           {(() => {
-                            const pricesheetSettings = contact.pricesheetSettings || {}
+                            const pricesheetSettings = (contact as any).pricesheetSettings || {}
                             const hasGlobalAdjustment = (pricesheetSettings.globalAdjustment || 0) !== 0
                             const hasIndividualAdjustments = (pricesheetSettings.cropAdjustments || []).length > 0
                             const hasCustomPricing = hasGlobalAdjustment || hasIndividualAdjustments
@@ -1126,153 +990,58 @@ david@graniteridgeproduce.com | (559) 555-0234`
           </div>
         )}
 
-        {/* Step 4: Email Generation */}
+        {/* Continue to Review Button */}
         {selectedPriceSheet && selectedContacts.length > 0 && isStep3Collapsed && (
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="flex-shrink-0 w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-sm font-semibold">4</div>
-              <h2 className="text-lg font-medium text-gray-900">Email Generation</h2>
-            </div>
-            <p className="text-sm text-gray-600 mb-6 ml-11">
-              Ready to create {selectedContacts.length} unique emails with dynamic pricing and personalized messaging.
-            </p>
-
-            {/* Personalized Email Previews */}
-            {isEmailGenerated && (
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-medium text-gray-900">Personalized Email Previews</h3>
-                  <div className="text-sm text-gray-500">
-                    Showing {Math.min(selectedContacts.length, 3)} of {selectedContacts.length} contacts
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
-                  {selectedContacts.slice(0, 3).map((contactId, index) => {
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-8 text-center">
+              <div className="flex items-center justify-center mb-4">
+                <div className="flex -space-x-2">
+                  {selectedContacts.slice(0, 5).map((contactId) => {
                     const contact = contacts.find(c => c.id === contactId)
                     if (!contact) return null
-                    
-                    const personalizedEmail = generatePersonalizedEmailForContact(contact, index)
-                    
                     return (
-                      <div key={`email-preview-${contact.id}-${index}`} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div>
-                            <h4 className="text-sm font-medium text-gray-900">{contact.firstName} {contact.lastName}</h4>
-                            <p className="text-xs text-gray-500">{contact.email}</p>
-                            <p className="text-xs text-gray-400">{contact.company}</p>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            {contact.pricingAdjustment !== 0 && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                {contact.pricingAdjustment > 0 ? '+' : ''}{contact.pricingAdjustment}%
-                              </span>
-                            )}
-                            {renderDeliveryMethod(contact)}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <div>
-                            <p className="text-xs font-medium text-gray-700 mb-1">Subject:</p>
-                            <p className="text-xs text-gray-900 bg-white px-2 py-1 rounded border">{personalizedEmail.subject}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs font-medium text-gray-700 mb-1">Message Preview:</p>
-                            <div className="text-xs text-gray-900 bg-white px-2 py-2 rounded border max-h-32 overflow-y-auto">
-                              {personalizedEmail.content.split('\n').slice(0, 6).map((line, lineIndex) => (
-                                <div key={`${contact.id}-line-${lineIndex}`} className={line.includes('💰') || line.includes('🎯') || line.includes('✨') || line.includes('🌟') ? 'text-blue-600 font-medium' : ''}>
-                                  {line}
-                                </div>
-                              ))}
-                              {personalizedEmail.content.split('\n').length > 6 && (
-                                <div key={`${contact.id}-more`} className="text-gray-400 italic">...and more</div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
+                      <div key={contact.id} className="w-10 h-10 bg-white border-2 border-white rounded-full flex items-center justify-center text-sm font-medium text-gray-700 shadow-md">
+                        {contact.firstName ? contact.firstName.charAt(0) : '?'}
                       </div>
                     )
                   }).filter(Boolean)}
-                </div>
-                
-                {selectedContacts.length > 3 && (
-                  <div className="text-center">
-                    <button className="text-sm text-blue-600 hover:text-blue-500">
-                      View all {selectedContacts.length} personalized emails →
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Generate Email Button or Loading */}
-            {!isEmailGenerated && !isGeneratingEmails && (
-              <div className="text-center mb-6">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 mb-4">
-                  <div className="flex items-center justify-center mb-4">
-                    <div className="flex -space-x-2">
-                      {selectedContacts.slice(0, 3).map((contactId, index) => {
-                        const contact = contacts.find(c => c.id === contactId)
-                        if (!contact) return null
-                        return (
-                          <div key={contact.id} className="w-8 h-8 bg-white border-2 border-white rounded-full flex items-center justify-center text-xs font-medium text-gray-700 shadow-sm">
-                            {contact.firstName ? contact.firstName.charAt(0) : '?'}
-                          </div>
-                        )
-                      }).filter(Boolean)}
-                      {selectedContacts.length > 3 && (
-                        <div className="w-8 h-8 bg-gray-100 border-2 border-white rounded-full flex items-center justify-center text-xs font-medium text-gray-500 shadow-sm">
-                          +{selectedContacts.length - 3}
-                        </div>
-                      )}
+                  {selectedContacts.length > 5 && (
+                    <div className="w-10 h-10 bg-gray-100 border-2 border-white rounded-full flex items-center justify-center text-sm font-medium text-gray-500 shadow-md">
+                      +{selectedContacts.length - 5}
                     </div>
-                  </div>
-                  <p className="text-base font-medium text-gray-900 mb-4">
-                    AI will craft unique emails for each contact with custom pricing and messaging.
-                  </p>
-                  <button
-                    onClick={generateAIEmail}
-                    className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transform hover:scale-105 transition-all duration-200"
-                  >
-                    ✨ Generate {selectedContacts.length} Personalized Email{selectedContacts.length !== 1 ? 's' : ''}
-                  </button>
+                  )}
                 </div>
               </div>
-            )}
-
-            {/* Loading State */}
-            {isGeneratingEmails && (
-              <div className="text-center py-8 mb-6">
-                <div className="mb-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                </div>
-                <h3 className="text-base font-medium text-gray-900 mb-2">
-                  Generating Personalized Emails...
-                </h3>
-                <p className="text-sm text-gray-600">
-                  AI is crafting custom messages for each of your {selectedContacts.length} contacts
-                </p>
-              </div>
-            )}
-
-            {isEmailGenerated && (
-              <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
-                  🎉 All emails generated and ready for delivery!
-                </div>
-                <div className="flex items-center justify-end">
-                  <button
-                    type="button"
-                    onClick={() => window.location.href = '/dashboard/price-sheets/send/schedule'}
-                    className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                  >
-                    <CalendarIcon className="h-4 w-4 mr-2" />
-                    Schedule & Send
-                  </button>
-                </div>
-              </div>
-            )}
+              
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Ready to Review & Send
+              </h3>
+              <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                You've selected <span className="font-semibold text-gray-900">{selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''}</span> to receive <span className="font-semibold text-gray-900">{priceSheets.find(s => s._id === selectedPriceSheet)?.title}</span>.
+                {customMessage && <span className="block mt-1">Custom message will be included.</span>}
+              </p>
+              
+              <button
+                type="button"
+                onClick={() => {
+                  // Navigate to schedule page with data
+                  const params = new URLSearchParams({
+                    sheetId: selectedPriceSheet,
+                    contacts: selectedContacts.join(','),
+                    ...(customMessage && { message: customMessage })
+                  })
+                  window.location.href = `/dashboard/price-sheets/send/schedule?${params.toString()}`
+                }}
+                className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 shadow-lg transform hover:scale-105 transition-all duration-200"
+              >
+                <CheckCircleIcon className="h-5 w-5 mr-2" />
+                Continue to Review & Send
+              </button>
+              
+              <p className="text-xs text-gray-500 mt-4">
+                Next: Review all recipients and send emails
+              </p>
+            </div>
           </div>
         )}
       </div>
@@ -1284,7 +1053,6 @@ david@graniteridgeproduce.com | (559) 555-0234`
           onClose={() => setIsPreviewModalOpen(false)}
           title={previewPriceSheet.title}
           products={previewProducts}
-          additionalNotes={previewPriceSheet.notes}
           userEmail={user?.profile?.email || 'sales@acrelist.com'}
           userPhone={user?.profile?.phone || '(555) 123-4567'}
           mode="send"

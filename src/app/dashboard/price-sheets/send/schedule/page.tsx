@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { 
   CalendarIcon,
   ClockIcon,
@@ -11,7 +12,8 @@ import {
   GlobeAltIcon,
   EnvelopeIcon,
   DevicePhoneMobileIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  SparklesIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../../components/ui'
 import { Contact } from '../../../../../types'
@@ -19,8 +21,16 @@ import { useUser } from '../../../../../contexts/UserContext'
 import EmailPreviewModal from '../../../../../components/modals/EmailPreviewModal'
 import SMSPreviewModal from '../../../../../components/modals/SMSPreviewModal'
 import PriceSheetPreviewModal from '../../../../../components/modals/PriceSheetPreviewModal'
+import { contactsApi, priceSheetsApi } from '../../../../../lib/api'
 
-// Mock data - would come from previous page state
+interface PriceSheet {
+  _id: string
+  title: string
+  productsCount?: number
+  status?: string
+}
+
+// Mock data - fallback if no URL params
 const mockSelectedContacts: Contact[] = [
   {
     id: '1',
@@ -155,8 +165,18 @@ const mockSelectedContacts: Contact[] = [
 export default function ScheduleSendPage() {
   // User data
   const { user } = useUser()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   
-  const [selectedContacts] = useState<Contact[]>(mockSelectedContacts)
+  // Get URL parameters
+  const sheetId = searchParams.get('sheetId')
+  const contactIdsParam = searchParams.get('contacts')
+  const customMessage = searchParams.get('message')
+  
+  // State
+  const [isLoading, setIsLoading] = useState(true)
+  const [priceSheet, setPriceSheet] = useState<PriceSheet | null>(null)
+  const [selectedContacts, setSelectedContacts] = useState<Contact[]>([])
   const [sendTiming, setSendTiming] = useState<'now' | 'scheduled'>('now')
   const [scheduledDate, setScheduledDate] = useState('')
   const [scheduledTime, setScheduledTime] = useState('09:00')
@@ -165,6 +185,13 @@ export default function ScheduleSendPage() {
   const [sendProgress, setSendProgress] = useState(0)
   const [sentEmails, setSentEmails] = useState<string[]>([])
   const [trackingEnabled, setTrackingEnabled] = useState(true)
+  
+  // Email generation state
+  const [isGeneratingEmails, setIsGeneratingEmails] = useState(false)
+  const [emailsGenerated, setEmailsGenerated] = useState(false)
+  
+  // Store custom email content per contact
+  const [customEmailContent, setCustomEmailContent] = useState<Record<string, { subject: string; content: string }>>({})
   
   // Preview modal state
   const [emailPreviewModal, setEmailPreviewModal] = useState<{ isOpen: boolean; contact: Contact | null }>({
@@ -179,7 +206,46 @@ export default function ScheduleSendPage() {
     isOpen: false,
     contact: null
   })
+  const [priceSheetProducts, setPriceSheetProducts] = useState<any[]>([])
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false)
 
+  // Load data from URL parameters
+  useEffect(() => {
+    const loadData = async () => {
+      if (!sheetId || !contactIdsParam) {
+        // Redirect back if missing params
+        router.push('/dashboard/price-sheets/send')
+        return
+      }
+
+      setIsLoading(true)
+      
+      try {
+        // Fetch price sheet
+        const sheetResponse = await priceSheetsApi.getById(sheetId)
+        setPriceSheet(sheetResponse.priceSheet)
+        
+        // Fetch contacts
+        const contactsResponse = await contactsApi.getAll()
+        const allContacts = contactsResponse.contacts || contactsResponse || []
+        const contactIds = contactIdsParam.split(',')
+        const filteredContacts = allContacts.filter((c: Contact) => 
+          contactIds.includes(c.id || (c as any)._id)
+        )
+        setSelectedContacts(filteredContacts)
+        
+      } catch (error) {
+        console.error('Error loading data:', error)
+        alert('Failed to load data. Redirecting back...')
+        router.push('/dashboard/price-sheets/send')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadData()
+  }, [sheetId, contactIdsParam, router])
+  
   // Set default scheduled date to tomorrow
   useEffect(() => {
     const tomorrow = new Date()
@@ -196,8 +262,63 @@ export default function ScheduleSendPage() {
     setSmsPreviewModal({ isOpen: true, contact })
   }
 
-  const handlePriceSheetPreview = (contact: Contact) => {
+  const handlePriceSheetPreview = async (contact: Contact) => {
     setPriceSheetPreviewModal({ isOpen: true, contact })
+    
+    // Fetch the actual price sheet products
+    if (sheetId) {
+      setIsLoadingProducts(true)
+      try {
+        const response = await priceSheetsApi.getProducts(sheetId)
+        
+        // Apply contact-specific pricing adjustments
+        const pricesheetSettings = contact.pricesheetSettings || {}
+        const globalAdjustment = pricesheetSettings.globalAdjustment || contact.pricingAdjustment || 0
+        const cropAdjustments = pricesheetSettings.cropAdjustments || []
+        
+        // Build a map of crop-specific adjustments
+        const cropAdjustmentMap = new Map()
+        cropAdjustments.forEach((adj: any) => {
+          const key = `${adj.cropId}-${adj.variationId}`
+          cropAdjustmentMap.set(key, adj.adjustment)
+        })
+        
+        // Map products to the format expected by PriceSheetPreviewModal
+        const formattedProducts = response.products.map((product: any) => {
+          const cropKey = `${product.cropId}-${product.variationId}`
+          const adjustment = cropAdjustmentMap.get(cropKey) ?? globalAdjustment
+          
+          const basePrice = product.price || 0
+          const adjustedPrice = adjustment !== 0 
+            ? basePrice * (1 + adjustment / 100)
+            : basePrice
+          
+          return {
+            id: product._id,
+            productName: product.productName || `${product.commodity} ${product.variety || ''}`.trim(),
+            commodity: product.commodity,
+            variety: product.variety,
+            subtype: product.subtype,
+            region: product.regionName || '-',
+            packageType: product.packageType + (product.countSize ? ` - ${product.countSize}` : ''),
+            grade: product.grade,
+            countSize: product.countSize,
+            basePrice,
+            adjustedPrice,
+            availability: product.availability,
+            isOrganic: product.isOrganic,
+            showStrikethrough: pricesheetSettings.showDiscountStrikethrough && basePrice !== adjustedPrice
+          }
+        })
+        
+        setPriceSheetProducts(formattedProducts)
+      } catch (error) {
+        console.error('Failed to load products:', error)
+        setPriceSheetProducts([])
+      } finally {
+        setIsLoadingProducts(false)
+      }
+    }
   }
 
   const closeEmailPreview = () => {
@@ -212,26 +333,73 @@ export default function ScheduleSendPage() {
     setPriceSheetPreviewModal({ isOpen: false, contact: null })
   }
 
+  const handleSaveEmailContent = (contactId: string, subject: string, content: string) => {
+    setCustomEmailContent(prev => ({
+      ...prev,
+      [contactId]: { subject, content }
+    }))
+    // Success message is shown in the modal, no need for alert
+  }
+
+  const handleGenerateEmails = async () => {
+    setIsGeneratingEmails(true)
+    
+    // Simulate AI processing time
+    await new Promise(resolve => setTimeout(resolve, 2500))
+    
+    setIsGeneratingEmails(false)
+    setEmailsGenerated(true)
+  }
+
   const handleSendEmails = async () => {
+    if (!sheetId) {
+      alert('Missing price sheet ID')
+      return
+    }
+
     setIsSending(true)
     setSendProgress(0)
     setSentEmails([])
 
-    // Simulate sending emails with progress
-    for (let i = 0; i < selectedContacts.length; i++) {
-      const contact = selectedContacts[i]
+    try {
+      const contactIds = selectedContacts.map(c => c.id || (c as any)._id)
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Build custom content map for contacts with edited emails
+      const customContentMap: Record<string, { subject?: string; content?: string }> = {}
+      Object.keys(customEmailContent).forEach(contactId => {
+        if (contactIds.includes(contactId)) {
+          customContentMap[contactId] = customEmailContent[contactId]
+        }
+      })
       
-      setSentEmails(prev => [...prev, contact.id])
-      setSendProgress(((i + 1) / selectedContacts.length) * 100)
-    }
+      // Call real API to send emails with custom content
+      const result = await priceSheetsApi.send(sheetId, {
+        contactIds,
+        subject: priceSheet?.title,
+        customMessage: customMessage || undefined,
+        customEmailContent: Object.keys(customContentMap).length > 0 ? customContentMap : undefined
+      })
 
-    // Complete
-    setTimeout(() => {
-      setIsSending(false)
-    }, 500)
+      // Show success
+      alert(`✅ Successfully sent to ${result.sent} contact(s)!${result.failed > 0 ? `\n⚠️ Failed to send to ${result.failed} contact(s).` : ''}`)
+      
+      // Mark all as sent
+      setSentEmails(contactIds)
+      setSendProgress(100)
+      
+      // Redirect back to send page after a delay
+      setTimeout(() => {
+        router.push('/dashboard/price-sheets/send')
+      }, 2000)
+
+    } catch (error: any) {
+      console.error('Error sending emails:', error)
+      alert(`❌ Failed to send emails: ${error.message || 'Unknown error'}`)
+    } finally {
+      setTimeout(() => {
+        setIsSending(false)
+      }, 500)
+    }
   }
 
   const renderDeliveryMethod = (contact: Contact) => {
@@ -294,23 +462,82 @@ export default function ScheduleSendPage() {
       />
 
       <div className="space-y-6">
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Schedule & Send</h1>
-              <p className="text-gray-600 mt-1">
-                Review delivery timing and send personalized outreach to your contacts
-              </p>
-            </div>
-            <div className="text-sm text-gray-500">
-              <GlobeAltIcon className="h-4 w-4 inline mr-1" />
-              Your timezone: {timezone.replace('_', ' ')}
-            </div>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="bg-white shadow rounded-lg p-12 text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading price sheet and contacts...</p>
           </div>
+        )}
 
-          {!isSending && sentEmails.length === 0 && (
-            <>
-              {/* Delivery Timing */}
+        {/* Main Content */}
+        {!isLoading && (
+          <>
+            <div className="bg-white shadow rounded-lg p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Review & Send</h1>
+                  <p className="text-gray-600 mt-1">
+                    {priceSheet?.title} • {selectedContacts.length} recipient{selectedContacts.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <GlobeAltIcon className="h-4 w-4 inline mr-1" />
+                  Your timezone: {timezone.replace('_', ' ')}
+                </div>
+              </div>
+
+              {/* Email Generation Section */}
+              {!emailsGenerated && !isGeneratingEmails && (
+                <div className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8 text-center">
+                  <div className="flex items-center justify-center mb-4">
+                    <SparklesIcon className="h-12 w-12 text-blue-600" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Generate Personalized Emails
+                  </h3>
+                  <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
+                    AI will create unique emails for each of your {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} with custom pricing and personalized messaging.
+                    {customMessage && <span className="block mt-2 text-sm">Your custom message will be included.</span>}
+                  </p>
+                  <button
+                    onClick={handleGenerateEmails}
+                    className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transform hover:scale-105 transition-all duration-200"
+                  >
+                    <SparklesIcon className="h-5 w-5 mr-2" />
+                    Generate {selectedContacts.length} Personalized Email{selectedContacts.length !== 1 ? 's' : ''}
+                  </button>
+                </div>
+              )}
+
+              {/* Generating State */}
+              {isGeneratingEmails && (
+                <div className="mb-8 text-center py-8">
+                  <div className="mb-4">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Generating Personalized Emails...
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    AI is crafting custom messages for each of your {selectedContacts.length} contacts
+                  </p>
+                </div>
+              )}
+
+              {/* Success - Show Recipients */}
+              {emailsGenerated && !isSending && sentEmails.length === 0 && (
+                <>
+                  <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center">
+                      <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
+                      <p className="text-sm text-green-800 font-medium">
+                        ✨ All emails generated and ready to send!
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Delivery Timing */}
               <div className="mb-8">
                 <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Timing</h3>
                 <div className="grid grid-cols-3 gap-6 mb-4 max-w-2xl">
@@ -404,10 +631,22 @@ export default function ScheduleSendPage() {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="space-y-6 max-h-96 overflow-y-auto">
                     {(() => {
-                      // Group contacts by delivery method
-                      const emailContacts = selectedContacts.filter(c => c.pricesheetSettings?.deliveryMethod === 'email')
-                      const smsContacts = selectedContacts.filter(c => c.pricesheetSettings?.deliveryMethod === 'sms')  
-                      const bothContacts = selectedContacts.filter(c => c.pricesheetSettings?.deliveryMethod === 'both')
+                      // Group contacts by delivery method (default to email if not set)
+                      const emailContacts = selectedContacts.filter(c => {
+                        const deliveryMethod = c.pricesheetSettings?.deliveryMethod || 
+                          (c.preferredContactMethod === 'phone' ? 'sms' : 'email')
+                        return deliveryMethod === 'email'
+                      })
+                      const smsContacts = selectedContacts.filter(c => {
+                        const deliveryMethod = c.pricesheetSettings?.deliveryMethod || 
+                          (c.preferredContactMethod === 'phone' ? 'sms' : 'email')
+                        return deliveryMethod === 'sms'
+                      })
+                      const bothContacts = selectedContacts.filter(c => {
+                        const deliveryMethod = c.pricesheetSettings?.deliveryMethod || 
+                          (c.preferredContactMethod === 'phone' ? 'sms' : 'email')
+                        return deliveryMethod === 'both'
+                      })
                       
                       let contactIndex = 0
                       
@@ -434,6 +673,11 @@ export default function ScheduleSendPage() {
                                           <p className="text-sm font-medium text-gray-900 truncate">{contact.company}</p>
                                           <span className="text-xs text-gray-400 flex-shrink-0">•</span>
                                           <p className="text-xs text-gray-600 truncate">{contact.firstName} {contact.lastName}</p>
+                                          {customEmailContent[contact.id || (contact as any)._id] && (
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                                              ✏️ Custom
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                       <div className="flex items-center space-x-2 flex-shrink-0">
@@ -662,23 +906,32 @@ export default function ScheduleSendPage() {
             </div>
           )}
         </div>
+          </>
+        )}
       </div>
 
       {/* Preview Modals */}
-      {emailPreviewModal.contact && (
-        <EmailPreviewModal
-          isOpen={emailPreviewModal.isOpen}
-          onClose={closeEmailPreview}
-          contact={emailPreviewModal.contact}
-          customMessage="Fresh quality photos attached - let me know if you need any specific shots!"
-          attachedFiles={[
-            new File([], 'romaine_quality_photos.jpg'),
-            new File([], 'broccoli_crown_samples.jpg')
-          ]}
-          userEmail={user?.profile?.email || 'sales@acrelist.com'}
-          userPhone={user?.profile?.phone || '(555) 123-4567'}
-        />
-      )}
+      {emailPreviewModal.contact && priceSheet && (() => {
+        const contactId = emailPreviewModal.contact.id || (emailPreviewModal.contact as any)._id
+        const savedCustomContent = customEmailContent[contactId]
+        
+        return (
+          <EmailPreviewModal
+            isOpen={emailPreviewModal.isOpen}
+            onClose={closeEmailPreview}
+            contact={emailPreviewModal.contact}
+            priceSheetTitle={priceSheet.title}
+            priceSheetUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/ps/${sheetId}`}
+            productsCount={priceSheet.productsCount || 0}
+            customMessage={customMessage || undefined}
+            userName={user?.profile?.contactName || user?.profile?.name || user?.name}
+            userEmail={user?.email || user?.profile?.email}
+            onSave={handleSaveEmailContent}
+            savedCustomContent={savedCustomContent}
+            isPreview={true}
+          />
+        )
+      })()}
 
       {smsPreviewModal.contact && (
         <SMSPreviewModal
@@ -692,43 +945,14 @@ export default function ScheduleSendPage() {
         <PriceSheetPreviewModal
           isOpen={priceSheetPreviewModal.isOpen}
           onClose={closePriceSheetPreview}
-          title="Granite Ridge Produce - Today's Deals"
-          products={[
-            {
-              id: '1',
-              productName: 'Romaine Lettuce',
-              region: 'Salinas Valley',
-              packageType: '24ct cartons',
-              basePrice: 22.35,
-              adjustedPrice: 19.00,
-              availability: 'Available',
-              showStrikethrough: priceSheetPreviewModal.contact?.pricesheetSettings?.showDiscountStrikethrough
-            },
-            {
-              id: '2',
-              productName: 'Broccoli Crowns',
-              region: 'Salinas Valley',
-              packageType: '14ct cases',
-              basePrice: 28.50,
-              adjustedPrice: 28.50,
-              availability: 'Available'
-            },
-            {
-              id: '3',
-              productName: 'Celery Hearts',
-              region: 'Oxnard',
-              packageType: '30ct cartons',
-              basePrice: 24.50,
-              adjustedPrice: 24.50,
-              availability: 'Available'
-            }
-          ]}
+          title={priceSheet?.title || 'Price Sheet'}
+          products={isLoadingProducts ? [] : priceSheetProducts}
           contactInfo={{
             name: `${priceSheetPreviewModal.contact?.firstName} ${priceSheetPreviewModal.contact?.lastName}`,
             pricingTier: priceSheetPreviewModal.contact?.pricesheetSettings?.globalAdjustment ? 'Custom Pricing' : 'Standard',
             pricingAdjustment: priceSheetPreviewModal.contact?.pricesheetSettings?.globalAdjustment || 0
           }}
-          userEmail={user?.profile?.email || 'sales@acrelist.com'}
+          userEmail={user?.profile?.email || user?.email || 'sales@acrelist.com'}
           userPhone={user?.profile?.phone || '(555) 123-4567'}
           mode="send"
         />

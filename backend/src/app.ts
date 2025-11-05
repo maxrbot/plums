@@ -17,6 +17,7 @@ import priceSheetsRoutes from './routes/priceSheets'
   import contactsRoutes from './routes/contacts'
   import chatbotRoutes from './routes/chatbot'
   import chatbotConfigRoutes from './routes/chatbotConfig'
+import publicRoutes from './routes/public'
 
 const fastify = Fastify({
   logger: {
@@ -26,16 +27,16 @@ const fastify = Fastify({
 
 // Register plugins
 async function registerPlugins() {
-  // Security
-  await fastify.register(helmet)
-  
-  // CORS
+  // CORS - Register BEFORE helmet!
   await fastify.register(cors, {
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      'http://localhost:3002' // Allow development on alternate port
-    ],
-    credentials: true
+    origin: true, // Allow all origins in development
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
+  })
+  
+  // Security
+  await fastify.register(helmet, {
+    crossOriginResourcePolicy: false // Allow CORS
   })
   
   // Rate limiting
@@ -47,6 +48,10 @@ async function registerPlugins() {
 
 // Register routes
 async function registerRoutes() {
+  // Public routes (no auth required)
+  await fastify.register(publicRoutes, { prefix: '/api/public' })
+  
+  // Protected routes (auth required)
   await fastify.register(authRoutes, { prefix: '/api/auth' })
   await fastify.register(userRoutes, { prefix: '/api/users' })
   await fastify.register(regionsRoutes, { prefix: '/api/regions' })

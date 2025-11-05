@@ -201,11 +201,11 @@ export default function PriceSheets() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <Link
           href="/dashboard/price-sheets/new"
-          className="group bg-lime-50 border border-lime-200 hover:bg-lime-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
+          className="group bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
         >
           <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-lime-100 rounded-full group-hover:bg-lime-200 transition-all">
-              <DocumentTextIcon className="h-8 w-8 text-lime-700" />
+            <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-all">
+              <DocumentTextIcon className="h-8 w-8 text-green-700" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Generate New Sheet</h3>
@@ -231,14 +231,14 @@ export default function PriceSheets() {
 
         <Link
           href="/dashboard/price-sheets/library"
-          className="group bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
+          className="group bg-orange-50 border border-orange-200 hover:bg-orange-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
         >
           <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-all">
-              <DocumentTextIcon className="h-8 w-8 text-green-700" />
+            <div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-all">
+              <ArchiveBoxIcon className="h-8 w-8 text-orange-700" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Created Price Sheets</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Price Sheet Library</h3>
               <p className="text-sm text-gray-600">View & manage your sheets</p>
             </div>
           </div>

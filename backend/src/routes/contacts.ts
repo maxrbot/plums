@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb'
 import database from '../config/database'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth'
 import { Contact } from '../models/types'
+import { generateContactHash } from '../utils/contactHash'
 
 const contactsRoutes: FastifyPluginAsync = async (fastify) => {
   
@@ -293,6 +294,126 @@ const contactsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to search contacts'
+      })
+    }
+  })
+  
+  // Get contact's price sheet history
+  fastify.get('/:id/price-sheets', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid contact ID'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      // Verify contact belongs to user
+      const contact = await db.collection('contacts').findOne({
+        _id: new ObjectId(id),
+        userId: userDoc._id
+      })
+      
+      if (!contact) {
+        return reply.status(404).send({
+          error: 'Contact Not Found',
+          message: 'Contact not found'
+        })
+      }
+      
+      // Get all sent emails for this contact
+      const sentEmails = await db.collection('sentEmails')
+        .find({ contactId: new ObjectId(id) })
+        .sort({ sentAt: -1 })
+        .toArray()
+      
+      // Get price sheet details for each email
+      const priceSheetIds = sentEmails.map(email => email.priceSheetId)
+      const priceSheets = await db.collection('priceSheets')
+        .find({ _id: { $in: priceSheetIds } })
+        .toArray()
+      
+      // Get view count for each price sheet
+      const viewCounts = await db.collection('priceSheetViews')
+        .aggregate([
+          {
+            $match: {
+              priceSheetId: { $in: priceSheetIds },
+              contactEmail: contact.email
+            }
+          },
+          {
+            $group: {
+              _id: '$priceSheetId',
+              count: { $sum: 1 },
+              lastViewedAt: { $max: '$viewedAt' }
+            }
+          }
+        ])
+        .toArray()
+      
+      // Map view counts
+      const viewCountMap = new Map()
+      viewCounts.forEach((vc: any) => {
+        viewCountMap.set(vc._id.toString(), {
+          count: vc.count,
+          lastViewedAt: vc.lastViewedAt
+        })
+      })
+      
+      // Map price sheets for quick lookup
+      const priceSheetMap = new Map()
+      priceSheets.forEach(ps => {
+        priceSheetMap.set(ps._id.toString(), ps)
+      })
+      
+      // Combine data and generate personalized URLs
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+      const contactIdString = contact._id.toString()
+      
+      const history = sentEmails.map(email => {
+        const priceSheetId = email.priceSheetId.toString()
+        const priceSheet = priceSheetMap.get(priceSheetId)
+        const viewData = viewCountMap.get(priceSheetId) || { count: 0, lastViewedAt: null }
+        
+        // Generate the personalized URL with contact hash
+        const contactHash = generateContactHash(contactIdString, priceSheetId)
+        const personalizedUrl = `${frontendUrl}/ps/${priceSheetId}?c=${contactHash}`
+        
+        return {
+          id: email._id.toString(),
+          priceSheetId,
+          priceSheetTitle: priceSheet?.title || 'Untitled',
+          subject: email.subject,
+          sentAt: email.sentAt,
+          success: email.success,
+          viewCount: viewData.count,
+          lastViewedAt: viewData.lastViewedAt,
+          opened: viewData.count > 0,
+          personalizedUrl // Include the URL with pricing
+        }
+      })
+      
+      return { history }
+      
+    } catch (error) {
+      console.error('Get contact price sheet history error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to get contact history'
       })
     }
   })

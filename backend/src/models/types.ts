@@ -167,7 +167,7 @@ export interface PackagingSize {
 export interface PriceSheet extends BaseDocument {
   userId: ObjectId
   title: string
-  status: 'draft' | 'sent' | 'archived'
+  status: 'draft' | 'active' | 'sent' | 'archived'
   productIds: ObjectId[] // Array of PriceSheetProduct IDs
   productsCount: number // Computed from productIds.length
   totalValue?: number

@@ -7,6 +7,9 @@ import { XMarkIcon, BookmarkIcon, RocketLaunchIcon } from '@heroicons/react/24/o
 export interface PriceSheetProduct {
   id: string
   productName: string
+  commodity?: string
+  variety?: string
+  subtype?: string // Type field (e.g., "Red", "Green" for Table Grapes)
   region: string
   packageType: string
   countSize?: string
@@ -17,6 +20,7 @@ export interface PriceSheetProduct {
   showStrikethrough?: boolean // whether to show strikethrough for discounts
   // Extended options
   isStickered?: boolean
+  isOrganic?: boolean
   specialNotes?: string
   hasOverride?: boolean
   overrideComment?: string
@@ -57,18 +61,43 @@ export default function PriceSheetPreviewModal({
   hasSaved = false,
   mode = 'save'
 }: PriceSheetPreviewModalProps) {
-  // Group products by region
-  const productsByRegion = products.reduce((groups, product) => {
-    if (!groups[product.region]) {
-      groups[product.region] = []
+  // Group products by shipping point, then by commodity
+  const groupedProducts = products.reduce((acc, product) => {
+    const shippingPoint = product.region || 'Other'
+    
+    if (!acc[shippingPoint]) {
+      acc[shippingPoint] = {}
     }
-    groups[product.region].push(product)
-    return groups
-  }, {} as Record<string, PriceSheetProduct[]>)
+    
+    const commodity = product.commodity || 'Other'
+    const commodityKey = commodity.charAt(0).toUpperCase() + commodity.slice(1)
+    
+    if (!acc[shippingPoint][commodityKey]) {
+      acc[shippingPoint][commodityKey] = []
+    }
+    
+    acc[shippingPoint][commodityKey].push(product)
+    return acc
+  }, {} as Record<string, Record<string, PriceSheetProduct[]>>)
 
   const formatPrice = (price: number | null) => {
     if (price === null || price === undefined) return '$0.00'
     return `$${price.toFixed(2)}`
+  }
+  
+  const getAvailabilityBadge = (availability: string) => {
+    const badgeClasses: Record<string, string> = {
+      'Available': 'bg-green-50 text-green-700 border-green-200',
+      'Limited': 'bg-amber-50 text-amber-700 border-amber-200',
+      'New Crop': 'bg-blue-50 text-blue-700 border-blue-200',
+      'Pre-order': 'bg-purple-50 text-purple-700 border-purple-200'
+    }
+    const className = badgeClasses[availability] || badgeClasses['Available']
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${className}`}>
+        {availability}
+      </span>
+    )
   }
 
   return (
@@ -144,74 +173,105 @@ export default function PriceSheetPreviewModal({
                     </div>
 
                     {/* Document Content */}
-                    <div className="px-8 py-6 max-h-96 overflow-y-auto">
+                    <div className="px-8 py-6 max-h-[500px] overflow-y-auto">
 
-                  {/* Clean Products by Region */}
-                  {Object.entries(productsByRegion).map(([region, regionProducts]) => (
-                    <div key={region} className="mb-6">
-                      <h2 className="text-lg font-medium text-gray-900 mb-3">
-                        {region}
-                      </h2>
-                      
-                      <div className="space-y-2">
-                        {regionProducts.map((product) => (
-                          <div key={product.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                            <div className="flex-1">
-                              <div className="flex items-center space-x-3">
-                                <span className="font-medium text-gray-900">{product.productName}</span>
-                                <span className="text-sm text-gray-500">
-                                  {[
-                                    product.packageType,
-                                    product.countSize,
-                                    product.grade
-                                  ].filter(Boolean).join(' • ')}
-                                </span>
-                                {product.isStickered && (
-                                  <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-700">
-                                    Stickered
-                                  </span>
-                                )}
-                                <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-full ${
-                                  product.availability === 'Available' ? 'bg-green-100 text-green-700' :
-                                  product.availability === 'Limited' ? 'bg-yellow-100 text-yellow-700' :
-                                  product.availability === 'Coming Soon' ? 'bg-blue-100 text-blue-700' :
-                                  product.availability === 'End of Season' ? 'bg-red-100 text-red-700' :
-                                  'bg-gray-100 text-gray-700'
-                                }`}>
-                                  {product.availability}
-                                </span>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              {product.hasOverride && product.overrideComment ? (
-                                <div className="flex items-center justify-end">
-                                  <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
-                                    {product.overrideComment}
-                                  </span>
-                                </div>
-                              ) : (
-                                <div className="flex items-center justify-end space-x-2">
-                                  {product.showStrikethrough && product.adjustedPrice !== null && product.basePrice !== null && product.adjustedPrice < product.basePrice && (
-                                    <span className="text-sm text-red-500 line-through">
-                                      {formatPrice(product.basePrice)}
-                                    </span>
-                                  )}
-                                  <span className="text-lg font-semibold text-gray-900">
-                                    {formatPrice(product.adjustedPrice)}
-                                  </span>
-                                </div>
-                              )}
-                              {!product.hasOverride && product.adjustedPrice !== null && product.basePrice !== null && product.adjustedPrice < product.basePrice && product.showStrikethrough && (
-                                <div className="text-xs text-green-600 font-medium">
-                                  Save {formatPrice(product.basePrice - product.adjustedPrice)}
-                                </div>
-                              )}
-                            </div>
+                  {/* Products grouped by Shipping Point and Commodity */}
+                  <div className="space-y-6">
+                  {Object.entries(groupedProducts).map(([shippingPoint, commodities]) => (
+                    <div key={shippingPoint} className="space-y-4">
+                      {/* Shipping Point Header */}
+                      <div className="bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 rounded-lg px-4 py-3">
+                        <div className="flex items-center space-x-2">
+                          <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <div>
+                            <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Shipping Point</div>
+                            <div className="text-sm font-bold text-gray-900">{shippingPoint}</div>
                           </div>
-                        ))}
+                        </div>
                       </div>
+
+                      {/* Commodities within this Shipping Point */}
+                      {Object.entries(commodities).map(([commodity, commodityProducts]) => (
+                        <div key={commodity} className="bg-white border border-gray-200 rounded-lg overflow-hidden ml-4">
+                          {/* Commodity Header */}
+                          <div className="px-4 py-2 border-b border-gray-100 bg-gray-50">
+                            <h3 className="text-sm font-semibold text-gray-900">{commodity}</h3>
+                          </div>
+
+                          {/* Products Table */}
+                          <table className="min-w-full text-xs">
+                            <thead>
+                              <tr className="border-b border-gray-100 bg-gray-50">
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variety</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avail</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {commodityProducts.map((product) => {
+                                // Build display name
+                                let displayName = '-'
+                                if (product.productName) {
+                                  displayName = product.productName
+                                } else if (product.variety && product.subtype) {
+                                  displayName = `${product.subtype} ${product.variety}`
+                                } else if (product.subtype) {
+                                  displayName = product.subtype
+                                } else if (product.variety) {
+                                  displayName = product.variety
+                                }
+                                
+                                // Remove "Organic" from display name if product is organic
+                                if (product.isOrganic && displayName.toLowerCase().startsWith('organic ')) {
+                                  displayName = displayName.substring(8)
+                                }
+                                
+                                return (
+                                  <tr key={product.id} className="hover:bg-gray-50">
+                                    <td className="px-3 py-2">
+                                      <div className="text-xs font-medium text-gray-900">
+                                        {product.isOrganic && (
+                                          <span className="text-green-600 font-semibold">Organic </span>
+                                        )}
+                                        {displayName}
+                                      </div>
+                                      {product.isStickered && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 mt-1">
+                                          Stickered
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-2 text-xs text-gray-900">{product.packageType || '-'}</td>
+                                    <td className="px-3 py-2 text-xs text-gray-900">{product.countSize || '-'}</td>
+                                    <td className="px-3 py-2 text-xs text-gray-900">{product.grade || '-'}</td>
+                                    <td className="px-3 py-2">{getAvailabilityBadge(product.availability)}</td>
+                                    <td className="px-3 py-2 text-right">
+                                      {product.hasOverride && product.overrideComment ? (
+                                        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-full bg-orange-100 text-orange-700">
+                                          {product.overrideComment}
+                                        </span>
+                                      ) : (
+                                        <div className="text-sm font-bold text-gray-900">
+                                          {formatPrice(product.adjustedPrice)}
+                                        </div>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      ))}
                     </div>
                   ))}
+                  </div>
 
                     </div>
                   </div>
@@ -220,7 +280,7 @@ export default function PriceSheetPreviewModal({
                 {/* Footer Actions */}
                 <div className="bg-gray-50 px-6 py-4 flex items-center justify-between">
                   <div className="text-sm text-gray-600">
-                    {products.length} product{products.length !== 1 ? 's' : ''} • {Object.keys(productsByRegion).length} region{Object.keys(productsByRegion).length !== 1 ? 's' : ''}
+                    {products.length} product{products.length !== 1 ? 's' : ''} • {Object.keys(groupedProducts).length} shipping point{Object.keys(groupedProducts).length !== 1 ? 's' : ''}
                   </div>
                   <div className="flex items-center space-x-3">
                     <button

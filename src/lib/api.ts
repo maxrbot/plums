@@ -24,14 +24,23 @@ async function apiRequest<T>(
     },
   }
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, config)
+  const url = `${API_BASE_URL}${endpoint}`
+  console.log('API Request:', { method: config.method || 'GET', url, hasAuth: !!token })
   
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}))
-    throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-  }
+  try {
+    const response = await fetch(url, config)
+    console.log('API Response:', { status: response.status, ok: response.ok })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
 
-  return response.json()
+    return response.json()
+  } catch (error) {
+    console.error('API Request failed:', error)
+    throw error
+  }
 }
 
 // Auth API
@@ -271,6 +280,10 @@ export const contactsApi = {
     
     return apiRequest<{ contacts: any[] }>(`/contacts/search?${params.toString()}`)
   },
+
+  getPriceSheetHistory: async (contactId: string) => {
+    return apiRequest<{ history: any[] }>(`/contacts/${contactId}/price-sheets`)
+  },
 }
 
 // Certifications API
@@ -332,6 +345,25 @@ export const priceSheetsApi = {
 
   getProducts: async (id: string) => {
     return apiRequest<{ products: any[] }>(`/price-sheets/${id}/products`)
+  },
+
+  send: async (id: string, data: { 
+    contactIds: string[]; 
+    subject?: string; 
+    customMessage?: string;
+    customEmailContent?: Record<string, { subject?: string; content?: string }>
+  }) => {
+    return apiRequest<{ success: boolean; sent: number; failed: number; totalRecipients: number; priceSheetUrl: string }>(`/price-sheets/${id}/send`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  archive: async (id: string, archived: boolean = true) => {
+    return apiRequest<{ success: boolean; message: string }>(`/price-sheets/${id}/archive`, {
+      method: 'PATCH',
+      body: JSON.stringify({ archived }),
+    })
   },
 }
 

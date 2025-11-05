@@ -943,6 +943,9 @@ export default function CleanPriceSheetPage() {
     return {
       id: productKey,
       productName: displayName,
+      commodity: product.commodity,
+      variety: product.variety,
+      subtype: product.subtype,
       region: product.region || 'Unknown Region',
       packageType: packaging ? `${packaging.size || ''} ${packaging.packageType || ''}`.trim() : '',
       countSize: packaging?.fruitCount || '',
@@ -953,6 +956,7 @@ export default function CleanPriceSheetPage() {
       showStrikethrough: false,
       // Additional data for extended functionality
       isStickered,
+      isOrganic: product.isOrganic,
       specialNotes,
       hasOverride,
       overrideComment

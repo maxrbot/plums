@@ -10,7 +10,9 @@ import {
   PlusIcon,
   PaperAirplaneIcon,
   EyeIcon,
-  DocumentDuplicateIcon
+  DocumentDuplicateIcon,
+  ArchiveBoxIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '@/components/ui'
 import PriceSheetPreviewModal from '@/components/modals/PriceSheetPreviewModal'
@@ -27,6 +29,8 @@ interface PriceSheet {
   productsCount?: number
   productCount?: number // Support both field names
   productIds?: string[]
+  recipientCount?: number
+  sentTo?: string[] // Array of contact emails
   metadata?: {
     recipientCount?: number
     openRate?: number
@@ -38,7 +42,7 @@ export default function PriceSheetsLibrary() {
   const [filteredSheets, setFilteredSheets] = useState<PriceSheet[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'active' | 'archived'>('all')
+  const [statusFilter, setStatusFilter] = useState<'active' | 'draft' | 'sent' | 'archived'>('active')
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest')
   
   // Preview modal state
@@ -85,7 +89,11 @@ export default function PriceSheetsLibrary() {
     }
 
     // Apply status filter
-    if (statusFilter !== 'all') {
+    if (statusFilter === 'active') {
+      // 'Active' means show everything EXCEPT archived (drafts, sent, active status)
+      filtered = filtered.filter(sheet => sheet.status !== 'archived')
+    } else {
+      // Show specific status only (draft, sent, or archived)
       filtered = filtered.filter(sheet => sheet.status === statusFilter)
     }
 
@@ -138,18 +146,34 @@ export default function PriceSheetsLibrary() {
       const productsResponse = await priceSheetsApi.getProducts(sheetId)
       const products = productsResponse.products || []
       
+      console.log('Raw products from API:', products)
+      console.log('First product price field:', products[0]?.price)
+      console.log('First product all price-related fields:', {
+        price: products[0]?.price,
+        basePrice: products[0]?.basePrice,
+        adjustedPrice: products[0]?.adjustedPrice,
+        pricePerUnit: products[0]?.pricePerUnit
+      })
+      
       // Convert products to preview format
       const previewProducts = products.map((product: any) => ({
         id: product._id,
         productName: product.productName || `${product.commodity || ''} ${product.variety || ''}`.trim() || 'Unknown Product',
+        commodity: product.commodity,
+        variety: product.variety,
+        subtype: product.subtype,
         region: product.regionName || 'N/A',
         packageType: product.packageType || 'N/A',
         countSize: product.countSize,
         grade: product.grade,
-        price: product.price,
+        basePrice: product.price,
+        adjustedPrice: product.price, // For library preview, base = adjusted (no contact-specific pricing)
         availability: product.availability || 'In Stock',
+        showStrikethrough: false, // No strikethrough in library view
         isOrganic: product.isOrganic || false
       }))
+      
+      console.log('Formatted preview products:', previewProducts)
       
       setPreviewPriceSheet({
         title: sheetResponse.priceSheet.title || 'Untitled Price Sheet',
@@ -257,6 +281,27 @@ export default function PriceSheetsLibrary() {
     }
   }
 
+  const handleArchivePriceSheet = async (sheetId: string, currentStatus: string) => {
+    const shouldArchive = currentStatus !== 'archived'
+    const actionText = shouldArchive ? 'archive' : 'restore'
+    
+    if (!confirm(`Are you sure you want to ${actionText} this price sheet?`)) {
+      return
+    }
+    
+    try {
+      console.log('Attempting to archive:', { sheetId, shouldArchive, actionText })
+      const result = await priceSheetsApi.archive(sheetId, shouldArchive)
+      console.log('Archive result:', result)
+      // Refresh the list
+      await loadPriceSheets()
+      alert(`Price sheet ${actionText}d successfully!`)
+    } catch (error) {
+      console.error(`Failed to ${actionText} price sheet:`, error)
+      alert(`Failed to ${actionText} price sheet: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
+  }
+
   return (
     <>
       {/* Breadcrumbs */}
@@ -311,9 +356,9 @@ export default function PriceSheetsLibrary() {
                 onChange={(e) => setStatusFilter(e.target.value as any)}
                 className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-lime-500 focus:border-lime-500 sm:text-sm rounded-md"
               >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
+                <option value="active">Active (All non-archived)</option>
                 <option value="draft">Draft</option>
+                <option value="sent">Sent</option>
                 <option value="archived">Archived</option>
               </select>
             </div>
@@ -352,11 +397,11 @@ export default function PriceSheetsLibrary() {
           <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No price sheets found</h3>
           <p className="mt-1 text-sm text-gray-500">
-            {searchQuery || statusFilter !== 'all'
+            {searchQuery || statusFilter !== 'active'
               ? 'Try adjusting your search or filters'
               : 'Get started by creating a new price sheet'}
           </p>
-          {!searchQuery && statusFilter === 'all' && (
+          {!searchQuery && statusFilter === 'active' && (
             <div className="mt-6">
               <Link
                 href="/dashboard/price-sheets/new"
@@ -405,10 +450,17 @@ export default function PriceSheetsLibrary() {
                       Last sent {formatDate(sheet.lastSentAt)}
                     </div>
                   )}
+                  {(sheet.recipientCount ?? 0) > 0 && (
+                    <div className="flex items-center text-sm text-gray-600">
+                      <UserGroupIcon className="h-4 w-4 mr-2" />
+                      Sent to {sheet.recipientCount} {sheet.recipientCount === 1 ? 'contact' : 'contacts'}
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
-                <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
                   <button
                     onClick={() => handlePreviewPriceSheet(sheet._id)}
                     disabled={isLoadingPreview}
@@ -432,6 +484,20 @@ export default function PriceSheetsLibrary() {
                   >
                     <PaperAirplaneIcon className="h-4 w-4" />
                   </Link>
+                </div>
+                  {/* Archive Button */}
+                  <button
+                    onClick={() => handleArchivePriceSheet(sheet._id, sheet.status)}
+                    className={`w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md ${
+                      sheet.status === 'archived'
+                        ? 'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300'
+                        : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-300'
+                    }`}
+                    title={sheet.status === 'archived' ? 'Restore' : 'Archive'}
+                  >
+                    <ArchiveBoxIcon className="h-4 w-4 mr-1" />
+                    {sheet.status === 'archived' ? 'Restore' : 'Archive'}
+                  </button>
                 </div>
               </div>
             </div>

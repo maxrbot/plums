@@ -3,6 +3,8 @@ import { ObjectId } from 'mongodb'
 import database from '../config/database'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth'
 import { PriceSheet, PriceSheetProduct } from '../models/types'
+import { sendBulkPriceSheetEmails } from '../services/emailService'
+import { generateContactHash } from '../utils/contactHash'
 
 const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
   
@@ -29,7 +31,51 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         .sort({ createdAt: -1 })
         .toArray()
       
-      return { priceSheets }
+      // Get send stats for each price sheet
+      const priceSheetIds = priceSheets.map(ps => ps._id)
+      
+      // Aggregate sent emails to get recipient counts per price sheet
+      const sentStats = await db.collection('sentEmails')
+        .aggregate([
+          {
+            $match: {
+              priceSheetId: { $in: priceSheetIds },
+              success: true
+            }
+          },
+          {
+            $group: {
+              _id: '$priceSheetId',
+              recipientCount: { $sum: 1 },
+              lastSentAt: { $max: '$sentAt' },
+              recipients: { $addToSet: '$contactEmail' }
+            }
+          }
+        ])
+        .toArray()
+      
+      // Map stats to price sheets
+      const statsMap = new Map()
+      sentStats.forEach((stat: any) => {
+        statsMap.set(stat._id.toString(), {
+          recipientCount: stat.recipientCount,
+          lastSentAt: stat.lastSentAt,
+          recipients: stat.recipients
+        })
+      })
+      
+      // Enhance price sheets with sent info
+      const enhancedPriceSheets = priceSheets.map(ps => {
+        const stats = statsMap.get(ps._id!.toString())
+        return {
+          ...ps,
+          sentTo: stats?.recipients || [],
+          recipientCount: stats?.recipientCount || 0,
+          lastSentAt: stats?.lastSentAt || null
+        }
+      })
+      
+      return { priceSheets: enhancedPriceSheets }
       
     } catch (error) {
       console.error('Get price sheets error:', error)
@@ -277,6 +323,64 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
+  // Archive/unarchive price sheet
+  fastify.patch('/:id/archive', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    const { archived } = request.body as { archived: boolean }
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      const result = await db.collection<PriceSheet>('priceSheets').updateOne(
+        { 
+          _id: new ObjectId(id),
+          userId: userDoc._id
+        },
+        {
+          $set: {
+            status: archived ? 'archived' : 'active',
+            updatedAt: new Date()
+          }
+        }
+      )
+      
+      if (result.matchedCount === 0) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+      
+      return { 
+        success: true,
+        message: archived ? 'Price sheet archived' : 'Price sheet restored'
+      }
+      
+    } catch (error) {
+      console.error('Archive price sheet error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to archive price sheet'
+      })
+    }
+  })
+  
   // Delete price sheet and associated products
   fastify.delete('/:id', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
@@ -379,6 +483,185 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to get price sheet products'
+      })
+    }
+  })
+  
+  // Send price sheet via email
+  fastify.post('/:id/send', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    const { contactIds, subject, customMessage, customEmailContent } = request.body as {
+      contactIds: string[]
+      subject?: string
+      customMessage?: string
+      customEmailContent?: Record<string, { subject?: string; content?: string }>
+    }
+    
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+    
+    if (!contactIds || contactIds.length === 0) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'At least one contact is required'
+      })
+    }
+    
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      
+      if (!userDoc) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+      
+      // Get price sheet
+      const priceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
+        _id: new ObjectId(id),
+        userId: userDoc._id
+      })
+      
+      if (!priceSheet) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+      
+      // Get contacts
+      const contactObjectIds = contactIds
+        .filter(cid => ObjectId.isValid(cid))
+        .map(cid => new ObjectId(cid))
+      
+      const contacts = await db.collection('contacts')
+        .find({ 
+          _id: { $in: contactObjectIds },
+          userId: userDoc._id
+        })
+        .toArray()
+      
+      if (contacts.length === 0) {
+        return reply.status(400).send({
+          error: 'Bad Request',
+          message: 'No valid contacts found'
+        })
+      }
+      
+      // Generate base public URL (no pricing)
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+      const baseUrl = `${frontendUrl}/ps/${priceSheet._id}`
+      
+      // Build a nice "from name" like "Max Wilson - Function Ranch" or just "Function Ranch"
+      const userName = userDoc.name || userDoc.profile?.contactName || userDoc.profile?.name
+      const companyName = userDoc.companyName || userDoc.profile?.companyName
+      
+      const fromName = companyName 
+        ? (userName ? `${userName} - ${companyName}` : companyName)
+        : (userName || userDoc.email)
+      
+      // Send emails - handle custom content per contact
+      let sent = 0
+      let failed = 0
+      
+      for (const contact of contacts) {
+        const contactId = contact._id.toString()
+        const customContent = customEmailContent?.[contactId]
+        
+        // Generate unique hash for this contact
+        const contactHash = generateContactHash(contactId, priceSheet._id.toString())
+        
+        // Add buyer company name to URL for personalization
+        const buyerCompany = contact.company || `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
+        const encodedBuyer = encodeURIComponent(buyerCompany)
+        const personalizedUrl = `${baseUrl}?c=${contactHash}&buyer=${encodedBuyer}`
+        
+        const recipient = {
+          email: contact.email,
+          name: `${contact.firstName || ''} ${contact.lastName || ''}`.trim() || contact.email
+        }
+        
+        // Use custom subject/message if provided, otherwise use defaults
+        const emailSubject = customContent?.subject || subject || priceSheet.title
+        const emailMessage = customContent?.content || customMessage
+        
+        try {
+          await sendBulkPriceSheetEmails([recipient], {
+            from: {
+              email: userDoc.email,
+              name: fromName
+            },
+            subject: emailSubject,
+            priceSheetTitle: priceSheet.title,
+            priceSheetId: priceSheet._id.toString(),
+            priceSheetUrl: personalizedUrl, // Use personalized URL with hash
+            productsCount: priceSheet.productsCount || 0,
+            // Use the template with custom message (not customContent)
+            ...(emailMessage && { customMessage: emailMessage })
+          })
+          sent++
+        } catch (error) {
+          console.error(`Failed to send to ${contact.email}:`, error)
+          failed++
+        }
+      }
+      
+      const emailResult = {
+        success: sent > 0,
+        sent,
+        failed
+      }
+      
+      // Update price sheet status and sentTo
+      await db.collection<PriceSheet>('priceSheets').updateOne(
+        { _id: priceSheet._id },
+        {
+          $set: {
+            status: 'sent',
+            sentAt: new Date(),
+            updatedAt: new Date()
+          },
+          $addToSet: {
+            sentTo: { $each: contactObjectIds }
+          }
+        }
+      )
+      
+      // Log sent emails (simplified - we don't have individual results anymore)
+      if (sent > 0) {
+        const sentEmails = contacts.slice(0, sent).map((contact) => ({
+          priceSheetId: priceSheet._id,
+          userId: userDoc._id,
+          contactId: contact._id,
+          contactEmail: contact.email,
+          subject: subject || priceSheet.title,
+          sentAt: new Date(),
+          success: true
+        }))
+        
+        await db.collection('sentEmails').insertMany(sentEmails)
+      }
+      
+      return {
+        success: true,
+        sent: emailResult.sent,
+        failed: emailResult.failed,
+        totalRecipients: contacts.length,
+        priceSheetUrl: baseUrl // Return base URL (without hash)
+      }
+      
+    } catch (error) {
+      console.error('Send price sheet error:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to send price sheet'
       })
     }
   })

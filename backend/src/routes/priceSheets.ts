@@ -4,7 +4,7 @@ import database from '../config/database'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth'
 import { PriceSheet, PriceSheetProduct } from '../models/types'
 import { sendBulkPriceSheetEmails } from '../services/emailService'
-import { generateContactHash } from '../utils/contactHash'
+import { generateContactHash, generateUniqueSendHash } from '../utils/contactHash'
 
 const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
   
@@ -572,13 +572,15 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
       // Send emails - handle custom content per contact
       let sent = 0
       let failed = 0
+      const sentEmailRecords: any[] = []
       
       for (const contact of contacts) {
         const contactId = contact._id.toString()
         const customContent = customEmailContent?.[contactId]
+        const contactCustomPricing = customPricing?.[contactId]
         
-        // Generate unique hash for this contact
-        const contactHash = generateContactHash(contactId, priceSheet._id.toString())
+        // Generate unique hash for this specific send (includes timestamp for uniqueness)
+        const contactHash = generateUniqueSendHash(contactId, priceSheet._id.toString())
         
         // Add buyer company name to URL for personalization
         const buyerCompany = contact.company || `${contact.firstName || ''} ${contact.lastName || ''}`.trim()
@@ -608,8 +610,32 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             // Use the template with custom message (not customContent)
             ...(emailMessage && { customMessage: emailMessage }),
             // BCC sender if requested
-            ...(bccSender && { bcc: userDoc.email })
+            ...(bccSender && { bcc: userDoc.email }),
+            // Contact ID for tracking
+            contactId: contactId
           })
+          
+          // Store the sent email record with all custom data
+          sentEmailRecords.push({
+            priceSheetId: priceSheet._id,
+            userId: userDoc._id,
+            contactId: contact._id,
+            contactEmail: contact.email,
+            contactHash: contactHash, // Include the hash!
+            subject: emailSubject,
+            sentAt: new Date(),
+            success: true,
+            // Store custom pricing overrides (productId -> price)
+            ...(contactCustomPricing && { customPricing: contactCustomPricing }),
+            // Store custom email content (subject and message)
+            ...(customContent && { 
+              customEmailContent: {
+                subject: customContent.subject,
+                content: customContent.content
+              }
+            })
+          })
+          
           sent++
         } catch (error) {
           console.error(`Failed to send to ${contact.email}:`, error)
@@ -638,26 +664,9 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         }
       )
       
-      // Log sent emails with custom pricing if provided
-      if (sent > 0) {
-        const sentEmails = contacts.slice(0, sent).map((contact) => {
-          const contactId = contact._id.toString()
-          const contactCustomPricing = customPricing?.[contactId]
-          
-          return {
-            priceSheetId: priceSheet._id,
-            userId: userDoc._id,
-            contactId: contact._id,
-            contactEmail: contact.email,
-            subject: subject || priceSheet.title,
-            sentAt: new Date(),
-            success: true,
-            // Store custom pricing overrides (productId -> price)
-            ...(contactCustomPricing && { customPricing: contactCustomPricing })
-          }
-        })
-        
-        await db.collection('sentEmails').insertMany(sentEmails)
+      // Log sent emails with custom pricing and email content if provided
+      if (sentEmailRecords.length > 0) {
+        await db.collection('sentEmails').insertMany(sentEmailRecords)
       }
       
       return {

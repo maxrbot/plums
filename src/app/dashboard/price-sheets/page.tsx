@@ -199,47 +199,58 @@ export default function PriceSheets() {
 
       {/* Main Action Tiles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <Link
-          href="/dashboard/price-sheets/new"
-          className="group bg-green-50 border border-green-200 hover:bg-green-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
-        >
-          <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-all">
-              <DocumentTextIcon className="h-8 w-8 text-green-700" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Generate New Sheet</h3>
-              <p className="text-sm text-gray-600">Create professional price sheets</p>
-            </div>
-          </div>
-        </Link>
-
+        {/* Send Price Sheet - Primary Action */}
         <Link
           href="/dashboard/price-sheets/send"
-          className="group bg-blue-50 border border-blue-200 hover:bg-blue-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
+          className="group relative bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg p-6 text-center transition-all duration-300 shadow-lg hover:shadow-xl overflow-hidden"
         >
-          <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-all">
-              <PaperAirplaneIcon className="h-8 w-8 text-blue-700" />
+          {/* Subtle animated background pattern */}
+          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
+          
+          <div className="relative flex flex-col items-center space-y-3">
+            <div className="p-3 bg-blue-400 bg-opacity-30 rounded-full group-hover:bg-blue-400 group-hover:bg-opacity-40 transition-all ring-2 ring-white ring-opacity-30">
+              <PaperAirplaneIcon className="h-8 w-8 text-white" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900">Send to Contacts</h3>
-              <p className="text-sm text-gray-600">Distribute to your buyers</p>
+              <h3 className="text-lg font-bold text-white">Send Price Sheet</h3>
+              <p className="text-sm text-blue-100">Share with your buyers</p>
             </div>
+            {metrics.priceSheets.count > 0 && (
+              <div className="absolute top-2 right-2 bg-blue-400 bg-opacity-40 px-2.5 py-1 rounded-full ring-1 ring-white ring-opacity-40">
+                <span className="text-xs font-bold text-white">{metrics.priceSheets.count} ready</span>
+              </div>
+            )}
           </div>
         </Link>
 
+        {/* Price Sheet Library - Secondary */}
         <Link
           href="/dashboard/price-sheets/library"
-          className="group bg-orange-50 border border-orange-200 hover:bg-orange-100 rounded-lg p-6 text-center transition-all duration-200 shadow-sm"
+          className="group bg-white border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 rounded-lg p-6 text-center transition-all duration-200 shadow-sm hover:shadow-md"
         >
           <div className="flex flex-col items-center space-y-3">
             <div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-all">
-              <ArchiveBoxIcon className="h-8 w-8 text-orange-700" />
+              <ArchiveBoxIcon className="h-8 w-8 text-orange-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Price Sheet Library</h3>
-              <p className="text-sm text-gray-600">View & manage your sheets</p>
+              <p className="text-sm text-gray-600">View & manage sheets</p>
+            </div>
+          </div>
+        </Link>
+
+        {/* Generate New Sheet - Secondary */}
+        <Link
+          href="/dashboard/price-sheets/new"
+          className="group bg-white border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 rounded-lg p-6 text-center transition-all duration-200 shadow-sm hover:shadow-md"
+        >
+          <div className="flex flex-col items-center space-y-3">
+            <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-all">
+              <PlusIcon className="h-8 w-8 text-green-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Generate New Sheet</h3>
+              <p className="text-sm text-gray-600">Create from scratch</p>
             </div>
           </div>
         </Link>

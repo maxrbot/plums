@@ -392,4 +392,24 @@ export const packagingApi = {
   },
 }
 
+// Analytics API
+export const analyticsApi = {
+  getOverview: async (params?: { startDate?: string; endDate?: string }) => {
+    const queryString = params 
+      ? `?${new URLSearchParams(params as Record<string, string>).toString()}`
+      : ''
+    return apiRequest<{
+      summary: {
+        totalSends: number
+        totalEmailOpens: number
+        emailOpenRate: number
+        totalSheetViews: number
+        viewRate: number
+        uniqueViewers: number
+        dateRange: { start: Date; end: Date }
+      }
+      priceSheets: any[]
+    }>(`/analytics/overview${queryString}`)
+  },
+}
 

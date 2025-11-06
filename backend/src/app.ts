@@ -18,6 +18,8 @@ import priceSheetsRoutes from './routes/priceSheets'
   import chatbotRoutes from './routes/chatbot'
   import chatbotConfigRoutes from './routes/chatbotConfig'
 import publicRoutes from './routes/public'
+import analyticsRoutes from './routes/analytics'
+import webhooksRoutes from './routes/webhooks'
 
 const fastify = Fastify({
   logger: {
@@ -50,6 +52,7 @@ async function registerPlugins() {
 async function registerRoutes() {
   // Public routes (no auth required)
   await fastify.register(publicRoutes, { prefix: '/api/public' })
+  await fastify.register(webhooksRoutes, { prefix: '/api/webhooks' })
   
   // Protected routes (auth required)
   await fastify.register(authRoutes, { prefix: '/api/auth' })
@@ -63,6 +66,7 @@ async function registerRoutes() {
       await fastify.register(contactsRoutes, { prefix: '/api/contacts' })
     await fastify.register(chatbotRoutes, { prefix: '/api/chatbot' })
     await fastify.register(chatbotConfigRoutes, { prefix: '/api/chatbot-config' })
+  await fastify.register(analyticsRoutes, { prefix: '/api/analytics' })
 }
 
 // Health check

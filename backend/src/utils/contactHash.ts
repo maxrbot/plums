@@ -21,6 +21,28 @@ export function generateContactHash(contactId: string, priceSheetId: string): st
 }
 
 /**
+ * Generate a unique hash for a specific email send
+ * This is unique per send, so sending the same sheet to the same contact twice
+ * will generate different hashes (allowing different custom pricing per send)
+ * 
+ * @param contactId - The MongoDB ObjectId string of the contact
+ * @param priceSheetId - The MongoDB ObjectId string of the price sheet
+ * @param timestamp - Optional timestamp to make hash unique per send
+ * @returns A secure unique hash string
+ */
+export function generateUniqueSendHash(contactId: string, priceSheetId: string, timestamp?: number): string {
+  const salt = `${process.env.CONTACT_HASH_SECRET || 'plums-default-secret'}-${contactId}`
+  const time = timestamp || Date.now()
+  const data = `${priceSheetId}:${contactId}:${time}`
+  
+  return crypto
+    .createHmac('sha256', salt)
+    .update(data)
+    .digest('hex')
+    .substring(0, 16) // Shorter hash for cleaner URLs
+}
+
+/**
  * Verify a contact hash is valid
  * 
  * @param hash - The hash to verify

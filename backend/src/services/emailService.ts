@@ -23,6 +23,7 @@ export interface SendPriceSheetEmailParams {
   productsCount: number
   customContent?: string // Raw custom email content (overrides template)
   bcc?: string // BCC email address
+  contactId?: string // Contact ID for tracking
 }
 
 export interface EmailSendResult {
@@ -264,10 +265,11 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
           enable: true
         }
       },
-      // Custom args for tracking
+      // Custom args for tracking (SendGrid will include these in webhook events)
       customArgs: {
         priceSheetId: params.priceSheetId,
-        recipientEmail: params.to.email
+        recipientEmail: params.to.email,
+        ...(params.contactId && { contactId: params.contactId })
       }
     }
     

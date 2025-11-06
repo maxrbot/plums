@@ -21,7 +21,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
   // Public route - Get price sheet by ID (no auth required)
   fastify.get('/price-sheets/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
-    const { c: contactHash } = request.query as { c?: string }
+    const { c: contactHash, preview } = request.query as { c?: string; preview?: string }
     
     if (!ObjectId.isValid(id)) {
       return reply.status(400).send({
@@ -61,32 +61,24 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       let showPricing = false
       
       if (contactHash) {
-        // Get all contacts that this price sheet was sent to
-        const sentToContactIds = priceSheet.sentTo || []
-        const contactIdStrings = sentToContactIds.map(id => id.toString())
+        // Look up the sent email by hash (unique per send)
+        const sentEmail = await db.collection('sentEmails').findOne({
+          priceSheetId: priceSheet._id,
+          contactHash: contactHash
+        })
         
-        // Try to find which contact this hash belongs to
-        const matchedContactId = findContactByHash(contactHash, id, contactIdStrings)
-        
-        if (matchedContactId) {
+        if (sentEmail) {
           // Valid hash! Get the contact details
           contact = await db.collection('contacts').findOne({
-            _id: new ObjectId(matchedContactId),
+            _id: sentEmail.contactId,
             userId: priceSheet.userId
           })
           
           if (contact) {
             showPricing = true
             
-            // Check if there are any custom pricing overrides from the sent email
-            const sentEmail = await db.collection('sentEmails').findOne({
-              priceSheetId: priceSheet._id,
-              contactId: contact._id
-            }, {
-              sort: { sentAt: -1 } // Get the most recent send
-            })
-            
-            const customPricingOverrides = sentEmail?.customPricing || {}
+            // Get custom pricing overrides from this specific send
+            const customPricingOverrides = sentEmail.customPricing || {}
             
             // Apply contact-specific pricing adjustments
             const pricesheetSettings = contact.pricesheetSettings || {}
@@ -149,20 +141,22 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         }))
       }
       
-      // Track the view (async, don't wait)
-      const viewRecord: Omit<PriceSheetView, '_id'> = {
-        priceSheetId: priceSheet._id!,
-        userId: priceSheet.userId,
-        contactEmail: contact?.email,
-        ipAddress: request.ip,
-        userAgent: request.headers['user-agent'],
-        viewedAt: new Date(),
-        referrer: request.headers.referer
+      // Track the view (async, don't wait) - skip if preview mode
+      if (preview !== 'true') {
+        const viewRecord: Omit<PriceSheetView, '_id'> = {
+          priceSheetId: priceSheet._id!,
+          userId: priceSheet.userId,
+          contactEmail: contact?.email,
+          ipAddress: request.ip,
+          userAgent: request.headers['user-agent'],
+          viewedAt: new Date(),
+          referrer: request.headers.referer
+        }
+        
+        db.collection<PriceSheetView>('priceSheetViews').insertOne(viewRecord).catch(err => {
+          console.error('Failed to track price sheet view:', err)
+        })
       }
-      
-      db.collection<PriceSheetView>('priceSheetViews').insertOne(viewRecord).catch(err => {
-        console.error('Failed to track price sheet view:', err)
-      })
       
       return { 
         priceSheet: {

@@ -188,25 +188,13 @@ export default function EmailPreviewModal({
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    {!isEditing && onSave && (
-                      <button
-                        type="button"
-                        className="inline-flex items-center px-3 py-1.5 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md"
-                        onClick={() => setIsEditing(true)}
-                      >
-                        <PencilIcon className="h-4 w-4 mr-1" />
-                        Edit
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="text-gray-400 hover:text-gray-500"
-                      onClick={handleClose}
-                    >
-                      <XMarkIcon className="h-6 w-6" />
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className="text-gray-400 hover:text-gray-500"
+                    onClick={handleClose}
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
                 </div>
 
                 {/* Content */}
@@ -253,8 +241,19 @@ export default function EmailPreviewModal({
                       </div>
                     </div>
                   ) : (
-                    <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                      <div dangerouslySetInnerHTML={{ __html: htmlPreview }} />
+                    <div className="space-y-4">
+                      {/* Subject Line Display */}
+                      <div className="bg-white border border-gray-200 rounded-lg p-4">
+                        <label className="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1">
+                          Subject Line
+                        </label>
+                        <p className="text-sm font-medium text-gray-900">{editedSubject}</p>
+                      </div>
+                      
+                      {/* Email Preview */}
+                      <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div dangerouslySetInnerHTML={{ __html: htmlPreview }} />
+                      </div>
                     </div>
                   )}
                 </div>
@@ -295,13 +294,25 @@ export default function EmailPreviewModal({
                       </>
                     )}
                     {!isEditing && (
-                      <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
-                      >
-                        Close Preview
-                      </button>
+                      <>
+                        {onSave && (
+                          <button
+                            type="button"
+                            onClick={() => setIsEditing(true)}
+                            className="inline-flex items-center px-4 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-300 rounded-md hover:bg-blue-50"
+                          >
+                            <PencilIcon className="h-4 w-4 mr-1" />
+                            Edit Email
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={onClose}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                        >
+                          Close Preview
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

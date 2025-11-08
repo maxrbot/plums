@@ -13,12 +13,16 @@ export interface DuplicatePriceSheetProduct {
   subtype?: string
   region: string
   packageType: string
+  size?: string
   countSize?: string
   grade?: string
   price: number | null
   availability: string
   isOrganic?: boolean
   isStickered?: boolean
+  specialNotes?: string
+  hasOverride?: boolean
+  overrideComment?: string
 }
 
 interface PriceSheetDuplicateModalProps {
@@ -78,9 +82,38 @@ export default function PriceSheetDuplicateModal({
     )
   }
 
-  const handlePriceChange = (productId: string, newPrice: string) => {
-    const priceValue = newPrice === '' ? null : parseFloat(newPrice)
-    handleFieldChange(productId, 'price', priceValue)
+  const handlePriceChange = (productId: string, newValue: string) => {
+    // Try to parse as number first
+    const priceValue = parseFloat(newValue)
+    
+    if (!isNaN(priceValue) && priceValue >= 0) {
+      // It's a valid number - clear override and set price
+      setEditedProducts(prev =>
+        prev.map(product =>
+          product.id === productId
+            ? { ...product, price: priceValue, hasOverride: false, overrideComment: undefined }
+            : product
+        )
+      )
+    } else if (newValue.trim() !== '') {
+      // It's text (comment) - set as override
+      setEditedProducts(prev =>
+        prev.map(product =>
+          product.id === productId
+            ? { ...product, price: null, hasOverride: true, overrideComment: newValue.trim() }
+            : product
+        )
+      )
+    } else {
+      // Empty - clear everything
+      setEditedProducts(prev =>
+        prev.map(product =>
+          product.id === productId
+            ? { ...product, price: null, hasOverride: false, overrideComment: undefined }
+            : product
+        )
+      )
+    }
   }
 
   const handleDuplicate = async () => {
@@ -310,12 +343,15 @@ export default function PriceSheetDuplicateModal({
                                                   Stickered
                                                 </span>
                                               )}
+                                              {product.specialNotes && (
+                                                <p className="text-xs text-gray-500 mt-1">{product.specialNotes}</p>
+                                              )}
                                             </td>
                                             <td className="px-3 py-2">
                                               <span className="text-xs text-gray-900">{product.packageType || '-'}</span>
                                             </td>
                                             <td className="px-3 py-2">
-                                              <span className="text-xs text-gray-900">{product.countSize || '-'}</span>
+                                              <span className="text-xs text-gray-900">{product.size || product.countSize || '-'}</span>
                                             </td>
                                             <td className="px-3 py-2">
                                               {(() => {
@@ -348,16 +384,14 @@ export default function PriceSheetDuplicateModal({
                                               </select>
                                             </td>
                                             <td className="px-3 py-2 text-right">
-                                              <div className="flex items-center justify-end space-x-1">
-                                                <span className="text-gray-600 text-xs">$</span>
+                                              <div className="flex items-center justify-end">
+                                                {!product.overrideComment && <span className="text-gray-600 text-xs mr-1">$</span>}
                                                 <input
-                                                  type="number"
-                                                  step="0.01"
-                                                  min="0"
-                                                  value={product.price ?? ''}
+                                                  type="text"
+                                                  value={product.overrideComment || (product.price ?? '')}
                                                   onChange={(e) => handlePriceChange(product.id, e.target.value)}
-                                                  className="w-16 px-1 py-1 border border-gray-300 rounded text-right font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs"
-                                                  placeholder="0.00"
+                                                  className="w-24 px-2 py-1 border border-gray-300 rounded text-right font-semibold text-gray-900 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-xs"
+                                                  placeholder="Price or comment"
                                                 />
                                               </div>
                                             </td>

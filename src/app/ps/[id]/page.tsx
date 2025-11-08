@@ -14,12 +14,15 @@ interface PriceSheetProduct {
   isOrganic?: boolean
   regionName?: string
   packageType: string
+  size?: string
   countSize?: string
   grade?: string
   price: number | null
   availability: string
   isStickered?: boolean
   specialNotes?: string
+  hasOverride?: boolean
+  overrideComment?: string
 }
 
 interface PriceSheet {
@@ -54,13 +57,18 @@ export default function PublicPriceSheetViewer() {
 
     const fetchPriceSheet = async () => {
       try {
-        // Get contact hash from URL if present
+        // Get contact hash and preview mode from URL if present
         const urlParams = new URLSearchParams(window.location.search)
         const contactHash = urlParams.get('c')
+        const preview = urlParams.get('preview')
         
-        // Build URL with hash if present
-        const url = contactHash
-          ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}?c=${contactHash}`
+        // Build URL with parameters if present
+        const queryParams = new URLSearchParams()
+        if (contactHash) queryParams.set('c', contactHash)
+        if (preview) queryParams.set('preview', preview)
+        
+        const url = queryParams.toString()
+          ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}?${queryParams.toString()}`
           : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}`
         
         const response = await fetch(url)
@@ -362,7 +370,7 @@ export default function PublicPriceSheetViewer() {
                                 </td>
                                 <td className="px-4 py-4 whitespace-nowrap">
                                   <div className="text-sm text-gray-900">
-                                    {product.countSize || '-'}
+                                    {product.size || product.countSize || '-'}
                                   </div>
                                 </td>
                                 <td className="px-4 py-4 whitespace-nowrap">
@@ -375,9 +383,15 @@ export default function PublicPriceSheetViewer() {
                                 </td>
                                 {showPricing && (
                                   <td className="px-4 py-4 whitespace-nowrap text-right">
-                                    <div className="text-xl font-bold text-gray-900">
-                                      {product.price !== null ? `$${product.price.toFixed(2)}` : 'Contact'}
-                                    </div>
+                                    {product.hasOverride && product.overrideComment ? (
+                                      <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-orange-100 text-orange-700">
+                                        {product.overrideComment}
+                                      </span>
+                                    ) : (
+                                      <div className="text-xl font-bold text-gray-900">
+                                        {product.price !== null ? `$${product.price.toFixed(2)}` : 'Contact'}
+                                      </div>
+                                    )}
                                   </td>
                                 )}
                               </tr>
@@ -409,7 +423,7 @@ export default function PublicPriceSheetViewer() {
                           // Build package info string
                           const packageInfo = [
                             product.packageType,
-                            product.countSize,
+                            product.size || product.countSize,
                             product.grade
                           ].filter(Boolean).join(' · ')
                           
@@ -434,9 +448,15 @@ export default function PublicPriceSheetViewer() {
                                 </div>
                                 {showPricing && (
                                   <div className="text-right ml-4">
-                                    <div className="text-2xl font-bold text-gray-900">
-                                      {product.price !== null ? `$${product.price.toFixed(2)}` : 'Contact'}
-                                    </div>
+                                    {product.hasOverride && product.overrideComment ? (
+                                      <span className="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-orange-100 text-orange-700">
+                                        {product.overrideComment}
+                                      </span>
+                                    ) : (
+                                      <div className="text-2xl font-bold text-gray-900">
+                                        {product.price !== null ? `$${product.price.toFixed(2)}` : 'Contact'}
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>

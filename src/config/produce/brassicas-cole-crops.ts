@@ -624,12 +624,12 @@ export const brassicasCommodities: CommodityConfig[] = [
     },
     
     varieties: {
-      // Green Cabbage varieties
-      'copenhagen-market': {
-        id: 'copenhagen-market',
-        name: 'Copenhagen Market',
+      // Green Cabbage
+      'green-cabbage': {
+        id: 'green-cabbage',
+        name: 'Green Cabbage',
         itemWeight: {
-          base: 3.2, // 3.2 lbs per head
+          base: 3.0,
           sizeVariations: {}
         },
         pricing: {
@@ -638,101 +638,16 @@ export const brassicasCommodities: CommodityConfig[] = [
         },
         usdaMapping: {
           variety: 'Green Cabbage',
-          specifications: 'Round green cabbage heads',
+          specifications: 'Standard green cabbage heads',
           confidence: 'high'
         }
       },
-      'golden-acre': {
-        id: 'golden-acre',
-        name: 'Golden Acre',
+      // Red Cabbage
+      'red-cabbage': {
+        id: 'red-cabbage',
+        name: 'Red Cabbage',
         itemWeight: {
-          base: 2.8, // 2.8 lbs per head (smaller, earlier)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 0.95,
-          priceVolatility: 'low'
-        },
-        usdaMapping: {
-          variety: 'Green Cabbage',
-          specifications: 'Early season green cabbage',
-          confidence: 'high'
-        }
-      },
-      'danish-ballhead': {
-        id: 'danish-ballhead',
-        name: 'Danish Ballhead',
-        itemWeight: {
-          base: 4.5, // 4.5 lbs per head (large storage variety)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 0.75,
-          priceVolatility: 'low'
-        },
-        usdaMapping: {
-          variety: 'Green Cabbage',
-          specifications: 'Large storage green cabbage',
-          confidence: 'high'
-        }
-      },
-      'stonehead': {
-        id: 'stonehead',
-        name: 'Stonehead',
-        itemWeight: {
-          base: 3.8, // 3.8 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 0.85,
-          priceVolatility: 'low'
-        },
-        usdaMapping: {
-          variety: 'Green Cabbage',
-          specifications: 'Dense green cabbage heads',
-          confidence: 'medium'
-        }
-      },
-      'early-jersey-wakefield': {
-        id: 'early-jersey-wakefield',
-        name: 'Early Jersey Wakefield',
-        itemWeight: {
-          base: 2.2, // 2.2 lbs per head (small, pointed)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.05,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Green Cabbage',
-          specifications: 'Pointed green cabbage heads',
-          confidence: 'medium'
-        }
-      },
-      'late-flat-dutch': {
-        id: 'late-flat-dutch',
-        name: 'Late Flat Dutch',
-        itemWeight: {
-          base: 5.2, // 5.2 lbs per head (very large)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 0.65,
-          priceVolatility: 'low'
-        },
-        usdaMapping: {
-          variety: 'Green Cabbage',
-          specifications: 'Large flat green cabbage',
-          confidence: 'medium'
-        }
-      },
-      // Red Cabbage varieties
-      'red-acre': {
-        id: 'red-acre',
-        name: 'Red Acre',
-        itemWeight: {
-          base: 3.0, // 3.0 lbs per head
+          base: 3.0,
           sizeVariations: {}
         },
         pricing: {
@@ -741,101 +656,16 @@ export const brassicasCommodities: CommodityConfig[] = [
         },
         usdaMapping: {
           variety: 'Red Cabbage',
-          specifications: 'Red/purple cabbage heads',
+          specifications: 'Standard red cabbage heads',
           confidence: 'high'
         }
       },
-      'mammoth-red-rock': {
-        id: 'mammoth-red-rock',
-        name: 'Mammoth Red Rock',
+      // Savoy Cabbage
+      'savoy-cabbage': {
+        id: 'savoy-cabbage',
+        name: 'Savoy Cabbage',
         itemWeight: {
-          base: 4.2, // 4.2 lbs per head (large red variety)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.15,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Red Cabbage',
-          specifications: 'Large red cabbage heads',
-          confidence: 'medium'
-        }
-      },
-      'red-express': {
-        id: 'red-express',
-        name: 'Red Express',
-        itemWeight: {
-          base: 2.5, // 2.5 lbs per head (smaller red variety)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.35,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Red Cabbage',
-          specifications: 'Early red cabbage variety',
-          confidence: 'medium'
-        }
-      },
-      'ruby-ball': {
-        id: 'ruby-ball',
-        name: 'Ruby Ball',
-        itemWeight: {
-          base: 3.5, // 3.5 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.25,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Red Cabbage',
-          specifications: 'Round red cabbage variety',
-          confidence: 'low'
-        }
-      },
-      'red-rookie': {
-        id: 'red-rookie',
-        name: 'Red Rookie',
-        itemWeight: {
-          base: 2.8, // 2.8 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.45,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Red Cabbage',
-          specifications: 'Compact red cabbage variety',
-          confidence: 'low'
-        }
-      },
-      'integro': {
-        id: 'integro',
-        name: 'Integro',
-        itemWeight: {
-          base: 3.8, // 3.8 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.35,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Red Cabbage',
-          specifications: 'Storage red cabbage variety',
-          confidence: 'low'
-        }
-      },
-      // Savoy Cabbage varieties
-      'savoy-ace': {
-        id: 'savoy-ace',
-        name: 'Savoy Ace',
-        itemWeight: {
-          base: 3.5, // 3.5 lbs per head
+          base: 3.5,
           sizeVariations: {}
         },
         pricing: {
@@ -848,80 +678,12 @@ export const brassicasCommodities: CommodityConfig[] = [
           confidence: 'low'
         }
       },
-      'perfection-drumhead-savoy': {
-        id: 'perfection-drumhead-savoy',
-        name: 'Perfection Drumhead Savoy',
+      // Napa Cabbage
+      'napa-cabbage': {
+        id: 'napa-cabbage',
+        name: 'Napa Cabbage',
         itemWeight: {
-          base: 4.2, // 4.2 lbs per head (large savoy)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.35,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Savoy Cabbage',
-          specifications: 'Large drumhead savoy variety',
-          confidence: 'low'
-        }
-      },
-      'chieftain-savoy': {
-        id: 'chieftain-savoy',
-        name: 'Chieftain Savoy',
-        itemWeight: {
-          base: 3.8, // 3.8 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.55,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Savoy Cabbage',
-          specifications: 'Premium savoy variety',
-          confidence: 'none'
-        }
-      },
-      'melissa': {
-        id: 'melissa',
-        name: 'Melissa',
-        itemWeight: {
-          base: 3.2, // 3.2 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.65,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Savoy Cabbage',
-          specifications: 'Hybrid savoy variety',
-          confidence: 'none'
-        }
-      },
-      'tundra': {
-        id: 'tundra',
-        name: 'Tundra',
-        itemWeight: {
-          base: 4.0, // 4.0 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.45,
-          priceVolatility: 'low'
-        },
-        usdaMapping: {
-          variety: 'Savoy Cabbage',
-          specifications: 'Cold-hardy savoy variety',
-          confidence: 'none'
-        }
-      },
-      // Napa Cabbage varieties
-      'michihili': {
-        id: 'michihili',
-        name: 'Michihili',
-        itemWeight: {
-          base: 2.5, // 2.5 lbs per head (elongated shape)
+          base: 2.5,
           sizeVariations: {}
         },
         pricing: {
@@ -933,95 +695,10 @@ export const brassicasCommodities: CommodityConfig[] = [
           specifications: 'Chinese cabbage, elongated heads',
           confidence: 'medium'
         }
-      },
-      'wong-bok': {
-        id: 'wong-bok',
-        name: 'Wong Bok',
-        itemWeight: {
-          base: 3.0, // 3.0 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.75,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Napa Cabbage',
-          specifications: 'Traditional Chinese cabbage',
-          confidence: 'medium'
-        }
-      },
-      'china-express': {
-        id: 'china-express',
-        name: 'China Express',
-        itemWeight: {
-          base: 2.8, // 2.8 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.95,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Napa Cabbage',
-          specifications: 'Fast-growing Chinese cabbage',
-          confidence: 'low'
-        }
-      },
-      'minuet': {
-        id: 'minuet',
-        name: 'Minuet',
-        itemWeight: {
-          base: 2.2, // 2.2 lbs per head (smaller variety)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 2.15,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Napa Cabbage',
-          specifications: 'Compact Chinese cabbage',
-          confidence: 'low'
-        }
-      },
-      'bilko': {
-        id: 'bilko',
-        name: 'Bilko',
-        itemWeight: {
-          base: 3.2, // 3.2 lbs per head
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.85,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Napa Cabbage',
-          specifications: 'Disease-resistant Chinese cabbage',
-          confidence: 'none'
-        }
-      },
-      'monument': {
-        id: 'monument',
-        name: 'Monument',
-        itemWeight: {
-          base: 3.5, // 3.5 lbs per head (larger variety)
-          sizeVariations: {}
-        },
-        pricing: {
-          basePricePerLb: 1.75,
-          priceVolatility: 'medium'
-        },
-        usdaMapping: {
-          variety: 'Napa Cabbage',
-          specifications: 'Large Chinese cabbage variety',
-          confidence: 'none'
-        }
       }
     },
     
-    defaultVariety: 'copenhagen-market'
+    defaultVariety: 'green-cabbage'
   },
 
   {

@@ -18,6 +18,8 @@ import { Breadcrumbs } from '@/components/ui'
 import PriceSheetPreviewModal from '@/components/modals/PriceSheetPreviewModal'
 import PriceSheetDuplicateModal from '@/components/modals/PriceSheetDuplicateModal'
 import { priceSheetsApi } from '@/lib/api'
+import { useUser } from '@/contexts/UserContext'
+import { formatProductsForPreview } from '@/lib/priceSheetUtils'
 
 interface PriceSheet {
   _id: string
@@ -38,6 +40,7 @@ interface PriceSheet {
 }
 
 export default function PriceSheetsLibrary() {
+  const { user } = useUser()
   const [priceSheets, setPriceSheets] = useState<PriceSheet[]>([])
   const [filteredSheets, setFilteredSheets] = useState<PriceSheet[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -146,36 +149,8 @@ export default function PriceSheetsLibrary() {
       const productsResponse = await priceSheetsApi.getProducts(sheetId)
       const products = productsResponse.products || []
       
-      console.log('Raw products from API:', products)
-      console.log('First product price field:', products[0]?.price)
-      console.log('First product all price-related fields:', {
-        price: products[0]?.price,
-        basePrice: products[0]?.basePrice,
-        adjustedPrice: products[0]?.adjustedPrice,
-        pricePerUnit: products[0]?.pricePerUnit
-      })
-      
-      // Convert products to preview format
-      const previewProducts = products.map((product: any) => ({
-        id: product._id,
-        productName: product.productName || `${product.commodity || ''} ${product.variety || ''}`.trim() || 'Unknown Product',
-        commodity: product.commodity,
-        variety: product.variety,
-        subtype: product.subtype,
-        region: product.regionName || 'N/A',
-        packageType: product.packageType || 'N/A',
-        countSize: product.countSize,
-        grade: product.grade,
-        basePrice: product.price,
-        adjustedPrice: product.price, // For library preview, base = adjusted (no contact-specific pricing)
-        availability: product.availability || 'In Stock',
-        showStrikethrough: false, // No strikethrough in library view
-        isOrganic: product.isOrganic || false,
-        hasOverride: product.hasOverride || false,
-        overrideComment: product.overrideComment
-      }))
-      
-      console.log('Formatted preview products:', previewProducts)
+      // Convert products to preview format using shared utility
+      const previewProducts = formatProductsForPreview(products)
       
       setPreviewPriceSheet({
         title: sheetResponse.priceSheet.title || 'Untitled Price Sheet',
@@ -213,12 +188,16 @@ export default function PriceSheetsLibrary() {
         subtype: product.subtype,
         region: product.regionName || 'N/A',
         packageType: product.packageType || 'N/A',
+        size: product.size,
         countSize: product.countSize,
         grade: product.grade,
         price: product.price,
         availability: product.availability || 'In Stock',
         isOrganic: product.isOrganic || false,
         isStickered: product.isStickered || false,
+        specialNotes: product.specialNotes,
+        hasOverride: product.hasOverride || false,
+        overrideComment: product.overrideComment,
         // Store original product data for API call
         _originalData: product
       }))
@@ -251,9 +230,13 @@ export default function PriceSheetsLibrary() {
       const productsData = updatedData.products.map(product => {
         const original = product._originalData || {}
         return {
-          // Use original data structure but override with updated price
+          // Use original data structure but override with updated fields
           ...original,
-          price: product.price || 0,
+          price: product.price,
+          grade: product.grade,
+          availability: product.availability,
+          hasOverride: product.hasOverride || false,
+          overrideComment: product.overrideComment,
           // Remove fields that shouldn't be copied
           _id: undefined,
           priceSheetId: undefined,
@@ -521,6 +504,8 @@ export default function PriceSheetsLibrary() {
           }}
           title={previewPriceSheet.title}
           products={previewPriceSheet.products}
+          userEmail={user?.profile?.email || user?.email}
+          userPhone={user?.profile?.phone}
         />
       )}
 

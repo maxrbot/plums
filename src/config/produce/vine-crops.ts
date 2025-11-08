@@ -377,78 +377,35 @@ export const vineCropsCommodities: CommodityConfig[] = [
     },
     
     varieties: {
-      // Green Bell Peppers
-      'california-wonder': {
-        id: 'california-wonder',
-        name: 'California Wonder',
-        subtype: 'green',
-        itemWeight: { base: 0.35, sizeVariations: {} },
-        pricing: { basePricePerLb: 2.45, priceVolatility: 'medium' }
-      },
       'green-bell': {
         id: 'green-bell',
         name: 'Green Bell',
-        subtype: 'green',
-        itemWeight: { base: 0.32, sizeVariations: {} },
-        pricing: { basePricePerLb: 2.25, priceVolatility: 'medium' }
+        itemWeight: { base: 0.35, sizeVariations: {} },
+        pricing: { basePricePerLb: 2.35, priceVolatility: 'medium' }
       },
-      'emerald-giant': {
-        id: 'emerald-giant',
-        name: 'Emerald Giant',
-        subtype: 'green',
-        itemWeight: { base: 0.45, sizeVariations: {} },
-        pricing: { basePricePerLb: 2.65, priceVolatility: 'medium' }
-      },
-      'keystone-resistant-giant': {
-        id: 'keystone-resistant-giant',
-        name: 'Keystone Resistant Giant',
-        subtype: 'green',
-        itemWeight: { base: 0.42, sizeVariations: {} },
-        pricing: { basePricePerLb: 2.55, priceVolatility: 'medium' }
-      },
-      
-      // Colored Bell Peppers
-      'red-knight': {
-        id: 'red-knight',
-        name: 'Red Knight',
-        subtype: 'colored',
+      'red-bell': {
+        id: 'red-bell',
+        name: 'Red Bell',
         itemWeight: { base: 0.38, sizeVariations: {} },
         pricing: { basePricePerLb: 3.85, priceVolatility: 'medium' }
       },
       'yellow-bell': {
         id: 'yellow-bell',
         name: 'Yellow Bell',
-        subtype: 'colored',
         itemWeight: { base: 0.35, sizeVariations: {} },
         pricing: { basePricePerLb: 3.95, priceVolatility: 'medium' }
       },
       'orange-bell': {
         id: 'orange-bell',
         name: 'Orange Bell',
-        subtype: 'colored',
         itemWeight: { base: 0.36, sizeVariations: {} },
         pricing: { basePricePerLb: 4.15, priceVolatility: 'medium' }
       },
       'purple-bell': {
         id: 'purple-bell',
         name: 'Purple Bell',
-        subtype: 'colored',
         itemWeight: { base: 0.33, sizeVariations: {} },
         pricing: { basePricePerLb: 4.45, priceVolatility: 'medium' }
-      },
-      'chocolate-bell': {
-        id: 'chocolate-bell',
-        name: 'Chocolate Bell',
-        subtype: 'colored',
-        itemWeight: { base: 0.34, sizeVariations: {} },
-        pricing: { basePricePerLb: 4.25, priceVolatility: 'medium' }
-      },
-      'white-bell': {
-        id: 'white-bell',
-        name: 'White Bell',
-        subtype: 'colored',
-        itemWeight: { base: 0.31, sizeVariations: {} },
-        pricing: { basePricePerLb: 4.65, priceVolatility: 'medium' }
       }
     },
     

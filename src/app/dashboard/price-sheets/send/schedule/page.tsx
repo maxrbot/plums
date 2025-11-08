@@ -22,6 +22,7 @@ import EmailPreviewModal from '../../../../../components/modals/EmailPreviewModa
 import SMSPreviewModal from '../../../../../components/modals/SMSPreviewModal'
 import PriceSheetPreviewModal from '../../../../../components/modals/PriceSheetPreviewModal'
 import { contactsApi, priceSheetsApi } from '../../../../../lib/api'
+import { formatProductForPreview } from '../../../../../lib/priceSheetUtils'
 
 interface PriceSheet {
   _id: string
@@ -298,56 +299,33 @@ export default function ScheduleSendPage() {
           // Check for custom pricing first (highest priority)
           if (contactCustomPricing[productId] !== undefined) {
             const customValue = contactCustomPricing[productId]
-            // Check if custom value is a price (number) or comment (string)
             const isComment = typeof customValue === 'string'
             
-            return {
-              id: productId,
-              productName: product.productName || `${product.commodity} ${product.variety || ''}`.trim(),
-              commodity: product.commodity,
-              variety: product.variety,
-              subtype: product.subtype,
-              region: product.regionName || '-',
-              packageType: product.packageType + (product.countSize ? ` - ${product.countSize}` : ''),
-              grade: product.grade,
-              countSize: product.countSize,
-              basePrice: product.price || 0,
+            return formatProductForPreview(product, {
               adjustedPrice: isComment ? null : customValue,
-              availability: product.availability,
-              isOrganic: product.isOrganic,
-              showStrikethrough: false,
-              hasOverride: isComment,
-              overrideComment: isComment ? customValue : undefined
-            }
+              showStrikethrough: false
+            })
           }
           
           // Otherwise, apply percentage-based adjustments
+          // Start with global as base, then crop-specific overrides
+          let adjustment = globalAdjustment || 0
+          
+          // Crop-specific adjustments override the global adjustment
           const cropKey = `${product.cropId}-${product.variationId}`
-          const adjustment = cropAdjustmentMap.get(cropKey) ?? globalAdjustment
+          if (cropAdjustmentMap.has(cropKey)) {
+            adjustment = cropAdjustmentMap.get(cropKey) || 0
+          }
           
           const basePrice = product.price || 0
           const adjustedPrice = adjustment !== 0 
             ? basePrice * (1 + adjustment / 100)
             : basePrice
           
-          return {
-            id: productId,
-            productName: product.productName || `${product.commodity} ${product.variety || ''}`.trim(),
-            commodity: product.commodity,
-            variety: product.variety,
-            subtype: product.subtype,
-            region: product.regionName || '-',
-            packageType: product.packageType + (product.countSize ? ` - ${product.countSize}` : ''),
-            grade: product.grade,
-            countSize: product.countSize,
-            basePrice,
+          return formatProductForPreview(product, {
             adjustedPrice,
-            availability: product.availability,
-            isOrganic: product.isOrganic,
-            showStrikethrough: pricesheetSettings.showDiscountStrikethrough && basePrice !== adjustedPrice,
-            hasOverride: product.hasOverride || false,
-            overrideComment: product.overrideComment
-          }
+            showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustment !== 0
+          })
         })
         
         setPriceSheetProducts(formattedProducts)
@@ -635,49 +613,80 @@ export default function ScheduleSendPage() {
                                 <span className="text-xs text-gray-500">({emailContacts.length} contacts)</span>
                               </div>
                               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                {emailContacts.map((contact) => {
-                                  contactIndex++
-                                  return (
-                                    <div key={contact.id} className={`flex items-center justify-between px-4 py-3 ${contactIndex < selectedContacts.length ? 'border-b border-gray-100' : ''}`}>
-                                      <div className="flex items-center space-x-3 flex-1">
-                                        <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-semibold">
-                                          {contactIndex}
-                                        </div>
-                                        <div className="flex items-center space-x-2 flex-1 min-w-0">
-                                          <p className="text-sm font-medium text-gray-900 truncate">{contact.company}</p>
-                                          <span className="text-xs text-gray-400 flex-shrink-0">•</span>
-                                          <p className="text-xs text-gray-600 truncate">{contact.firstName} {contact.lastName}</p>
-                                          {customEmailContent[contact.id || (contact as any)._id] && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 ml-2">
-                                              ✏️ Custom Email
-                                            </span>
-                                          )}
-                                          {customPricing[contact.id || (contact as any)._id] && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800 ml-2">
-                                              💰 Custom Pricing
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                      <div className="flex items-center space-x-2 flex-shrink-0">
-                                        <button 
-                                          onClick={() => handleEmailPreview(contact)}
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-500 hover:bg-blue-50 rounded border border-blue-200"
-                                        >
-                                          <EnvelopeIcon className="h-3 w-3 mr-1" />
-                                          Preview Email
-                                        </button>
-                                        <button 
-                                          onClick={() => handlePriceSheetPreview(contact)}
-                                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium text-gray-600 hover:text-gray-500 hover:bg-gray-50 rounded border border-gray-200"
-                                        >
-                                          <DocumentTextIcon className="h-3 w-3 mr-1" />
-                                          Sheet
-                                        </button>
-                                      </div>
-                                    </div>
-                                  )
-                                })}
+                                <table className="min-w-full divide-y divide-gray-200">
+                                  <thead className="bg-gray-50">
+                                    <tr>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                      <th className="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="bg-white divide-y divide-gray-100">
+                                    {emailContacts.map((contact) => {
+                                      contactIndex++
+                                      const contactId = contact.id || (contact as any)._id
+                                      const hasCustomEmail = !!customEmailContent[contactId]
+                                      const hasCustomPricing = !!customPricing[contactId]
+                                      
+                                      return (
+                                        <tr key={contact.id} className="hover:bg-gray-50">
+                                          <td className="px-4 py-3 whitespace-nowrap">
+                                            <div className="flex-shrink-0 w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-semibold">
+                                              {contactIndex}
+                                            </div>
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap">
+                                            <p className="text-sm font-medium text-gray-900">{contact.company}</p>
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap">
+                                            <p className="text-sm text-gray-900">{contact.firstName} {contact.lastName}</p>
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap">
+                                            <p className="text-sm text-gray-600">{contact.email}</p>
+                                          </td>
+                                          <td className="px-4 py-3 whitespace-nowrap text-right">
+                                            <div className="flex items-center justify-end space-x-2">
+                                              <button 
+                                                onClick={() => handleEmailPreview(contact)}
+                                                className={`relative inline-flex items-center px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                                  hasCustomEmail
+                                                    ? 'text-blue-700 bg-blue-50 border-blue-300 hover:bg-blue-100'
+                                                    : 'text-blue-600 bg-white border-blue-200 hover:bg-blue-50'
+                                                }`}
+                                              >
+                                                <EnvelopeIcon className="h-3 w-3 mr-1" />
+                                                Preview Email
+                                                {hasCustomEmail && (
+                                                  <span className="ml-1 text-xs font-medium">
+                                                    (edited)
+                                                  </span>
+                                                )}
+                                              </button>
+                                              <button 
+                                                onClick={() => handlePriceSheetPreview(contact)}
+                                                className={`relative inline-flex items-center px-3 py-1.5 text-xs font-medium rounded border transition-colors ${
+                                                  hasCustomPricing
+                                                    ? 'text-orange-700 bg-orange-50 border-orange-300 hover:bg-orange-100'
+                                                    : 'text-gray-600 bg-white border-gray-200 hover:bg-gray-50'
+                                                }`}
+                                              >
+                                                <DocumentTextIcon className="h-3 w-3 mr-1" />
+                                                Sheet
+                                                {hasCustomPricing && (
+                                                  <span className="ml-1 text-xs font-medium">
+                                                    (edited)
+                                                  </span>
+                                                )}
+                                              </button>
+                                            </div>
+                                          </td>
+                                        </tr>
+                                      )
+                                    })}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           )}
@@ -912,13 +921,7 @@ export default function ScheduleSendPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end space-x-3">
-                <button
-                  type="button"
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Back to Edit
-                </button>
+              <div className="flex items-center justify-end">
                 <button
                   type="button"
                   onClick={handleSendEmails}
@@ -1051,8 +1054,8 @@ export default function ScheduleSendPage() {
             pricingTier: priceSheetPreviewModal.contact?.pricesheetSettings?.globalAdjustment ? 'Custom Pricing' : 'Standard',
             pricingAdjustment: priceSheetPreviewModal.contact?.pricesheetSettings?.globalAdjustment || 0
           }}
-          userEmail={user?.profile?.email || user?.email || 'sales@acrelist.com'}
-          userPhone={user?.profile?.phone || '(555) 123-4567'}
+          userEmail={user?.profile?.email || user?.email}
+          userPhone={user?.profile?.phone}
           mode="send"
           allowPriceEditing={true}
           onSaveCustomPricing={(productId, customValue) => {

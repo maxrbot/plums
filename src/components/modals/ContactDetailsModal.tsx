@@ -716,7 +716,9 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                         <div className="flex items-center justify-between mb-4">
                           <div>
                             <h4 className="text-sm font-medium text-gray-900">Individual Crop Adjustments</h4>
-                            <p className="text-xs text-gray-500">Override global adjustment for specific crops</p>
+                            <p className="text-xs text-gray-500">
+                              Override global adjustment for specific crops
+                            </p>
                           </div>
                           <div className="flex items-center space-x-3">
                             {/* Show Discount Strikethrough Toggle */}
@@ -892,7 +894,9 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                             )}
                             {pricesheetSettings.cropAdjustments.length > 0 && (
                               <div className={`${globalAdjustmentEnabled ? 'border-t border-blue-200 pt-2 mt-2' : ''}`}>
-                                <p className="text-blue-700 mb-1">Individual crop adjustments:</p>
+                                <p className="text-blue-700 mb-1">
+                                  Individual crop adjustments {globalAdjustmentEnabled ? '(override global)' : ''}:
+                                </p>
                                 {pricesheetSettings.cropAdjustments.slice(0, 3).map((adj) => (
                                   <div key={`${adj.cropId}-${adj.variationId}`} className="flex justify-between">
                                     <span className="text-blue-600 truncate">{adj.cropName} ({adj.adjustment}%):</span>

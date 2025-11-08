@@ -199,47 +199,59 @@ export const berriesCommodities: CommodityConfig[] = [
     },
     
     varieties: {
-      'northern-highbush-duke': {
-        id: 'northern-highbush-duke',
+      'duke': {
+        id: 'duke',
         name: 'Duke',
-        subtype: 'northern-highbush',
         itemWeight: { base: 0.008, sizeVariations: {} },
         pricing: { basePricePerLb: 6.85, priceVolatility: 'high' }
       },
-      'northern-highbush-bluecrop': {
-        id: 'northern-highbush-bluecrop',
+      'bluecrop': {
+        id: 'bluecrop',
         name: 'Bluecrop',
-        subtype: 'northern-highbush',
         itemWeight: { base: 0.009, sizeVariations: {} },
         pricing: { basePricePerLb: 6.45, priceVolatility: 'high' }
       },
-      'southern-highbush-emerald': {
-        id: 'southern-highbush-emerald',
+      'jersey': {
+        id: 'jersey',
+        name: 'Jersey',
+        itemWeight: { base: 0.008, sizeVariations: {} },
+        pricing: { basePricePerLb: 6.25, priceVolatility: 'high' }
+      },
+      'elliott': {
+        id: 'elliott',
+        name: 'Elliott',
+        itemWeight: { base: 0.007, sizeVariations: {} },
+        pricing: { basePricePerLb: 6.95, priceVolatility: 'high' }
+      },
+      'chandler': {
+        id: 'chandler',
+        name: 'Chandler',
+        itemWeight: { base: 0.009, sizeVariations: {} },
+        pricing: { basePricePerLb: 7.45, priceVolatility: 'high' }
+      },
+      'legacy': {
+        id: 'legacy',
+        name: 'Legacy',
+        itemWeight: { base: 0.008, sizeVariations: {} },
+        pricing: { basePricePerLb: 6.75, priceVolatility: 'high' }
+      },
+      'emerald': {
+        id: 'emerald',
         name: 'Emerald',
-        subtype: 'southern-highbush',
         itemWeight: { base: 0.007, sizeVariations: {} },
         pricing: { basePricePerLb: 7.25, priceVolatility: 'high' }
       },
-      'southern-highbush-jewel': {
-        id: 'southern-highbush-jewel',
+      'jewel': {
+        id: 'jewel',
         name: 'Jewel',
-        subtype: 'southern-highbush',
         itemWeight: { base: 0.008, sizeVariations: {} },
         pricing: { basePricePerLb: 7.85, priceVolatility: 'high' }
       },
-      'lowbush-wild': {
-        id: 'lowbush-wild',
-        name: 'Wild Lowbush',
-        subtype: 'lowbush',
-        itemWeight: { base: 0.005, sizeVariations: {} },
-        pricing: { basePricePerLb: 8.85, priceVolatility: 'high' }
-      },
-      'rabbiteye-tifblue': {
-        id: 'rabbiteye-tifblue',
-        name: 'Tifblue',
-        subtype: 'rabbiteye',
+      'sunshine-blue': {
+        id: 'sunshine-blue',
+        name: 'Sunshine Blue',
         itemWeight: { base: 0.006, sizeVariations: {} },
-        pricing: { basePricePerLb: 5.85, priceVolatility: 'high' }
+        pricing: { basePricePerLb: 8.25, priceVolatility: 'high' }
       }
     },
     
@@ -254,7 +266,7 @@ export const berriesCommodities: CommodityConfig[] = [
       defaultGrade: 'No. 1'
     },
     
-    defaultVariety: 'northern-highbush-bluecrop'
+    defaultVariety: 'bluecrop'
   },
 
   {

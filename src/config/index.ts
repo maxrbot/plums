@@ -66,11 +66,13 @@ export function getNewCommodityNames(categoryId?: string): { id: string; name: s
     .sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export function getNewVarietiesByCommodity(commodityId: string): string[] {
+export function getNewVarietiesByCommodity(commodityId: string): Array<{ id: string; name: string }> {
   const commodity = allCommodities.find(c => c.id === commodityId)
   if (!commodity?.varieties) return []
   
-  return Object.keys(commodity.varieties).sort()
+  return Object.entries(commodity.varieties)
+    .map(([id, variety]) => ({ id, name: variety.name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export function getNewSubtypesByCommodity(commodityId: string): Array<{ id: string; name: string; varieties: string[] }> {
@@ -96,14 +98,14 @@ export function getNewSubtypesByCommodity(commodityId: string): Array<{ id: stri
   })).sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export function getNewVarietiesBySubtype(commodityId: string, subtypeId: string): string[] {
+export function getNewVarietiesBySubtype(commodityId: string, subtypeId: string): Array<{ id: string; name: string }> {
   const commodity = allCommodities.find(c => c.id === commodityId)
   if (!commodity?.varieties) return []
   
   return Object.entries(commodity.varieties)
     .filter(([_, variety]) => variety.subtype === subtypeId)
-    .map(([varietyId, _]) => varietyId)
-    .sort()
+    .map(([id, variety]) => ({ id, name: variety.name }))
+    .sort((a, b) => a.name.localeCompare(b.name))
 }
 
 export function newCommodityHasSubtypes(commodityId: string): boolean {
@@ -343,4 +345,100 @@ export function getCommodityStats() {
   })
   
   return stats
+}
+
+// =============================================================================
+// SIMPLIFIED COMMODITY OPTIONS (Replaces commodityOptions.ts)
+// =============================================================================
+// These provide a simplified view for dropdowns and selection UIs
+
+export interface SimplifiedCommodityOption {
+  id: string
+  name: string
+  varieties: string[]
+}
+
+export interface SimplifiedCategoryOption {
+  id: string
+  name: string
+  commodities: SimplifiedCommodityOption[]
+}
+
+/**
+ * Get all categories with their commodities in a simplified format
+ * This replaces the old commodityOptions.ts export
+ */
+export function getSimplifiedCommodityOptions(): SimplifiedCategoryOption[] {
+  const categoryMap = new Map<string, SimplifiedCommodityOption[]>()
+  
+  allCommodities.forEach(commodity => {
+    const categoryId = commodity.category.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and')
+    
+    if (!categoryMap.has(categoryId)) {
+      categoryMap.set(categoryId, [])
+    }
+    
+    // Get all varieties (flattened, no subtypes)
+    const varieties = Object.values(commodity.varieties).map(v => v.name).sort()
+    
+    categoryMap.get(categoryId)!.push({
+      id: commodity.id,
+      name: commodity.name,
+      varieties
+    })
+  })
+  
+  // Convert to array and sort
+  return Array.from(categoryMap.entries())
+    .map(([categoryId, commodities]) => ({
+      id: categoryId,
+      name: commodities[0] ? allCommodities.find(c => c.id === commodities[0].id)?.category || categoryId : categoryId,
+      commodities: commodities.sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * Get all categories (just names and IDs)
+ */
+export function getAllCategories(): { id: string; name: string }[] {
+  const categories = new Set<string>()
+  allCommodities.forEach(c => categories.add(c.category))
+  
+  return Array.from(categories)
+    .sort()
+    .map(name => ({
+      id: name.toLowerCase().replace(/\s+/g, '-').replace(/&/g, 'and'),
+      name
+    }))
+}
+
+/**
+ * Get all commodities for a category
+ */
+export function getCommoditiesForCategory(categoryId: string): SimplifiedCommodityOption[] {
+  const categoryName = categoryId
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+    .replace('And', '&')
+  
+  return allCommodities
+    .filter(c => c.category === categoryName)
+    .map(c => ({
+      id: c.id,
+      name: c.name,
+      varieties: Object.values(c.varieties).map(v => v.name).sort()
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name))
+}
+
+/**
+ * Get all varieties for a commodity (simplified, just names)
+ */
+export function getVarietiesForCommodity(commodityId: string): string[] {
+  const commodity = getCommodityConfig(commodityId)
+  if (!commodity) return []
+  
+  return Object.values(commodity.varieties).map(v => v.name).sort()
 }

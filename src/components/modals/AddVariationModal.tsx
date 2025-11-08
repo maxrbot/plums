@@ -584,7 +584,7 @@ export default function AddVariationModal({
                             >
                               <option value="">Select variety</option>
                               {varieties.map((variety, index) => (
-                                <option key={`${variety}-${index}-${currentVariation.subtype || 'direct'}`} value={variety}>{variety}</option>
+                                <option key={`${variety.id}-${index}-${currentVariation.subtype || 'direct'}`} value={variety.id}>{variety.name}</option>
                               ))}
                             </select>
                           </div>

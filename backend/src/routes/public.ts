@@ -142,7 +142,10 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       }
       
       // Track the view (async, don't wait) - skip if preview mode
-      if (preview !== 'true') {
+      const isPreviewMode = preview === 'true' || preview === true
+      console.log('🔍 Preview mode check:', { preview, isPreviewMode, willTrack: !isPreviewMode })
+      
+      if (!isPreviewMode) {
         const viewRecord: Omit<PriceSheetView, '_id'> = {
           priceSheetId: priceSheet._id!,
           userId: priceSheet.userId,
@@ -153,9 +156,12 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           referrer: request.headers.referer
         }
         
+        console.log('📊 Tracking view for:', { priceSheetId: priceSheet._id, contactEmail: contact?.email })
         db.collection<PriceSheetView>('priceSheetViews').insertOne(viewRecord).catch(err => {
           console.error('Failed to track price sheet view:', err)
         })
+      } else {
+        console.log('👁️ Preview mode - NOT tracking view')
       }
       
       return { 

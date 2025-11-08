@@ -18,6 +18,7 @@ import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPrev
 import { Contact } from '../../../../types'
 import { priceSheetsApi, contactsApi } from '../../../../lib/api'
 import { useUser } from '../../../../contexts/UserContext'
+import { formatProductForPreview, formatProductsForPreview } from '../../../../lib/priceSheetUtils'
 
 // Interfaces for real data
 interface PriceSheet {
@@ -52,6 +53,7 @@ interface PriceSheetProduct {
   
   // Pricing and packaging
   packageType: string
+  size?: string
   countSize?: string
   grade?: string
   price: number | null
@@ -91,43 +93,7 @@ const getRelativeTime = (dateString: string) => {
   return `Created on ${date.toLocaleDateString()}`
 }
 
-// Simple function to convert PriceSheet products (now with denormalized data)
-const convertToPreviewFormat = async (products: PriceSheetProduct[]): Promise<Array<{
-  id: string
-  productName: string
-  region: string
-  packageType: string
-  countSize?: string
-  grade?: string
-  basePrice: number | null
-  adjustedPrice: number | null
-  availability: string
-  showStrikethrough?: boolean
-  isStickered?: boolean
-  specialNotes?: string
-  hasOverride?: boolean
-  overrideComment?: string
-}>> => {
-  // No need for complex lookups - data is already denormalized!
-  return products.map(product => ({
-    id: product._id,
-    productName: product.isStickered ? 
-      `${product.productName || 'Unknown Product'} (Stickered)` : 
-      (product.productName || 'Unknown Product'),
-    region: product.regionName || 'Unknown Region',
-    packageType: product.packageType,
-    countSize: product.countSize,
-    grade: product.grade,
-    basePrice: product.hasOverride || product.price === null ? null : product.price,
-    adjustedPrice: product.hasOverride || product.price === null ? null : product.price,
-    availability: product.availability || 'Available',
-    showStrikethrough: false,
-    isStickered: product.isStickered,
-    specialNotes: product.specialNotes,
-    hasOverride: product.hasOverride,
-    overrideComment: product.overrideComment
-  }))
-}
+// Removed: convertToPreviewFormat - now using shared utility from priceSheetUtils
 
 export default function SendPriceSheets() {
   // User data
@@ -145,7 +111,6 @@ export default function SendPriceSheets() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
-  const [contactNotes, setContactNotes] = useState<Record<string, string>>({})
   // Removed email generation state - now handled on schedule page
   
   // Step 3: Enhancement state
@@ -161,14 +126,19 @@ export default function SendPriceSheets() {
   const [previewProducts, setPreviewProducts] = useState<Array<{
     id: string
     productName: string
+    commodity?: string
+    variety?: string
+    subtype?: string
     region: string
     packageType: string
+    size?: string
     countSize?: string
     grade?: string
     basePrice: number | null
     adjustedPrice: number | null
     availability: string
     showStrikethrough?: boolean
+    isOrganic?: boolean
     isStickered?: boolean
     specialNotes?: string
     hasOverride?: boolean
@@ -243,8 +213,8 @@ export default function SendPriceSheets() {
       const response = await priceSheetsApi.getById(priceSheetId)
       setPreviewPriceSheet(response.priceSheet)
       
-      // Convert products with full data (async)
-      const convertedProducts = await convertToPreviewFormat(response.products || [])
+      // Convert products using shared utility
+      const convertedProducts = formatProductsForPreview(response.products || [])
       setPreviewProducts(convertedProducts)
       
       setIsPreviewModalOpen(true)
@@ -291,16 +261,6 @@ export default function SendPriceSheets() {
     setSelectedContacts([])
   }
 
-  const handleAddNote = (contactId: string) => {
-    const note = prompt('Add a custom note for this contact:')
-    if (note !== null) {
-      setContactNotes(prev => ({
-        ...prev,
-        [contactId]: note
-      }))
-    }
-  }
-
   const handlePreviewContact = async (contact: Contact) => {
     if (!selectedPriceSheet) return
     
@@ -316,46 +276,39 @@ export default function SendPriceSheets() {
       const products = response.products || []
       
       // Apply contact-specific pricing adjustments
+      const pricesheetSettings = (contact as any).pricesheetSettings || {}
+      
       const adjustedProducts = products.map(product => {
         let adjustedPrice = product.price
-        const pricesheetSettings = (contact as any).pricesheetSettings || {}
+        let adjustmentApplied = 0
         
         // Skip price adjustments if product has override or null price
         if (!product.hasOverride && product.price !== null && product.price > 0) {
-          // Apply global adjustment if exists
-          if (pricesheetSettings.globalAdjustment) {
-            adjustedPrice = adjustedPrice * (1 + pricesheetSettings.globalAdjustment / 100)
+          // Start with global adjustment as the base
+          if (pricesheetSettings.globalAdjustment && pricesheetSettings.globalAdjustment !== 0) {
+            adjustmentApplied = pricesheetSettings.globalAdjustment
           }
           
-          // Apply individual crop adjustments if exists
+          // Crop-specific adjustments override the global adjustment
           const cropAdjustments = pricesheetSettings.cropAdjustments || []
           const cropAdjustment = cropAdjustments.find((adj: any) => 
             adj.cropId === product.cropId && adj.variationId === product.variationId
           )
           if (cropAdjustment) {
-            adjustedPrice = product.price * (1 + cropAdjustment.adjustment / 100)
+            adjustmentApplied = cropAdjustment.adjustment
+          }
+          
+          // Apply the final adjustment
+          if (adjustmentApplied !== 0) {
+            adjustedPrice = product.price * (1 + adjustmentApplied / 100)
           }
         }
         
-        return {
-          id: product._id,
-          productName: product.isStickered ? 
-            `${product.productName || `${product.commodity} ${product.variety}`} (Stickered)` : 
-            (product.productName || `${product.commodity} ${product.variety}`),
-          region: product.regionName || 'Unknown Region',
-          packageType: product.packageType,
-          countSize: product.countSize,
-          grade: product.grade,
-          basePrice: product.hasOverride || product.price === null ? null : product.price,
+        // Use shared utility for formatting
+        return formatProductForPreview(product, {
           adjustedPrice: product.hasOverride || product.price === null ? null : adjustedPrice,
-          availability: product.availability || 'Available',
-          showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustedPrice < product.price && !product.hasOverride && product.price !== null,
-          // Extended options
-          isStickered: product.isStickered,
-          specialNotes: product.specialNotes,
-          hasOverride: product.hasOverride,
-          overrideComment: product.overrideComment
-        }
+          showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustmentApplied !== 0 && !product.hasOverride && product.price !== null
+        })
       })
       
       setPreviewPriceSheet(selectedSheet)
@@ -723,115 +676,85 @@ export default function SendPriceSheets() {
                   <span className="text-xs text-gray-500">Dynamic pricing will be applied automatically</span>
                 </div>
                 
-                {/* Column Headers */}
-                <div className="flex items-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  <div className="flex-1">Contact Information</div>
-                  <div className="text-center w-32">Pricing Status</div>
-                  <div className="text-center w-20">Preview</div>
-                  <div className="w-32 ml-4 text-center">Custom Note</div>
-                </div>
               </div>
               
-              <div className="divide-y divide-gray-200 max-h-96 overflow-y-auto">
-                {filteredContacts.map((contact) => {
-                  return (
-                    <div key={contact.id} className="px-4 py-4 hover:bg-gray-50">
-                      <div className="flex items-center">
-                        <div className="flex items-center space-x-3 flex-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedContacts.includes(contact.id)}
-                            onChange={() => toggleContact(contact.id)}
-                            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2">
-                              <p className="text-sm font-medium text-gray-900">
-                                {contact.firstName} {contact.lastName}
-                              </p>
-                              <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${
-                                contact.pricingTier === 'premium' ? 'bg-purple-100 text-purple-800' :
-                                contact.pricingTier === 'volume' ? 'bg-orange-100 text-orange-800' :
-                                contact.pricingTier === 'standard' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {contact.pricingTier}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-500">{contact.company}</p>
-                            <div className="mt-1">
-                              {renderDeliveryMethod(contact)}
-                            </div>
-                            {contactNotes[contact.id] && (
-                              <p className="text-xs text-blue-600 mt-1 italic">Note: {contactNotes[contact.id]}</p>
+              <div className="max-h-96 overflow-y-auto border-t border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12"></th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pricing</th>
+                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Preview</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {filteredContacts.map((contact) => {
+                      const pricesheetSettings = (contact as any).pricesheetSettings || {}
+                      const hasGlobalAdjustment = (pricesheetSettings.globalAdjustment || 0) !== 0
+                      const hasIndividualAdjustments = (pricesheetSettings.cropAdjustments || []).length > 0
+                      const hasCustomPricing = hasGlobalAdjustment || hasIndividualAdjustments
+                      
+                      return (
+                        <tr key={contact.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-3 whitespace-nowrap w-12">
+                            <input
+                              type="checkbox"
+                              checked={selectedContacts.includes(contact.id)}
+                              onChange={() => toggleContact(contact.id)}
+                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            />
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <p className="text-sm font-medium text-gray-900">{contact.company}</p>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <p className="text-sm text-gray-900">
+                              {contact.firstName} {contact.lastName}
+                            </p>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap">
+                            <p className="text-sm text-gray-600">{contact.email}</p>
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-center">
+                            {hasCustomPricing ? (
+                              <div>
+                                <div className="flex items-center justify-center space-x-1">
+                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                                  <span className="text-xs font-medium text-red-700">Custom</span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {hasGlobalAdjustment && `Global: ${pricesheetSettings.globalAdjustment > 0 ? '+' : ''}${pricesheetSettings.globalAdjustment}%`}
+                                  {hasGlobalAdjustment && hasIndividualAdjustments && <br />}
+                                  {hasIndividualAdjustments && `${pricesheetSettings.cropAdjustments.length} crops`}
+                                </div>
+                              </div>
+                            ) : (
+                              <div>
+                                <div className="flex items-center justify-center space-x-1">
+                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                  <span className="text-xs font-medium text-green-700">Standard</span>
+                                </div>
+                                <div className="text-xs text-gray-500 mt-1">Base pricing</div>
+                              </div>
                             )}
-                          </div>
-                        </div>
-                        
-                        {/* Enhanced Pricing Status Column */}
-                        <div className="text-center w-32">
-                          {(() => {
-                            const pricesheetSettings = (contact as any).pricesheetSettings || {}
-                            const hasGlobalAdjustment = (pricesheetSettings.globalAdjustment || 0) !== 0
-                            const hasIndividualAdjustments = (pricesheetSettings.cropAdjustments || []).length > 0
-                            const hasCustomPricing = hasGlobalAdjustment || hasIndividualAdjustments
-                            
-                            if (hasCustomPricing) {
-                              return (
-                                <div>
-                                  <div className="flex items-center justify-center space-x-1">
-                                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                    <span className="text-xs font-medium text-red-700">Custom</span>
-                                  </div>
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    {hasGlobalAdjustment && `Global: ${pricesheetSettings.globalAdjustment > 0 ? '+' : ''}${pricesheetSettings.globalAdjustment}%`}
-                                    {hasGlobalAdjustment && hasIndividualAdjustments && <br />}
-                                    {hasIndividualAdjustments && `${pricesheetSettings.cropAdjustments.length} crops`}
-                                  </div>
-                                </div>
-                              )
-                            } else {
-                              return (
-                                <div>
-                                  <div className="flex items-center justify-center space-x-1">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <span className="text-xs font-medium text-green-700">Standard</span>
-                                  </div>
-                                  <div className="text-xs text-gray-500 mt-1">Base pricing</div>
-                                </div>
-                              )
-                            }
-                          })()}
-                        </div>
-
-                        {/* Preview Column */}
-                        <div className="text-center w-20">
-                          <button
-                            onClick={() => handlePreviewContact(contact)}
-                            className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                            title="Preview pricesheet for this contact"
-                          >
-                            <EyeIcon className="h-4 w-4" />
-                          </button>
-                        </div>
-                        
-                        {/* Custom Note Column */}
-                        <div className="w-32 ml-4">
-                          <button
-                            onClick={() => handleAddNote(contact.id)}
-                            className={`text-xs px-3 py-1.5 rounded-md border transition-colors ${
-                              contactNotes[contact.id] 
-                                ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
-                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
-                            }`}
-                          >
-                            {contactNotes[contact.id] ? 'Edit Note' : 'Add Note'}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
+                          </td>
+                          <td className="px-4 py-3 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => handlePreviewContact(contact)}
+                              className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                              title="Preview pricesheet for this contact"
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -1066,8 +989,8 @@ export default function SendPriceSheets() {
           onClose={() => setIsPreviewModalOpen(false)}
           title={previewPriceSheet.title}
           products={previewProducts}
-          userEmail={user?.profile?.email || 'sales@acrelist.com'}
-          userPhone={user?.profile?.phone || '(555) 123-4567'}
+          userEmail={user?.profile?.email || user?.email}
+          userPhone={user?.profile?.phone}
           mode="send"
         />
       )}

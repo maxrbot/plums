@@ -413,47 +413,33 @@ export default function PriceSheets() {
                     </div>
                   </div>
 
-                  {/* Packaging */}
+                  {/* Commodity Structure */}
                   <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
                     <div className="flex items-center space-x-3 mb-3">
                       <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
                         <ArchiveBoxIcon className="h-5 w-5 text-gray-600" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900">Packaging</h4>
-                        <p className="text-xs text-gray-500">Custom packaging types</p>
+                        <h4 className="text-sm font-medium text-gray-900">Commodity Structure</h4>
+                        <p className="text-xs text-gray-500">Processing & packaging options</p>
                       </div>
                     </div>
                     
                     <div className="space-y-1 mb-3">
-                      {metrics.packaging.data.slice(0, 2).map((pkg, index) => (
-                        <div key={index} className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{pkg.name}</span>
-                        </div>
-                      ))}
-                      {metrics.packaging.data.length > 2 && (
-                        <div className="text-xs text-gray-500">
-                          +{metrics.packaging.data.length - 2} more...
-                        </div>
-                      )}
-                      {metrics.packaging.data.length === 0 && (
-                        <div className="text-xs text-gray-400 italic">Using standard packaging</div>
-                      )}
+                      <div className="text-xs text-gray-600">
+                        View detailed breakdown of processing, packaging, and sizing specifications for all supported commodities.
+                      </div>
                     </div>
                     
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       <span className="text-xs text-gray-500 truncate">
-                        {metrics.packaging.lastUpdated 
-                          ? `Updated ${new Date(metrics.packaging.lastUpdated).toLocaleDateString()}`
-                          : 'Standard only'
-                        }
+                        Variety-specific differences
                       </span>
                       <Link
                         href="/dashboard/price-sheets/packaging"
                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
                       >
-                        Manage
+                        View
                         <ArrowRightIcon className="h-3 w-3 ml-1" />
                       </Link>
                     </div>

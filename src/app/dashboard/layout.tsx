@@ -152,8 +152,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                               : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
                           }`}
                         >
-                          <span className="text-xs mr-2">📦</span>
-                          Packaging Reference
+                          <span className="text-xs mr-2">🏗️</span>
+                          Commodity Structure
                         </Link>
                         <Link
                           href="/dashboard/price-sheets/certifications"

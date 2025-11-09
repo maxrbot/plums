@@ -22,7 +22,7 @@ export interface PackageType {
   name: string // "Carton", "Bag", "Case", "Bunch"
   type: 'carton' | 'bag' | 'case' | 'bunch' | 'clamshell' | 'tray' | 'bulk'
   sizes: PackageSize[]
-  fruitCounts?: FruitCount[] // Only for fruit commodities
+  sizeClassifications?: FruitCount[] // Only for fruit commodities
   isDefault?: boolean
 }
 
@@ -59,7 +59,7 @@ export const commodityPackagingConfig: CommodityPackaging[] = [
             { id: '25lb', name: '25lb', weight: '25lb', defaultPrice: 32.50 },
             { id: '35lb', name: '35lb', weight: '35lb', defaultPrice: 38.75 }
           ],
-        fruitCounts: [
+        sizeClassifications: [
           { id: '56s', name: '56s', description: 'Extra Large', isDefault: true },
           { id: '72s', name: '72s', description: 'Large' },
           { id: '88s', name: '88s', description: 'Medium' },
@@ -421,7 +421,7 @@ export function getDefaultFruitCount(commodityId: string, packageTypeId?: string
   
   if (!config?.hasProcessing) {
     const packageType = config?.packageTypes?.find(pt => pt.id === packageTypeId)
-    return packageType?.fruitCounts?.find(fc => fc.isDefault) || packageType?.fruitCounts?.[0]
+    return packageType?.sizeClassifications?.find(fc => fc.isDefault) || packageType?.sizeClassifications?.[0]
   }
   
   return undefined

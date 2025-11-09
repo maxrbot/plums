@@ -77,7 +77,7 @@ export default function CleanPriceSheetPage() {
     processingType?: string
     packageType?: string
     size?: string
-    fruitCount?: string
+    sizeClassification?: string
     grade?: string
   }>>({})
 
@@ -687,10 +687,10 @@ export default function CleanPriceSheetPage() {
           }
           
           // Find the default fruit count if available
-          if (defaultPackageType.fruitCounts && defaultPackageType.fruitCounts.length > 0) {
-            const defaultFruitCount = defaultPackageType.fruitCounts.find(fc => fc.isDefault) || defaultPackageType.fruitCounts[0]
+          if (defaultPackageType.sizeClassifications && defaultPackageType.sizeClassifications.length > 0) {
+            const defaultFruitCount = defaultPackageType.sizeClassifications.find(fc => fc.isDefault) || defaultPackageType.sizeClassifications[0]
             if (defaultFruitCount) {
-              defaults.fruitCount = defaultFruitCount.id
+              defaults.sizeClassification = defaultFruitCount.id
               console.log(`  ✅ Default fruit count: ${defaultFruitCount.name} (${defaultFruitCount.id})`)
             }
           }
@@ -718,10 +718,10 @@ export default function CleanPriceSheetPage() {
         }
         
         // Find the default fruit count if available
-        if (defaultPackageType.fruitCounts && defaultPackageType.fruitCounts.length > 0) {
-          const defaultFruitCount = defaultPackageType.fruitCounts.find(fc => fc.isDefault) || defaultPackageType.fruitCounts[0]
+        if (defaultPackageType.sizeClassifications && defaultPackageType.sizeClassifications.length > 0) {
+          const defaultFruitCount = defaultPackageType.sizeClassifications.find(fc => fc.isDefault) || defaultPackageType.sizeClassifications[0]
           if (defaultFruitCount) {
-            defaults.fruitCount = defaultFruitCount.id
+            defaults.sizeClassification = defaultFruitCount.id
             console.log(`  ✅ Default fruit count: ${defaultFruitCount.name} (${defaultFruitCount.id})`)
           }
         }
@@ -822,13 +822,13 @@ export default function CleanPriceSheetPage() {
                   updated.size = defaultSize.id
                 }
                 // Reset fruit count if available
-                if (defaultPackageType.fruitCounts && defaultPackageType.fruitCounts.length > 0) {
-                  const defaultFruitCount = defaultPackageType.fruitCounts.find(fc => fc.isDefault) || defaultPackageType.fruitCounts[0]
+                if (defaultPackageType.sizeClassifications && defaultPackageType.sizeClassifications.length > 0) {
+                  const defaultFruitCount = defaultPackageType.sizeClassifications.find(fc => fc.isDefault) || defaultPackageType.sizeClassifications[0]
                   if (defaultFruitCount) {
-                    updated.fruitCount = defaultFruitCount.id
+                    updated.sizeClassification = defaultFruitCount.id
                   }
                 } else {
-                  delete updated.fruitCount
+                  delete updated.sizeClassification
                 }
               }
             }
@@ -858,13 +858,13 @@ export default function CleanPriceSheetPage() {
                 updated.size = defaultSize.id
               }
               // Reset fruit count if available
-              if (packageType.fruitCounts && packageType.fruitCounts.length > 0) {
-                const defaultFruitCount = packageType.fruitCounts.find(fc => fc.isDefault) || packageType.fruitCounts[0]
+              if (packageType.sizeClassifications && packageType.sizeClassifications.length > 0) {
+                const defaultFruitCount = packageType.sizeClassifications.find(fc => fc.isDefault) || packageType.sizeClassifications[0]
                 if (defaultFruitCount) {
-                  updated.fruitCount = defaultFruitCount.id
+                  updated.sizeClassification = defaultFruitCount.id
                 }
               } else {
-                delete updated.fruitCount
+                delete updated.sizeClassification
               }
             }
           }
@@ -992,13 +992,13 @@ export default function CleanPriceSheetPage() {
     // Build product name
     let displayName = getCleanProductName(product)
     
-    // Determine if size is weight-based or count-based
+    // Determine package and size display
     let sizeDisplay = ''
     let countDisplay = ''
     let packageTypeDisplay = packaging?.packageType || ''
     
     if (packaging) {
-      // Get the commodity config to check if size is weight or count based
+      // Get the commodity config
       const config = getLegacyCommodityPackaging(product.commodity)
       let packageTypeConfig: any = undefined
       
@@ -1009,31 +1009,23 @@ export default function CleanPriceSheetPage() {
         packageTypeConfig = config.packaging.types.find((pt: any) => pt.id === packaging.packageType)
       }
       
-      if (packaging.size && packageTypeConfig?.sizes) {
-        const selectedSize = packageTypeConfig.sizes.find((s: any) => s.id === packaging.size)
-        if (selectedSize) {
-          // If size has weight property, it goes in size column
-          if (selectedSize.weight) {
-            sizeDisplay = selectedSize.name
-          }
-          // If size has count property (and no weight), it goes in count column
-          else if (selectedSize.count) {
-            countDisplay = selectedSize.name
-          }
-        }
+      // NEW LOGIC: Package names are now complete (e.g., "40lb Carton", "36ct Place-Packed Carton")
+      // No need to combine weight/count with package type
+      
+      // sizeClassification now goes in the Size column (for all commodities)
+      if (packaging.sizeClassification) {
+        sizeDisplay = packaging.sizeClassification
       }
       
-      // Fruit counts (for citrus) - special handling
-      if (packaging.fruitCount) {
-        // If we have both a weight-based size AND a fruit count (citrus case)
-        // Combine size with package type (e.g., "40lb Carton") and put fruit count in size column
-        if (sizeDisplay) {
-          packageTypeDisplay = `${sizeDisplay} ${packageTypeDisplay}`
-          sizeDisplay = '' // Clear sizeDisplay
-          countDisplay = packaging.fruitCount // Fruit count goes in size column
-        } else {
-          // If no weight-based size, just use fruit count
-          countDisplay = packaging.fruitCount
+      // Legacy support: if there's a size selection (shouldn't happen with new configs)
+      if (packaging.size && packageTypeConfig?.sizes && packageTypeConfig.sizes.length > 0) {
+        const selectedSize = packageTypeConfig.sizes.find((s: any) => s.id === packaging.size)
+        if (selectedSize) {
+          if (selectedSize.weight) {
+            sizeDisplay = selectedSize.name
+          } else if (selectedSize.count) {
+            countDisplay = selectedSize.name
+          }
         }
       }
     }
@@ -1186,16 +1178,16 @@ export default function CleanPriceSheetPage() {
       }
       
       // Fruit counts (for citrus) - special handling
-      if (packaging.fruitCount) {
+      if (packaging.sizeClassification) {
         // If we have both a weight-based size AND a fruit count (citrus case)
         // Combine size with package type (e.g., "40lb Carton") and put fruit count in size column
         if (sizeDisplay) {
           packageTypeDisplay = `${sizeDisplay} ${packageTypeDisplay}`
           sizeDisplay = '' // Clear sizeDisplay
-          countDisplay = packaging.fruitCount // Fruit count goes in size column
+          countDisplay = packaging.sizeClassification // Fruit count goes in size column
         } else {
           // If no weight-based size, just use fruit count
-          countDisplay = packaging.fruitCount
+          countDisplay = packaging.sizeClassification
         }
       }
     }
@@ -1550,10 +1542,28 @@ export default function CleanPriceSheetPage() {
                                   packageType = config.packaging.types.find(pt => pt.id === packaging.packageType)
                                 }
                                 
-                                // Only show sizes that have a 'weight' property (not count-based sizes)
+                                // Check for fruit counts (size classifications like "Supers", "Selects")
+                                const hasFruitCounts = packageType?.sizeClassifications && packageType.sizeClassifications.length > 0
+                                
+                                // Check for weight-based sizes (like "40lb")
                                 const weightBasedSizes = packageType?.sizes?.filter((s: any) => s.weight) || []
                                 
-                                if (weightBasedSizes.length > 0) {
+                                if (hasFruitCounts) {
+                                  // Show fruit counts/size classifications (Supers, Selects, etc.)
+                                  return (
+                                    <select 
+                                      value={productPackaging[productId]?.sizeClassification || ''}
+                                      onChange={(e) => updateProductPackaging(productId, 'sizeClassification', e.target.value)}
+                                      className="w-full px-2 py-1.5 border-l border-t border-b border-gray-300 border-r-2 border-r-gray-400 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
+                                    >
+                                      <option value="">Size</option>
+                                      {packageType?.sizeClassifications?.map((fc: any) => (
+                                        <option key={fc.id} value={fc.id}>{fc.name}</option>
+                                      ))}
+                                    </select>
+                                  )
+                                } else if (weightBasedSizes.length > 0) {
+                                  // Show weight-based sizes (40lb, 25lb, etc.)
                                   return (
                                     <select 
                                       value={productPackaging[productId]?.size || ''}
@@ -1591,14 +1601,11 @@ export default function CleanPriceSheetPage() {
                                   packageType = config.packaging.types.find(pt => pt.id === packaging.packageType)
                                 }
                                 
-                                // Check for count-based sizes (e.g., "4 Count" tray packs)
+                                // Check for count-based sizes (e.g., "24 Count", "68-72 Count")
                                 const countBasedSizes = packageType?.sizes?.filter((s: any) => s.count && !s.weight) || []
                                 
-                                // Check for fruit counts (e.g., "88s" for citrus sizing)
-                                const hasFruitCounts = packageType?.fruitCounts && packageType.fruitCounts.length > 0
-                                
                                 if (countBasedSizes.length > 0) {
-                                  // Show count-based sizes (like "4 Count" for tray packs)
+                                  // Show count-based sizes (like "24ct", "36ct", "68-72")
                                   return (
                                     <select 
                                       value={productPackaging[productId]?.size || ''}
@@ -1608,20 +1615,6 @@ export default function CleanPriceSheetPage() {
                                       <option value="">Count</option>
                                       {countBasedSizes.map((s: any) => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
-                                      ))}
-                                    </select>
-                                  )
-                                } else if (hasFruitCounts) {
-                                  // Show fruit counts (like "88s" for citrus)
-                                  return (
-                                    <select 
-                                      value={productPackaging[productId]?.fruitCount || ''}
-                                      onChange={(e) => updateProductPackaging(productId, 'fruitCount', e.target.value)}
-                                      className="w-full px-2 py-1.5 border-l border-t border-b border-gray-300 border-r-2 border-r-gray-400 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
-                                    >
-                                      <option value="">Count</option>
-                                      {packageType?.fruitCounts?.map((fc: any) => (
-                                        <option key={fc.id} value={fc.id}>{fc.name}</option>
                                       ))}
                                     </select>
                                   )
@@ -1936,9 +1929,28 @@ export default function CleanPriceSheetPage() {
                                       packageType = config.packaging.types.find(pt => pt.id === packaging.packageType)
                                     }
                                     
+                                    // Check for fruit counts (size classifications like "Supers", "Selects")
+                                    const hasFruitCounts = packageType?.sizeClassifications && packageType.sizeClassifications.length > 0
+                                    
+                                    // Check for weight-based sizes (like "40lb")
                                     const weightBasedSizes = packageType?.sizes?.filter((s: any) => s.weight) || []
                                     
-                                    if (weightBasedSizes.length > 0) {
+                                    if (hasFruitCounts) {
+                                      // Show fruit counts/size classifications (Supers, Selects, etc.)
+                                      return (
+                                        <select 
+                                          value={packaging?.sizeClassification || ''}
+                                          onChange={(e) => updateProductPackaging(packKey, 'sizeClassification', e.target.value)}
+                                          className="w-full px-2 py-1.5 border-l border-t border-b border-gray-300 border-r-2 border-r-gray-400 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
+                                        >
+                                          <option value="">Size</option>
+                                          {packageType?.sizeClassifications?.map((fc: any) => (
+                                            <option key={fc.id} value={fc.id}>{fc.name}</option>
+                                          ))}
+                                        </select>
+                                      )
+                                    } else if (weightBasedSizes.length > 0) {
+                                      // Show weight-based sizes (40lb, 25lb, etc.)
                                       return (
                                         <select 
                                           value={packaging?.size || ''}
@@ -1977,10 +1989,11 @@ export default function CleanPriceSheetPage() {
                                       packageType = config.packaging.types.find(pt => pt.id === packaging.packageType)
                                     }
                                     
+                                    // Check for count-based sizes (e.g., "24 Count", "68-72 Count")
                                     const countBasedSizes = packageType?.sizes?.filter((s: any) => s.count && !s.weight) || []
-                                    const fruitCounts = packageType?.fruitCounts || []
                                     
                                     if (countBasedSizes.length > 0) {
+                                      // Show count-based sizes (like "24ct", "36ct", "68-72")
                                       return (
                                         <select 
                                           value={packaging?.size || ''}
@@ -1990,19 +2003,6 @@ export default function CleanPriceSheetPage() {
                                           <option value="">Count</option>
                                           {countBasedSizes.map((s: any) => (
                                             <option key={s.id} value={s.id}>{s.name}</option>
-                                          ))}
-                                        </select>
-                                      )
-                                    } else if (fruitCounts.length > 0) {
-                                      return (
-                                        <select 
-                                          value={packaging?.fruitCount || ''}
-                                          onChange={(e) => updateProductPackaging(packKey, 'fruitCount', e.target.value)}
-                                          className="w-full px-2 py-1.5 border-l border-t border-b border-gray-300 border-r-2 border-r-gray-400 rounded text-xs focus:ring-1 focus:ring-blue-500 focus:border-blue-500 appearance-none cursor-pointer"
-                                        >
-                                          <option value="">Count</option>
-                                          {fruitCounts.map((fc: any) => (
-                                            <option key={fc.id} value={fc.id}>{fc.name}</option>
                                           ))}
                                         </select>
                                       )

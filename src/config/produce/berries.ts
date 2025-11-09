@@ -163,34 +163,58 @@ export const berriesCommodities: CommodityConfig[] = [
           name: 'Whole Berries',
           description: 'Whole fresh blueberries',
           packageTypes: [
+            // Flats
             {
-              id: 'flat',
-              name: 'Flat',
+              id: '12x1pt-flat',
+              name: '12x1pt Flat',
               type: 'flat',
-              sizes: [
-                { id: '12x1pt', name: '12 x 1 Pint', count: '12x1pt', isDefault: true },
-                { id: '6x1pt', name: '6 x 1 Pint', count: '6x1pt' },
-                { id: '12x6oz', name: '12 x 6 oz', count: '12x6oz' }
-              ],
+              sizes: [], // No separate size selection - count is in package name
+              sizeClassifications: [], // No size classifications
               isDefault: true
             },
             {
-              id: 'clamshell',
-              name: 'Clamshell',
-              type: 'clamshell',
-              sizes: [
-                { id: '6oz', name: '6 oz', weight: '6oz' },
-                { id: '1lb', name: '1 lb', weight: '1lb' }
-              ]
+              id: '6x1pt-flat',
+              name: '6x1pt Flat',
+              type: 'flat',
+              sizes: [], // No separate size selection - count is in package name
+              sizeClassifications: [] // No size classifications
             },
             {
-              id: 'bulk',
-              name: 'Bulk',
+              id: '12x6oz-flat',
+              name: '12x6oz Flat',
+              type: 'flat',
+              sizes: [], // No separate size selection - count is in package name
+              sizeClassifications: [] // No size classifications
+            },
+            // Clamshells
+            {
+              id: '6oz-clamshell',
+              name: '6oz Clamshell',
+              type: 'clamshell',
+              sizes: [], // No separate size selection - weight is in package name
+              sizeClassifications: [] // No size classifications
+            },
+            {
+              id: '1lb-clamshell',
+              name: '1lb Clamshell',
+              type: 'clamshell',
+              sizes: [], // No separate size selection - weight is in package name
+              sizeClassifications: [] // No size classifications
+            },
+            // Bulk
+            {
+              id: '10lb-bulk',
+              name: '10lb Bulk',
               type: 'bulk',
-              sizes: [
-                { id: '10lb', name: '10 lb', weight: '10lb' },
-                { id: '18lb', name: '18 lb', weight: '18lb' }
-              ]
+              sizes: [], // No separate size selection - weight is in package name
+              sizeClassifications: [] // No size classifications
+            },
+            {
+              id: '18lb-bulk',
+              name: '18lb Bulk',
+              type: 'bulk',
+              sizes: [], // No separate size selection - weight is in package name
+              sizeClassifications: [] // No size classifications
             }
           ],
           isDefault: true
@@ -257,8 +281,8 @@ export const berriesCommodities: CommodityConfig[] = [
     
     packaging: {
       types: [], // Populated from processing types
-      defaultPackage: '12x1pt',
-      defaultSize: '12x1pt'
+      defaultPackage: '12x1pt-flat',
+      defaultSize: ''
     },
     
     quality: {

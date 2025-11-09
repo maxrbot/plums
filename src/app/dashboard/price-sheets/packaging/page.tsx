@@ -1,186 +1,35 @@
 "use client"
 
-import { useState, useEffect } from 'react'
-import { 
-  PlusIcon, 
-  MagnifyingGlassIcon,
-  InformationCircleIcon,
-  ChevronDownIcon,
-  ChevronUpIcon
-} from '@heroicons/react/24/outline'
+import { useState } from 'react'
+import { ChevronRightIcon } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
-import { STANDARD_PACKAGING, PackagingSpec, getPackagingByCategory } from '../../../../lib/packagingLibrary'
-import AddPackagingModal from '../../../../components/modals/AddPackagingModal'
-import { packagingApi, cropsApi } from '../../../../lib/api'
-import type { CropManagement } from '../../../../types'
+import { allCommodities } from '../../../../config'
 
-export default function PackagingReference() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCommodity, setSelectedCommodity] = useState('all')
-  const [customPackaging, setCustomPackaging] = useState<PackagingSpec[]>([])
-  const [userCrops, setUserCrops] = useState<CropManagement[]>([])
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(
-    new Set(['container', 'carton', 'bag', 'bulk', 'specialty'])
-  )
+export default function CommodityStructure() {
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
+  const [expandedCommodities, setExpandedCommodities] = useState<Set<string>>(new Set())
 
-  // Load custom packaging and user crops from API
-  useEffect(() => {
-    loadCustomPackaging()
-    loadUserCrops()
-  }, [])
-
-  const loadCustomPackaging = async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const response = await packagingApi.getAll()
-      
-      // Transform backend data to frontend format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedPackaging: PackagingSpec[] = response.packaging.map((pkg: any) => ({
-        id: pkg._id,
-        name: pkg.name,
-        description: pkg.description,
-        commodities: pkg.commodities || [],
-        isStandard: false,
-        category: pkg.category
-      }))
-      
-      setCustomPackaging(transformedPackaging)
-    } catch (err) {
-      console.error('Failed to load custom packaging:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load custom packaging')
-      // Show empty state on error
-      setCustomPackaging([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const loadUserCrops = async () => {
-    try {
-      const response = await cropsApi.getAll()
-      
-      // Transform backend data to frontend format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const transformedCrops: CropManagement[] = response.crops.map((crop: any) => ({
-        id: crop._id,
-        category: crop.category,
-        commodity: crop.commodity,
-        variations: crop.variations || [],
-        status: 'active' as const,
-        createdAt: new Date(crop.createdAt).toISOString().split('T')[0]
-      }))
-      
-      setUserCrops(transformedCrops)
-    } catch (err) {
-      console.error('Failed to load user crops:', err)
-      // Don't set error for crops, just use empty array
-      setUserCrops([])
-    }
-  }
-
-  const handleAddCustomPackaging = async (newPackaging: Omit<PackagingSpec, 'id' | 'isStandard'>) => {
-    try {
-      setError(null)
-      
-      // Transform frontend data to backend format
-      const packagingData = {
-        name: newPackaging.name,
-        description: newPackaging.description,
-        commodities: newPackaging.commodities,
-        category: newPackaging.category
-      }
-
-      const response = await packagingApi.create(packagingData)
-      
-      // Add the new packaging to the list
-      const transformedPackaging: PackagingSpec = {
-        id: response.packaging._id,
-        name: response.packaging.name,
-        description: response.packaging.description,
-        commodities: response.packaging.commodities || [],
-        isStandard: false,
-        category: response.packaging.category
-      }
-      
-      setCustomPackaging([...customPackaging, transformedPackaging])
-      setIsAddModalOpen(false)
-      
-      console.log('✅ Custom packaging created successfully:', response.packaging)
-    } catch (err) {
-      console.error('Failed to create custom packaging:', err)
-      setError(err instanceof Error ? err.message : 'Failed to create custom packaging')
-    }
-  }
-
-  const handleDeleteCustomPackaging = async (packagingId: string) => {
-    try {
-      setError(null)
-      
-      await packagingApi.delete(packagingId)
-      
-      // Remove from local state
-      setCustomPackaging(prev => prev.filter(p => p.id !== packagingId))
-      
-      console.log('✅ Custom packaging deleted successfully')
-    } catch (err) {
-      console.error('Failed to delete custom packaging:', err)
-      setError(err instanceof Error ? err.message : 'Failed to delete custom packaging')
-    }
-  }
-
-  // Toggle category collapse state
   const toggleCategory = (category: string) => {
-    const newCollapsed = new Set(collapsedCategories)
-    if (newCollapsed.has(category)) {
-      newCollapsed.delete(category)
+    const newExpanded = new Set(expandedCategories)
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category)
     } else {
-      newCollapsed.add(category)
+      newExpanded.add(category)
     }
-    setCollapsedCategories(newCollapsed)
+    setExpandedCategories(newExpanded)
   }
 
-  // Get user's actual commodities from their crop management
-  const userCommodities = Array.from(new Set(
-    userCrops.map(crop => crop.commodity)
-  )).sort()
-
-  // Get unique commodities from all packaging (for filtering display)
-  const allCommodities = Array.from(new Set(
-    [...STANDARD_PACKAGING, ...customPackaging].flatMap(pkg => pkg.commodities)
-  )).sort()
-
-  // Filter packaging based on search and commodity
-  const filteredPackaging = [...STANDARD_PACKAGING, ...customPackaging].filter(pkg => {
-    const matchesSearch = pkg.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         pkg.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCommodity = selectedCommodity === 'all' || 
-                            pkg.commodities.includes(selectedCommodity)
-    return matchesSearch && matchesCommodity
-  })
-
-  // Group by category
-  const groupedPackaging = filteredPackaging.reduce((groups, pkg) => {
-    if (!groups[pkg.category]) {
-      groups[pkg.category] = []
+  const toggleCommodity = (commodityId: string) => {
+    const newExpanded = new Set(expandedCommodities)
+    if (newExpanded.has(commodityId)) {
+      newExpanded.delete(commodityId)
+    } else {
+      newExpanded.add(commodityId)
     }
-    groups[pkg.category].push(pkg)
-    return groups
-  }, {} as Record<string, PackagingSpec[]>)
-
-  const categoryLabels = {
-    container: 'Containers & Clamshells',
-    carton: 'Cartons & Boxes',
-    bag: 'Bags & Sacks',
-    bulk: 'Bulk Containers',
-    specialty: 'Specialty Packaging'
+    setExpandedCommodities(newExpanded)
   }
 
-
+  const commodities = allCommodities
 
   return (
     <>
@@ -189,150 +38,398 @@ export default function PackagingReference() {
         <Breadcrumbs 
           items={[
             { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Packaging Reference', current: true }
+            { label: 'Commodity Structure', current: true }
           ]} 
           className="mb-4"
         />
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Packaging Reference</h1>
-            <p className="mt-2 text-gray-600">Industry-standard packaging options for your commodities. Add custom packaging if needed.</p>
+            <h1 className="text-3xl font-bold text-gray-900">Commodity Structure</h1>
+            <p className="mt-2 text-gray-600">
+              Complete breakdown of processing, packaging, and sizing specifications for all supported commodities.
+            </p>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-            <PlusIcon className="h-4 w-4 mr-2" />
-            Add Custom Packaging
-          </button>
+          <div>
+            <a
+              href="/dashboard/price-sheets/packaging/custom"
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Custom Commodity Structure
+            </a>
+          </div>
         </div>
       </div>
 
       <div className="space-y-6">
-        {/* Filters */}
-        <div className="bg-white shadow rounded-lg p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search */}
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search packaging types..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-lime-500 focus:border-lime-500"
-              />
-            </div>
-
-            {/* Commodity Filter */}
-            <select
-              value={selectedCommodity}
-              onChange={(e) => setSelectedCommodity(e.target.value)}
-              className="block w-full px-3 py-2 border border-gray-300 rounded-md bg-white focus:outline-none focus:ring-1 focus:ring-lime-500 focus:border-lime-500"
-            >
-              <option value="all">All Commodities</option>
-              {allCommodities.map(commodity => (
-                <option key={commodity} value={commodity}>
-                  {commodity.charAt(0).toUpperCase() + commodity.slice(1)}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Packaging Categories */}
-        {Object.entries(groupedPackaging).map(([category, packages]) => (
-          <div key={category} className="bg-white shadow rounded-lg">
-            {/* Collapsible Category Header */}
-            <button
-              onClick={() => toggleCategory(category)}
-              className="w-full px-6 py-4 border-b border-gray-200 flex items-center justify-between hover:bg-gray-50 transition-colors"
-            >
-              <div className="text-left">
-                <h2 className="text-lg font-medium text-gray-900">
-                  {categoryLabels[category as keyof typeof categoryLabels] || category}
-                </h2>
-                <p className="text-sm text-gray-500 mt-1">
-                  {packages.length} packaging {packages.length === 1 ? 'type' : 'types'}
+        <div className="bg-white shadow rounded-lg">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Processing & Packaging Options</h3>
+                <p className="mt-1 text-sm text-gray-600">
+                  View variety-specific differences and available configurations for each commodity.
                 </p>
               </div>
-              {collapsedCategories.has(category) ? (
-                <ChevronUpIcon className="h-5 w-5 text-gray-400" />
-              ) : (
-                <ChevronDownIcon className="h-5 w-5 text-gray-400" />
-              )}
-            </button>
-            
-            {/* Collapsible Package List */}
-            {!collapsedCategories.has(category) && (
-              <div className="divide-y divide-gray-200">
-                {packages.map((pkg) => (
-                <div key={pkg.id} className="px-6 py-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    // Expand all categories
+                    const allCategories = [...new Set(commodities.map(c => c.category))]
+                    setExpandedCategories(new Set(allCategories))
+                    
+                    // Expand all commodities
+                    setExpandedCommodities(new Set(commodities.map(c => c.id)))
+                  }}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Expand All
+                </button>
+                <button
+                  onClick={() => {
+                    setExpandedCategories(new Set())
+                    setExpandedCommodities(new Set())
+                  }}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  Collapse All
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4 p-6">
+            {(() => {
+              // Group commodities by category
+              const categorizedCommodities = commodities.reduce((acc, commodity) => {
+                if (!acc[commodity.category]) {
+                  acc[commodity.category] = []
+                }
+                acc[commodity.category].push(commodity)
+                return acc
+              }, {} as Record<string, typeof commodities>)
+
+              return Object.entries(categorizedCommodities).map(([categoryName, commoditiesInCategory]) => {
+                const isCategoryExpanded = expandedCategories.has(categoryName)
+                const totalCommodities = commoditiesInCategory.length
+                const totalVarieties = commoditiesInCategory.reduce((sum, c) => sum + Object.keys(c.varieties).length, 0)
+                
+                return (
+                  <div key={categoryName} className="border border-gray-300 rounded-lg">
+                    {/* Category Header */}
+                    <button
+                      onClick={() => toggleCategory(categoryName)}
+                      className="w-full px-6 py-4 flex items-center justify-between bg-blue-50 hover:bg-blue-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
                       <div className="flex items-center space-x-3">
-                        <h3 className="text-sm font-medium text-gray-900">
-                          {pkg.name}
-                        </h3>
-                        {!pkg.isStandard && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                            Custom
-                          </span>
-                        )}
+                        <div className={`transform transition-transform ${isCategoryExpanded ? 'rotate-90' : ''}`}>
+                          <ChevronRightIcon className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div className="text-left">
+                          <h3 className="text-xl font-bold text-blue-900">{categoryName}</h3>
+                          <p className="text-sm text-blue-700">{totalCommodities} commodities • {totalVarieties} varieties</p>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-500 mt-1">
-                        {pkg.description}
-                      </p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {pkg.commodities.map(commodity => (
-                          <span
-                            key={commodity}
-                            className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800"
-                          >
-                            {commodity.charAt(0).toUpperCase() + commodity.slice(1)}
-                          </span>
-                        ))}
+                      <div className="flex items-center space-x-2">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                          Category
+                        </span>
                       </div>
-                    </div>
-                    {!pkg.isStandard && (
-                      <button
-                        onClick={() => handleDeleteCustomPackaging(pkg.id)}
-                        className="ml-4 text-red-600 hover:text-red-800 text-sm"
-                      >
-                        Remove
-                      </button>
+                    </button>
+
+                    {/* Category Content */}
+                    {isCategoryExpanded && (
+                      <div className="border-t border-gray-200 bg-white p-4">
+                        <div className="space-y-4">
+                          {commoditiesInCategory.map(commodity => {
+                            const isExpanded = expandedCommodities.has(commodity.id)
+                            const varietyCount = Object.keys(commodity.varieties).length
+                            
+                            return (
+                              <div key={commodity.id} className="border border-gray-200 rounded-lg">
+                                {/* Commodity Header */}
+                                <button
+                                  onClick={() => toggleCommodity(commodity.id)}
+                                  className="w-full px-6 py-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 rounded-t-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                >
+                                  <div className="flex items-center space-x-3">
+                                    <div className={`transform transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                                      <ChevronRightIcon className="h-5 w-5 text-gray-500" />
+                                    </div>
+                                    <div className="text-left">
+                                      <h4 className="text-lg font-semibold text-gray-900">{commodity.name}</h4>
+                                      <p className="text-sm text-gray-600">{varietyCount} varieties • {commodity.category}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                      commodity.usdaCoverage.hasPricing ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                                    }`}>
+                                      {commodity.usdaCoverage.hasPricing ? 'USDA Pricing' : 'No USDA Data'}
+                                    </span>
+                                  </div>
+                                </button>
+
+                                {/* Commodity Content */}
+                                {isExpanded && (
+                                  <div className="border-t border-gray-200">
+                                    {(() => {
+                                      // Check if all varieties have identical processing/packaging configurations
+                                      const varieties = Object.entries(commodity.varieties)
+                                      
+                                      // Generate base configurations (same for all varieties)
+                                      const baseConfigurations: any[] = []
+                                      
+                                      if (commodity.processing.hasProcessing && commodity.processing.types) {
+                                        commodity.processing.types.forEach(processingType => {
+                                          processingType.packageTypes.forEach(packageType => {
+                                            packageType.sizes.forEach(size => {
+                                              if (packageType.sizeClassifications && packageType.sizeClassifications.length > 0) {
+                                                packageType.sizeClassifications.forEach(fruitCount => {
+                                                  baseConfigurations.push({
+                                                    processing: processingType.name,
+                                                    packageType: packageType.name,
+                                                    packageSize: size.name,
+                                                    itemSize: fruitCount.name
+                                                  })
+                                                })
+                                              } else {
+                                                baseConfigurations.push({
+                                                  processing: processingType.name,
+                                                  packageType: packageType.name,
+                                                  packageSize: size.name,
+                                                  itemSize: '-'
+                                                })
+                                              }
+                                            })
+                                          })
+                                        })
+                                      } else {
+                                        commodity.packaging.types.forEach(packageType => {
+                                          packageType.sizes.forEach(size => {
+                                            if (packageType.sizeClassifications && packageType.sizeClassifications.length > 0) {
+                                              packageType.sizeClassifications.forEach(fruitCount => {
+                                                baseConfigurations.push({
+                                                  processing: 'Fresh',
+                                                  packageType: packageType.name,
+                                                  packageSize: size.name,
+                                                  itemSize: fruitCount.name
+                                                })
+                                              })
+                                            } else {
+                                              baseConfigurations.push({
+                                                processing: 'Fresh',
+                                                packageType: packageType.name,
+                                                packageSize: size.name,
+                                                itemSize: '-'
+                                              })
+                                            }
+                                          })
+                                        })
+                                      }
+
+                                      // If there are multiple varieties, show unified view with variety comparison
+                                      if (varieties.length > 1) {
+                                        return (
+                                          <div className="p-6">
+                                            <div className="mb-4">
+                                              <h5 className="text-sm font-medium text-gray-900 mb-2">
+                                                Processing & Packaging Options
+                                                <span className="ml-2 text-xs text-gray-500">(applies to all varieties)</span>
+                                              </h5>
+                                              <div className="overflow-x-auto">
+                                                <table className="min-w-full">
+                                                  <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cut/Processing</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Type</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Size</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Size</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody className="divide-y divide-gray-100">
+                                                    {baseConfigurations.map((config, index) => {
+                                                      // Check if this is the default configuration
+                                                      const isDefault = (() => {
+                                                        if (commodity.processing.hasProcessing) {
+                                                          const defaultProcessing = commodity.processing.types?.find(pt => pt.isDefault)?.name
+                                                          const defaultPackage = commodity.packaging.defaultPackage
+                                                          const defaultSize = commodity.packaging.defaultSize
+                                                          return config.processing === defaultProcessing && 
+                                                                 config.packageType === defaultPackage &&
+                                                                 config.packageSize === defaultSize
+                                                        } else {
+                                                          const defaultPackage = commodity.packaging.defaultPackage
+                                                          const defaultSize = commodity.packaging.defaultSize
+                                                          return config.packageType === defaultPackage && config.packageSize === defaultSize
+                                                        }
+                                                      })()
+
+                                                      return (
+                                                        <tr key={index} className={isDefault ? 'bg-green-50' : ''}>
+                                                          <td className="px-3 py-2 text-sm text-gray-900">
+                                                            {config.processing}
+                                                            {isDefault && <span className="ml-2 text-xs text-green-600 font-medium">(default)</span>}
+                                                          </td>
+                                                          <td className="px-3 py-2 text-sm text-gray-700">{config.packageType}</td>
+                                                          <td className="px-3 py-2 text-sm text-gray-700">{config.packageSize}</td>
+                                                          <td className="px-3 py-2 text-sm text-gray-700">{config.itemSize}</td>
+                                                        </tr>
+                                                      )
+                                                    })}
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                            </div>
+
+                                            {/* Variety-Specific Differences */}
+                                            <div className="mt-6">
+                                              <h5 className="text-sm font-medium text-gray-900 mb-2">Variety-Specific Differences</h5>
+                                              <div className="overflow-x-auto">
+                                                <table className="min-w-full">
+                                                  <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variety</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Weight/Item</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Base Price/lb</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">USDA Coverage</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody className="divide-y divide-gray-100">
+                                                    {varieties.map(([varietyId, variety]) => (
+                                                      <tr key={varietyId} className="hover:bg-gray-50">
+                                                        <td className="px-3 py-2 text-sm font-medium text-gray-900">{variety.name}</td>
+                                                        <td className="px-3 py-2 text-sm text-gray-900">
+                                                          {variety.itemWeight ? `${variety.itemWeight.base.toFixed(2)} lbs` : '-'}
+                                                        </td>
+                                                        <td className="px-3 py-2 text-sm font-medium text-gray-900">${variety.pricing.basePricePerLb.toFixed(2)}</td>
+                                                        <td className="px-3 py-2">
+                                                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                                            variety.usdaMapping?.confidence === 'high' ? 'bg-green-100 text-green-800' :
+                                                            variety.usdaMapping?.confidence === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                                            variety.usdaMapping?.confidence === 'low' ? 'bg-orange-100 text-orange-800' :
+                                                            'bg-gray-100 text-gray-800'
+                                                          }`}>
+                                                            {variety.usdaMapping?.confidence || 'none'}
+                                                          </span>
+                                                        </td>
+                                                        <td className="px-3 py-2 text-xs text-gray-500">
+                                                          {varietyId === commodity.defaultVariety && <span className="font-medium text-blue-600">Default</span>}
+                                                          {variety.pricing.priceVolatility === 'high' && <span className="ml-1 text-orange-600">High volatility</span>}
+                                                        </td>
+                                                      </tr>
+                                                    ))}
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )
+                                      } else {
+                                        // Single variety - show simplified view
+                                        const [varietyId, variety] = varieties[0]
+                                        return (
+                                          <div className="p-6">
+                                            <div className="mb-4">
+                                              <h5 className="text-sm font-medium text-gray-900 mb-2">
+                                                Processing & Packaging Options
+                                              </h5>
+                                              <div className="overflow-x-auto">
+                                                <table className="min-w-full">
+                                                  <thead>
+                                                    <tr className="border-b border-gray-200">
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cut/Processing</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Type</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Size</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Size</th>
+                                                    </tr>
+                                                  </thead>
+                                                  <tbody className="divide-y divide-gray-100">
+                                                    {baseConfigurations.map((config, index) => {
+                                                      const isDefault = (() => {
+                                                        if (commodity.processing.hasProcessing) {
+                                                          const defaultProcessing = commodity.processing.types?.find(pt => pt.isDefault)?.name
+                                                          const defaultPackage = commodity.packaging.defaultPackage
+                                                          const defaultSize = commodity.packaging.defaultSize
+                                                          return config.processing === defaultProcessing && 
+                                                                 config.packageType === defaultPackage &&
+                                                                 config.packageSize === defaultSize
+                                                        } else {
+                                                          const defaultPackage = commodity.packaging.defaultPackage
+                                                          const defaultSize = commodity.packaging.defaultSize
+                                                          return config.packageType === defaultPackage && config.packageSize === defaultSize
+                                                        }
+                                                      })()
+
+                                                      return (
+                                                        <tr key={index} className={isDefault ? 'bg-green-50' : ''}>
+                                                          <td className="px-3 py-2 text-sm text-gray-900">
+                                                            {config.processing}
+                                                            {isDefault && <span className="ml-2 text-xs text-green-600 font-medium">(default)</span>}
+                                                          </td>
+                                                          <td className="px-3 py-2 text-sm text-gray-700">{config.packageType}</td>
+                                                          <td className="px-3 py-2 text-sm text-gray-700">{config.packageSize}</td>
+                                                          <td className="px-3 py-2 text-sm text-gray-700">{config.itemSize}</td>
+                                                        </tr>
+                                                      )
+                                                    })}
+                                                  </tbody>
+                                                </table>
+                                              </div>
+                                            </div>
+
+                                            {/* Variety Details */}
+                                            <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                                              <h5 className="text-sm font-medium text-gray-900 mb-3">{variety.name} Details</h5>
+                                              <div className="space-y-2 text-sm">
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">Base Price:</span>
+                                                  <span className="font-medium text-gray-900">
+                                                    ${variety.pricing.basePricePerLb.toFixed(2)}/lb
+                                                  </span>
+                                                </div>
+                                                <div className="flex justify-between">
+                                                  <span className="text-gray-600">Price Volatility:</span>
+                                                  <span className={`font-medium capitalize ${
+                                                    variety.pricing.priceVolatility === 'high' ? 'text-red-600' :
+                                                    variety.pricing.priceVolatility === 'medium' ? 'text-yellow-600' :
+                                                    'text-green-600'
+                                                  }`}>
+                                                    {variety.pricing.priceVolatility}
+                                                  </span>
+                                                </div>
+                                                {variety.itemWeight && (
+                                                  <div className="flex justify-between">
+                                                    <span className="text-gray-600">Avg Item Weight:</span>
+                                                    <span className="font-medium text-gray-900">
+                                                      {variety.itemWeight.base.toFixed(3)} lbs
+                                                    </span>
+                                                  </div>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )
+                                      }
+                                    })()}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
-              </div>
-            )}
+                )
+              })
+            })()}
           </div>
-        ))}
-
-        {/* Empty State */}
-        {Object.keys(groupedPackaging).length === 0 && (
-          <div className="bg-white shadow rounded-lg p-12 text-center">
-            <MagnifyingGlassIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No packaging found</h3>
-            <p className="text-gray-500">
-              Try adjusting your search terms or commodity filter.
-            </p>
-          </div>
-        )}
-
-
+        </div>
       </div>
-
-      {/* Add Custom Packaging Modal */}
-      <AddPackagingModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        onSave={handleAddCustomPackaging}
-        availableCommodities={userCommodities}
-      />
     </>
   )
 }

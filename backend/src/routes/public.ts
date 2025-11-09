@@ -179,7 +179,8 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         user: user ? {
           companyName: user.profile?.companyName || user.companyName || user.name || 'Farm',
           name: user.profile?.contactName || user.name,
-          email: user.email
+          email: user.email,
+          logo: user.pricesheetSettings?.companyLogo || null
         } : null
       }
       

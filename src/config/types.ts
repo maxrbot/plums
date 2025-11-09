@@ -56,7 +56,7 @@ export interface PackageType {
   name: string
   type: string
   sizes: PackageSize[]
-  fruitCounts?: FruitCount[] // For citrus and similar items
+  sizeClassifications?: SizeClassification[] // For size grades (e.g., Supers, Large, 88s)
   isDefault?: boolean
 }
 
@@ -68,7 +68,7 @@ export interface PackageSize {
   isDefault?: boolean
 }
 
-export interface FruitCount {
+export interface SizeClassification {
   id: string
   name: string
   description: string

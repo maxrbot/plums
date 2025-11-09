@@ -75,6 +75,8 @@ export default function Settings() {
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  const [isDraggingLogo, setIsDraggingLogo] = useState(false)
   const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   // Update form data when user data loads
@@ -217,6 +219,14 @@ export default function Settings() {
             includeSeasonality: true,
             companyLogo: null
           }
+        },
+        // Save pricesheetSettings at root level for backend compatibility
+        pricesheetSettings: userData.pricesheetSettings || {
+          defaultTemplate: 'classic',
+          showMarketPrices: true,
+          groupByRegion: true,
+          includeSeasonality: true,
+          companyLogo: null
         }
       }
       
@@ -233,6 +243,78 @@ export default function Settings() {
     } finally {
       setIsSaving(false)
     }
+  }
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('Please upload an image file')
+      return
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert('File size must be less than 2MB')
+      return
+    }
+
+    setIsUploadingLogo(true)
+    try {
+      // Convert to base64
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        const base64String = reader.result as string
+        setUserData(prev => ({
+          ...prev,
+          pricesheetSettings: {
+            ...prev.pricesheetSettings,
+            companyLogo: base64String
+          }
+        }))
+        setHasChanges(true)
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      console.error('Failed to upload logo:', error)
+      alert('Failed to upload logo. Please try again.')
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  const handleLogoDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingLogo(false)
+    
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleLogoUpload(file)
+    }
+  }
+
+  const handleLogoDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDraggingLogo(true)
+  }
+
+  const handleLogoDragLeave = () => {
+    setIsDraggingLogo(false)
+  }
+
+  const handleLogoFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      handleLogoUpload(file)
+    }
+  }
+
+  const handleRemoveLogo = () => {
+    setUserData(prev => ({
+      ...prev,
+      pricesheetSettings: {
+        ...prev.pricesheetSettings,
+        companyLogo: null
+      }
+    }))
+    setHasChanges(true)
   }
 
   const tabs = [
@@ -897,26 +979,75 @@ export default function Settings() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Logo
                 </label>
-                <div className="flex items-center space-x-4">
-                  <div className="flex-shrink-0">
-                    {userData.pricesheetSettings?.companyLogo ? (
-                      <img
-                        src={userData.pricesheetSettings.companyLogo}
-                        alt="Company logo"
-                        className="h-12 w-12 object-contain border border-gray-200 rounded"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 bg-gray-100 border border-gray-200 rounded flex items-center justify-center">
-                        <span className="text-gray-400 text-xs">Logo</span>
+                <div
+                  onDrop={handleLogoDrop}
+                  onDragOver={handleLogoDragOver}
+                  onDragLeave={handleLogoDragLeave}
+                  className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
+                    isDraggingLogo
+                      ? 'border-blue-400 bg-blue-50'
+                      : 'border-gray-300 bg-gray-50'
+                  }`}
+                >
+                  {userData.pricesheetSettings?.companyLogo ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img
+                          src={userData.pricesheetSettings.companyLogo}
+                          alt="Company logo"
+                          className="h-16 w-16 object-contain border border-gray-200 rounded bg-white p-2"
+                        />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">Logo uploaded</p>
+                          <p className="text-xs text-gray-500">Drag a new image to replace</p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div>
-                    <button className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
-                      Upload Logo
-                    </button>
-                    <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
-                  </div>
+                      <button
+                        type="button"
+                        onClick={handleRemoveLogo}
+                        className="text-sm text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <svg
+                        className="mx-auto h-12 w-12 text-gray-400"
+                        stroke="currentColor"
+                        fill="none"
+                        viewBox="0 0 48 48"
+                      >
+                        <path
+                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <div className="mt-4">
+                        <label htmlFor="logo-upload" className="cursor-pointer">
+                          <span className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                            Upload a file
+                          </span>
+                          <span className="text-sm text-gray-500"> or drag and drop</span>
+                          <input
+                            id="logo-upload"
+                            type="file"
+                            className="sr-only"
+                            accept="image/*"
+                            onChange={handleLogoFileSelect}
+                          />
+                        </label>
+                        <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
+                      </div>
+                    </div>
+                  )}
+                  {isUploadingLogo && (
+                    <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

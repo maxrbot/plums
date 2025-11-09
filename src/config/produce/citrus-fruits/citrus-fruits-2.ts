@@ -46,7 +46,7 @@ export const specialtyCitrusCommodities: CommodityConfig[] = [
             { id: '38lb', name: '38lb', weight: '38lb', isDefault: true },
             { id: '40lb', name: '40lb', weight: '40lb' }
           ],
-          fruitCounts: [
+          sizeClassifications: [
             { id: '115s', name: '115s', description: 'Large', isDefault: false },
             { id: '140s', name: '140s', description: 'Medium-Large', isDefault: true },
             { id: '165s', name: '165s', description: 'Medium', isDefault: false },
@@ -167,7 +167,7 @@ export const specialtyCitrusCommodities: CommodityConfig[] = [
             { id: '10lb', name: '10lb', weight: '10lb', isDefault: true },
             { id: '40lb', name: '40lb', weight: '40lb' }
           ],
-          fruitCounts: [
+          sizeClassifications: [
             { id: '110s', name: '110s', description: 'Large', isDefault: false },
             { id: '150s', name: '150s', description: 'Medium-Large', isDefault: true },
             { id: '200s', name: '200s', description: 'Medium', isDefault: false },
@@ -266,7 +266,7 @@ export const specialtyCitrusCommodities: CommodityConfig[] = [
             { id: '40lb', name: '40lb', weight: '40lb', isDefault: true },
             { id: '50lb', name: '50lb', weight: '50lb' }
           ],
-          fruitCounts: [
+          sizeClassifications: [
             { id: '27s', name: '27s', description: 'Extra Large', isDefault: false },
             { id: '32s', name: '32s', description: 'Large', isDefault: false },
             { id: '36s', name: '36s', description: 'Medium-Large', isDefault: true },

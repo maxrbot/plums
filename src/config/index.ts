@@ -253,9 +253,9 @@ export function getDefaultFruitCount(commodityId: string, packageTypeId?: string
     packageType = commodity.packaging.types.find(pt => pt.id === commodity.packaging.defaultPackage)
   }
   
-  if (!packageType?.fruitCounts) return undefined
+  if (!packageType?.sizeClassifications) return undefined
   
-  return packageType.fruitCounts.find(fc => fc.isDefault)
+  return packageType.sizeClassifications.find(fc => fc.isDefault)
 }
 
 export function getDefaultGrade(commodityId: string) {

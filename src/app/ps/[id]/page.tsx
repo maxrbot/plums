@@ -39,6 +39,7 @@ interface UserInfo {
   companyName?: string
   name?: string
   email?: string
+  logo?: string | null
 }
 
 export default function PublicPriceSheetViewer() {
@@ -190,23 +191,34 @@ export default function PublicPriceSheetViewer() {
           {/* Desktop Header */}
           <div className="hidden md:block py-8">
             <div className="flex items-center justify-between mb-6">
-              {buyerCompany && (
-                <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
-                  <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                  For {buyerCompany}
+              <div className="flex items-center space-x-4">
+                {buyerCompany && (
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200">
+                    <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    For {buyerCompany}
+                  </div>
+                )}
+                <div className="flex items-center space-x-4 text-xs text-gray-500">
+                  <div className="flex items-center space-x-1.5">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    <span className="font-semibold text-gray-900">{products.length}</span>
+                    <span>{products.length === 1 ? 'item' : 'items'}</span>
+                  </div>
+                  <span>·</span>
+                  <span>Updated {new Date(priceSheet.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+              </div>
+              {user?.logo && (
+                <div className="flex-shrink-0">
+                  <img
+                    src={user.logo}
+                    alt={`${companyName} logo`}
+                    className="h-16 w-auto object-contain"
+                  />
                 </div>
               )}
-              <div className="flex items-center space-x-4 text-xs text-gray-500">
-                <div className="flex items-center space-x-1.5">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                  <span className="font-semibold text-gray-900">{products.length}</span>
-                  <span>{products.length === 1 ? 'item' : 'items'}</span>
-                </div>
-                <span>·</span>
-                <span>Updated {new Date(priceSheet.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-              </div>
             </div>
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{priceSheet.title}</h1>
             {priceSheet.notes && (
@@ -216,14 +228,27 @@ export default function PublicPriceSheetViewer() {
 
           {/* Mobile Header */}
           <div className="md:hidden py-6">
-            {buyerCompany && (
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200 mb-4">
-                <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                For {buyerCompany}
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                {buyerCompany && (
+                  <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200 mb-3">
+                    <svg className="w-3 h-3 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    For {buyerCompany}
+                  </div>
+                )}
               </div>
-            )}
+              {user?.logo && (
+                <div className="flex-shrink-0 ml-4">
+                  <img
+                    src={user.logo}
+                    alt={`${companyName} logo`}
+                    className="h-12 w-auto object-contain"
+                  />
+                </div>
+              )}
+            </div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight mb-3">{priceSheet.title}</h1>
             {priceSheet.notes && (
               <p className="text-gray-600 text-sm mb-4 leading-relaxed">{priceSheet.notes}</p>

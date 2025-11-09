@@ -39,48 +39,57 @@ export const majorCitrusCommodities: CommodityConfig[] = [
     packaging: {
       types: [
         {
-          id: 'carton',
-          name: 'Carton',
+          id: '40lb-carton',
+          name: '40lb Carton',
           type: 'carton',
-          sizes: [
-            { id: '25lb', name: '25lb', weight: '25lb' },
-            { id: '40lb', name: '40lb', weight: '40lb', isDefault: true }
-          ],
-          fruitCounts: [
-            { id: '56s', name: '56s', description: 'Large', isDefault: false },
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [
+            { id: '48s', name: '48s', description: 'Extra Large' },
+            { id: '56s', name: '56s', description: 'Large' },
             { id: '72s', name: '72s', description: 'Medium-Large', isDefault: true },
-            { id: '88s', name: '88s', description: 'Medium', isDefault: false },
-            { id: '113s', name: '113s', description: 'Small', isDefault: false }
+            { id: '88s', name: '88s', description: 'Medium' },
+            { id: '113s', name: '113s', description: 'Small' },
+            { id: '138s', name: '138s', description: 'Extra Small' }
           ],
           isDefault: true
         },
         {
-          id: 'bag',
-          name: 'Bag',
-          type: 'bag',
-          sizes: [
-            { id: '3lb', name: '3lb', weight: '3lb', isDefault: true },
-            { id: '5lb', name: '5lb', weight: '5lb' },
-            { id: '8lb', name: '8lb', weight: '8lb' }
-          ],
-          fruitCounts: [
-            { id: '6ct', name: '6 Count', description: 'Large', isDefault: false },
-            { id: '8ct', name: '8 Count', description: 'Medium-Large', isDefault: true },
-            { id: '10ct', name: '10 Count', description: 'Medium', isDefault: false },
-            { id: '12ct', name: '12 Count', description: 'Small', isDefault: false }
+          id: '25lb-carton',
+          name: '25lb Carton',
+          type: 'carton',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [
+            { id: '48s', name: '48s', description: 'Extra Large' },
+            { id: '56s', name: '56s', description: 'Large' },
+            { id: '72s', name: '72s', description: 'Medium-Large', isDefault: true },
+            { id: '88s', name: '88s', description: 'Medium' },
+            { id: '113s', name: '113s', description: 'Small' }
           ]
         },
         {
-          id: 'bulk',
-          name: 'Bulk',
-          type: 'bulk',
-          sizes: [
-            { id: '1lb', name: 'Per Pound', weight: '1lb', isDefault: true }
-          ]
+          id: '8lb-bag',
+          name: '8lb Bag',
+          type: 'bag',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [] // No fruit count for bags
+        },
+        {
+          id: '5lb-bag',
+          name: '5lb Bag',
+          type: 'bag',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [] // No fruit count for bags
+        },
+        {
+          id: '3lb-bag',
+          name: '3lb Bag',
+          type: 'bag',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [] // No fruit count for bags
         }
       ],
-      defaultPackage: 'carton',
-      defaultSize: '40lb'
+      defaultPackage: '40lb-carton',
+      defaultSize: '72s'
     },
     
     quality: {
@@ -411,7 +420,7 @@ export const majorCitrusCommodities: CommodityConfig[] = [
             { id: '25lb', name: '25lb', weight: '25lb', isDefault: true },
             { id: '40lb', name: '40lb', weight: '40lb' }
           ],
-          fruitCounts: [
+          sizeClassifications: [
             { id: '80s', name: '80s', description: 'Large', isDefault: false },
             { id: '100s', name: '100s', description: 'Medium-Large', isDefault: true },
             { id: '120s', name: '120s', description: 'Medium', isDefault: false },
@@ -664,7 +673,7 @@ export const majorCitrusCommodities: CommodityConfig[] = [
             { id: '25lb', name: '25lb', weight: '25lb', isDefault: true },
             { id: '40lb', name: '40lb', weight: '40lb' }
           ],
-          fruitCounts: [
+          sizeClassifications: [
             { id: '56s', name: '56s', description: 'Large', isDefault: false },
             { id: '72s', name: '72s', description: 'Medium-Large', isDefault: true },
             { id: '88s', name: '88s', description: 'Medium', isDefault: false }

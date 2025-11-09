@@ -22,114 +22,77 @@ export const vineCropsCommodities: CommodityConfig[] = [
     },
     
     processing: {
-      hasProcessing: true,
+      hasProcessing: false, // Direct packaging for vine-ripe tomatoes
+      types: [],
+      defaultType: undefined
+    },
+    
+    packaging: {
       types: [
+        // 2-Layer Cartons (20lb)
         {
-          id: 'whole',
-          name: 'Whole',
-          description: 'Whole fresh tomatoes',
-          packageTypes: [
-            {
-              id: 'carton',
-              name: 'Carton',
-              type: 'carton',
-              sizes: [
-                { id: '25lb', name: '25 lb', weight: '25lb', isDefault: true },
-                { id: '20lb', name: '20 lb', weight: '20lb' }
-              ],
-              isDefault: true
-            },
-            {
-              id: 'flat',
-              name: 'Flat',
-              type: 'flat',
-              sizes: [
-                { id: '12ct', name: '12 Count', count: '12ct' },
-                { id: '15ct', name: '15 Count', count: '15ct' }
-              ]
-            }
+          id: '20lb-2-layer-carton',
+          name: '20lb 2-Layer Carton',
+          type: 'carton',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [
+            { id: '3x4', name: '3x4', description: '24 count', isDefault: false },
+            { id: '4x4', name: '4x4', description: '32 count', isDefault: false },
+            { id: '4x5', name: '4x5', description: '40 count', isDefault: true },
+            { id: '5x5', name: '5x5', description: '50 count', isDefault: false },
+            { id: '5x6', name: '5x6', description: '60 count', isDefault: false }
           ],
           isDefault: true
         },
+        // Volume Filled Cartons (25lb)
         {
-          id: 'cluster',
-          name: 'Cluster/Vine',
-          description: 'Tomatoes on the vine',
-          packageTypes: [
-            {
-              id: 'carton',
-              name: 'Carton',
-              type: 'carton',
-              sizes: [
-                { id: '11lb', name: '11 lb', weight: '11lb', isDefault: true },
-                { id: '15lb', name: '15 lb', weight: '15lb' }
-              ],
-              isDefault: true
-            }
+          id: '25lb-volume-filled-carton',
+          name: '25lb Volume Filled Carton',
+          type: 'carton',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [
+            { id: '4x5-larger', name: '4x5 & Larger', description: '~45 count', isDefault: false },
+            { id: '5x5', name: '5x5', description: '50-58 count', isDefault: true },
+            { id: '5x6', name: '5x6', description: '70-75 count', isDefault: false },
+            { id: '6x6', name: '6x6', description: '90-95 count', isDefault: false }
+          ]
+        },
+        // RPC #6408 (18lb)
+        {
+          id: '18lb-rpc-6408',
+          name: '18lb RPC #6408',
+          type: 'rpc',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [
+            { id: '3x4', name: '3x4', description: '1-layer', isDefault: false },
+            { id: '4x4', name: '4x4', description: '1-layer', isDefault: false },
+            { id: '4x5', name: '4x5', description: '1-layer', isDefault: true },
+            { id: '5x5', name: '5x5', description: '1-layer', isDefault: false },
+            { id: '5x6', name: '5x6', description: '1-layer', isDefault: false }
+          ]
+        },
+        // Panta-Pack Cartons (15lb)
+        {
+          id: '15lb-panta-pack-carton',
+          name: '15lb Panta-Pack Carton',
+          type: 'carton',
+          sizes: [], // No separate size selection - weight is in package name
+          sizeClassifications: [
+            { id: '18s', name: '18s', description: '18 count', isDefault: false },
+            { id: '20s', name: '20s', description: '20 count', isDefault: false },
+            { id: '22s', name: '22s', description: '22 count', isDefault: false },
+            { id: '25s', name: '25s', description: '25 count', isDefault: true },
+            { id: '28s', name: '28s', description: '28 count', isDefault: false },
+            { id: '30s', name: '30s', description: '30 count', isDefault: false },
+            { id: '32s', name: '32s', description: '32 count', isDefault: false }
           ]
         }
-      ]
+      ],
+      defaultPackage: '20lb-2-layer-carton',
+      defaultSize: '4x5'
     },
     
     varieties: {
-      // Cherry Tomatoes
-      'sweet-100': {
-        id: 'sweet-100',
-        name: 'Sweet 100',
-        subtype: 'cherry',
-        itemWeight: { base: 0.02, sizeVariations: {} },
-        pricing: { basePricePerLb: 4.25, priceVolatility: 'medium' }
-      },
-      'sun-gold': {
-        id: 'sun-gold',
-        name: 'Sun Gold',
-        subtype: 'cherry',
-        itemWeight: { base: 0.025, sizeVariations: {} },
-        pricing: { basePricePerLb: 4.85, priceVolatility: 'medium' }
-      },
-      'black-cherry': {
-        id: 'black-cherry',
-        name: 'Black Cherry',
-        subtype: 'cherry',
-        itemWeight: { base: 0.03, sizeVariations: {} },
-        pricing: { basePricePerLb: 5.25, priceVolatility: 'medium' }
-      },
-      'yellow-pear': {
-        id: 'yellow-pear',
-        name: 'Yellow Pear',
-        subtype: 'cherry',
-        itemWeight: { base: 0.015, sizeVariations: {} },
-        pricing: { basePricePerLb: 4.95, priceVolatility: 'medium' }
-      },
-      'red-cherry': {
-        id: 'red-cherry',
-        name: 'Red Cherry',
-        subtype: 'cherry',
-        itemWeight: { base: 0.02, sizeVariations: {} },
-        pricing: { basePricePerLb: 3.95, priceVolatility: 'medium' }
-      },
-      'chocolate-cherry': {
-        id: 'chocolate-cherry',
-        name: 'Chocolate Cherry',
-        subtype: 'cherry',
-        itemWeight: { base: 0.025, sizeVariations: {} },
-        pricing: { basePricePerLb: 5.45, priceVolatility: 'medium' }
-      },
-      'green-grape': {
-        id: 'green-grape',
-        name: 'Green Grape',
-        subtype: 'cherry',
-        itemWeight: { base: 0.018, sizeVariations: {} },
-        pricing: { basePricePerLb: 4.65, priceVolatility: 'medium' }
-      },
-      'matts-wild-cherry': {
-        id: 'matts-wild-cherry',
-        name: 'Matt\'s Wild Cherry',
-        subtype: 'cherry',
-        itemWeight: { base: 0.012, sizeVariations: {} },
-        pricing: { basePricePerLb: 6.25, priceVolatility: 'medium' }
-      },
-      
       // Roma/Paste Tomatoes
       'san-marzano': {
         id: 'san-marzano',
@@ -298,10 +261,114 @@ export const vineCropsCommodities: CommodityConfig[] = [
       }
     },
     
+    quality: {
+      grades: ['No. 1', 'No. 2'],
+      defaultGrade: 'No. 1'
+    },
+    
+    defaultVariety: 'big-beef'
+  },
+
+  {
+    id: 'cherry-tomato',
+    name: 'Cherry Tomato',
+    category: 'Vine Crops',
+    
+    usdaCoverage: {
+      hasPricing: true,
+      hasProduction: true,
+      primaryMapping: {
+        commodity: 'Tomatoes',
+        specifications: 'Fresh market cherry tomatoes'
+      },
+      notes: 'USDA covers cherry tomatoes under general tomato category'
+    },
+    
+    processing: {
+      hasProcessing: false, // Direct packaging
+      types: [],
+      defaultType: undefined
+    },
+    
     packaging: {
-      types: [], // Populated from processing types
-      defaultPackage: '25lb',
-      defaultSize: '25lb'
+      types: [
+        {
+          id: '12x1pt-flat',
+          name: '12x1pt Flat',
+          type: 'flat',
+          sizes: [],
+          sizeClassifications: [],
+          isDefault: true
+        },
+        {
+          id: '6x1pt-flat',
+          name: '6x1pt Flat',
+          type: 'flat',
+          sizes: [],
+          sizeClassifications: []
+        },
+        {
+          id: '12x6oz-flat',
+          name: '12x6oz Flat',
+          type: 'flat',
+          sizes: [],
+          sizeClassifications: []
+        },
+        {
+          id: '1lb-clamshell',
+          name: '1lb Clamshell',
+          type: 'clamshell',
+          sizes: [],
+          sizeClassifications: []
+        }
+      ],
+      defaultPackage: '12x1pt-flat',
+      defaultSize: ''
+    },
+    
+    varieties: {
+      'sweet-100': {
+        id: 'sweet-100',
+        name: 'Sweet 100',
+        itemWeight: { base: 0.02, sizeVariations: {} },
+        pricing: { basePricePerLb: 4.25, priceVolatility: 'medium' }
+      },
+      'sun-gold': {
+        id: 'sun-gold',
+        name: 'Sun Gold',
+        itemWeight: { base: 0.025, sizeVariations: {} },
+        pricing: { basePricePerLb: 4.85, priceVolatility: 'medium' }
+      },
+      'black-cherry': {
+        id: 'black-cherry',
+        name: 'Black Cherry',
+        itemWeight: { base: 0.03, sizeVariations: {} },
+        pricing: { basePricePerLb: 5.25, priceVolatility: 'medium' }
+      },
+      'yellow-pear': {
+        id: 'yellow-pear',
+        name: 'Yellow Pear',
+        itemWeight: { base: 0.015, sizeVariations: {} },
+        pricing: { basePricePerLb: 4.95, priceVolatility: 'medium' }
+      },
+      'red-cherry': {
+        id: 'red-cherry',
+        name: 'Red Cherry',
+        itemWeight: { base: 0.02, sizeVariations: {} },
+        pricing: { basePricePerLb: 3.95, priceVolatility: 'medium' }
+      },
+      'chocolate-cherry': {
+        id: 'chocolate-cherry',
+        name: 'Chocolate Cherry',
+        itemWeight: { base: 0.025, sizeVariations: {} },
+        pricing: { basePricePerLb: 5.45, priceVolatility: 'medium' }
+      },
+      'matts-wild-cherry': {
+        id: 'matts-wild-cherry',
+        name: 'Matt\'s Wild Cherry',
+        itemWeight: { base: 0.012, sizeVariations: {} },
+        pricing: { basePricePerLb: 6.25, priceVolatility: 'medium' }
+      }
     },
     
     quality: {
@@ -309,7 +376,101 @@ export const vineCropsCommodities: CommodityConfig[] = [
       defaultGrade: 'No. 1'
     },
     
-    defaultVariety: 'big-beef'
+    defaultVariety: 'sweet-100'
+  },
+
+  {
+    id: 'grape-tomato',
+    name: 'Grape Tomato',
+    category: 'Vine Crops',
+    
+    usdaCoverage: {
+      hasPricing: true,
+      hasProduction: true,
+      primaryMapping: {
+        commodity: 'Tomatoes',
+        specifications: 'Fresh market grape tomatoes'
+      },
+      notes: 'USDA covers grape tomatoes under general tomato category'
+    },
+    
+    processing: {
+      hasProcessing: false, // Direct packaging
+      types: [],
+      defaultType: undefined
+    },
+    
+    packaging: {
+      types: [
+        {
+          id: '12lb-place-packed-clamshells',
+          name: '12lb Place-Packed Clamshells 12/1 pints',
+          type: 'clamshell',
+          sizes: [],
+          sizeClassifications: [
+            { id: 'xlarge', name: 'XLarge', description: 'Extra large grape tomatoes', isDefault: false },
+            { id: 'large', name: 'Large', description: 'Large grape tomatoes', isDefault: true },
+            { id: 'medium', name: 'Medium', description: 'Medium grape tomatoes', isDefault: false },
+            { id: 'small', name: 'Small', description: 'Small grape tomatoes', isDefault: false }
+          ],
+          isDefault: true
+        },
+        {
+          id: '20lb-volume-filled-carton',
+          name: '20lb Volume Filled Carton',
+          type: 'carton',
+          sizes: [],
+          sizeClassifications: [
+            { id: 'xlarge', name: 'XLarge', description: 'Extra large grape tomatoes', isDefault: false },
+            { id: 'large', name: 'Large', description: 'Large grape tomatoes', isDefault: true },
+            { id: 'medium', name: 'Medium', description: 'Medium grape tomatoes', isDefault: false },
+            { id: 'small', name: 'Small', description: 'Small grape tomatoes', isDefault: false }
+          ]
+        },
+        {
+          id: '10lb-volume-filled-carton',
+          name: '10lb Volume Filled Carton',
+          type: 'carton',
+          sizes: [],
+          sizeClassifications: [
+            { id: 'xlarge', name: 'XLarge', description: 'Extra large grape tomatoes', isDefault: false },
+            { id: 'large', name: 'Large', description: 'Large grape tomatoes', isDefault: true },
+            { id: 'medium', name: 'Medium', description: 'Medium grape tomatoes', isDefault: false },
+            { id: 'small', name: 'Small', description: 'Small grape tomatoes', isDefault: false }
+          ]
+        }
+      ],
+      defaultPackage: '12lb-place-packed-clamshells',
+      defaultSize: 'large'
+    },
+    
+    varieties: {
+      'red-grape': {
+        id: 'red-grape',
+        name: 'Red Grape',
+        itemWeight: { base: 0.018, sizeVariations: {} },
+        pricing: { basePricePerLb: 4.65, priceVolatility: 'medium' }
+      },
+      'yellow-grape': {
+        id: 'yellow-grape',
+        name: 'Yellow Grape',
+        itemWeight: { base: 0.018, sizeVariations: {} },
+        pricing: { basePricePerLb: 4.85, priceVolatility: 'medium' }
+      },
+      'mixed-grape': {
+        id: 'mixed-grape',
+        name: 'Mixed Grape',
+        itemWeight: { base: 0.018, sizeVariations: {} },
+        pricing: { basePricePerLb: 4.75, priceVolatility: 'medium' }
+      }
+    },
+    
+    quality: {
+      grades: ['No. 1', 'No. 2'],
+      defaultGrade: 'No. 1'
+    },
+    
+    defaultVariety: 'red-grape'
   },
 
   {
@@ -471,6 +632,13 @@ export const vineCropsCommodities: CommodityConfig[] = [
     
     varieties: {
       // Mild Hot Peppers
+      'banana': {
+        id: 'banana',
+        name: 'Banana Pepper',
+        subtype: 'mild',
+        itemWeight: { base: 0.10, sizeVariations: {} },
+        pricing: { basePricePerLb: 2.75, priceVolatility: 'medium' }
+      },
       'poblano': {
         id: 'poblano',
         name: 'Poblano',
@@ -514,6 +682,13 @@ export const vineCropsCommodities: CommodityConfig[] = [
         subtype: 'medium',
         itemWeight: { base: 0.02, sizeVariations: {} },
         pricing: { basePricePerLb: 4.25, priceVolatility: 'medium' }
+      },
+      'caribe': {
+        id: 'caribe',
+        name: 'Caribe',
+        subtype: 'medium',
+        itemWeight: { base: 0.03, sizeVariations: {} },
+        pricing: { basePricePerLb: 3.95, priceVolatility: 'medium' }
       },
       'fresno': {
         id: 'fresno',
@@ -623,28 +798,130 @@ export const vineCropsCommodities: CommodityConfig[] = [
       types: [
         {
           id: 'whole',
-          name: 'Whole',
-          description: 'Whole fresh cucumbers',
+          name: 'Fresh',
+          description: 'Fresh whole cucumbers',
           packageTypes: [
+            // Place-Packed Cartons (fixed counts)
             {
-              id: 'carton',
-              name: 'Carton',
+              id: '24ct-place-packed-carton',
+              name: '24ct Place-Packed Carton',
               type: 'carton',
-              sizes: [
-                { id: '24ct', name: '24 Count', count: '24ct', isDefault: true },
-                { id: '36ct', name: '36 Count', count: '36ct' },
-                { id: '48ct', name: '48 Count', count: '48ct' }
+              sizes: [], // No separate count selection - count is in package name
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
               ],
               isDefault: true
             },
             {
-              id: 'bushel',
-              name: 'Bushel',
-              type: 'bushel',
-              sizes: [
-                { id: '55lb', name: '55 lb', weight: '55lb' }
+              id: '36ct-place-packed-carton',
+              name: '36ct Place-Packed Carton',
+              type: 'carton',
+              sizes: [], // No separate count selection - count is in package name
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
               ]
-            }
+            },
+            // Volume Filled Cartons (count ranges)
+            {
+              id: '68-72-volume-filled-carton',
+              name: '68-72 Volume Filled Carton',
+              type: 'carton',
+              sizes: [], // No separate count selection - count is in package name
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
+            {
+              id: '70-75-volume-filled-carton',
+              name: '70-75 Volume Filled Carton',
+              type: 'carton',
+              sizes: [], // No separate count selection - count is in package name
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
+            {
+              id: '54-58-volume-filled-carton',
+              name: '54-58 Volume Filled Carton',
+              type: 'carton',
+              sizes: [], // No separate count selection - count is in package name
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
+            {
+              id: '80-90-volume-filled-carton',
+              name: '80-90 Volume Filled Carton',
+              type: 'carton',
+              sizes: [], // No separate count selection - count is in package name
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
+            // RPCs
+            {
+              id: 'rpc-6425',
+              name: 'RPC #6425',
+              type: 'rpc',
+              sizes: [], // No separate count selection
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
+            {
+              id: 'rpc-6411',
+              name: 'RPC #6411',
+              type: 'rpc',
+              sizes: [], // No separate count selection
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
+            {
+              id: 'rpc-6413',
+              name: 'RPC #6413',
+              type: 'rpc',
+              sizes: [], // No separate count selection
+              sizeClassifications: [
+                { id: 'supers', name: 'Supers', description: 'Super grade cucumbers' },
+                { id: 'selects', name: 'Selects', description: 'Select grade cucumbers', isDefault: true },
+                { id: 'selects-large', name: 'Selects Large', description: 'Large select grade cucumbers' },
+                { id: 'small', name: 'Small', description: 'Small grade cucumbers' },
+                { id: 'plains', name: 'Plains', description: 'Plains grade cucumbers' }
+              ]
+            },
           ],
           isDefault: true
         }
@@ -652,6 +929,12 @@ export const vineCropsCommodities: CommodityConfig[] = [
     },
     
     varieties: {
+      'american': {
+        id: 'american',
+        name: 'American',
+        itemWeight: { base: 0.65, sizeVariations: {} },
+        pricing: { basePricePerLb: 1.65, priceVolatility: 'medium' }
+      },
       'slicing': {
         id: 'slicing',
         name: 'Slicing',
@@ -830,16 +1113,19 @@ export const vineCropsCommodities: CommodityConfig[] = [
       types: [
         {
           id: 'whole',
-          name: 'Whole',
-          description: 'Whole winter squash',
+          name: 'Fresh',
+          description: 'Fresh whole winter squash',
           packageTypes: [
             {
-              id: 'carton',
-              name: 'Carton',
+              id: '25lb-place-packed-carton',
+              name: '25lb Place-Packed Carton',
               type: 'carton',
-              sizes: [
-                { id: '35lb', name: '35 lb', weight: '35lb', isDefault: true },
-                { id: '40lb', name: '40 lb', weight: '40lb' }
+              sizes: [], // No separate weight selection - weight is in package name
+              sizeClassifications: [
+                { id: 'xlarge', name: 'XLarge', description: 'Extra large squash' },
+                { id: 'large', name: 'Large', description: 'Large squash' },
+                { id: 'medium', name: 'Medium', description: 'Medium squash' },
+                { id: 'small', name: 'Small', description: 'Small squash' }
               ],
               isDefault: true
             }
@@ -902,8 +1188,8 @@ export const vineCropsCommodities: CommodityConfig[] = [
     
     packaging: {
       types: [], // Populated from processing types
-      defaultPackage: '35lb',
-      defaultSize: '35lb'
+      defaultPackage: '25lb-place-packed-carton',
+      defaultSize: 'large'
     },
     
     quality: {

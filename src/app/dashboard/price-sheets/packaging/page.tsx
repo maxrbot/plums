@@ -185,48 +185,64 @@ export default function CommodityStructure() {
                                       if (commodity.processing.hasProcessing && commodity.processing.types) {
                                         commodity.processing.types.forEach(processingType => {
                                           processingType.packageTypes.forEach(packageType => {
-                                            packageType.sizes.forEach(size => {
-                                              if (packageType.sizeClassifications && packageType.sizeClassifications.length > 0) {
-                                                packageType.sizeClassifications.forEach(fruitCount => {
-                                                  baseConfigurations.push({
-                                                    processing: processingType.name,
-                                                    packageType: packageType.name,
-                                                    packageSize: size.name,
-                                                    itemSize: fruitCount.name
-                                                  })
-                                                })
-                                              } else {
+                                            // Handle new structure where size is in package name (empty sizes array)
+                                            if (packageType.sizes.length === 0) {
+                                              const itemSizes = packageType.sizeClassifications && packageType.sizeClassifications.length > 0
+                                                ? packageType.sizeClassifications.map(sc => sc.name).join(', ')
+                                                : '-'
+                                              
+                                              baseConfigurations.push({
+                                                processing: processingType.name,
+                                                packageType: packageType.name,
+                                                packageSize: '-',
+                                                itemSize: itemSizes
+                                              })
+                                            } else {
+                                              // Handle old structure with separate sizes
+                                              packageType.sizes.forEach(size => {
+                                                const itemSizes = packageType.sizeClassifications && packageType.sizeClassifications.length > 0
+                                                  ? packageType.sizeClassifications.map(sc => sc.name).join(', ')
+                                                  : '-'
+                                                
                                                 baseConfigurations.push({
                                                   processing: processingType.name,
                                                   packageType: packageType.name,
                                                   packageSize: size.name,
-                                                  itemSize: '-'
+                                                  itemSize: itemSizes
                                                 })
-                                              }
-                                            })
+                                              })
+                                            }
                                           })
                                         })
                                       } else {
                                         commodity.packaging.types.forEach(packageType => {
-                                          packageType.sizes.forEach(size => {
-                                            if (packageType.sizeClassifications && packageType.sizeClassifications.length > 0) {
-                                              packageType.sizeClassifications.forEach(fruitCount => {
-                                                baseConfigurations.push({
-                                                  processing: 'Fresh',
-                                                  packageType: packageType.name,
-                                                  packageSize: size.name,
-                                                  itemSize: fruitCount.name
-                                                })
-                                              })
-                                            } else {
+                                          // Handle new structure where size is in package name (empty sizes array)
+                                          if (packageType.sizes.length === 0) {
+                                            const itemSizes = packageType.sizeClassifications && packageType.sizeClassifications.length > 0
+                                              ? packageType.sizeClassifications.map(sc => sc.name).join(', ')
+                                              : '-'
+                                            
+                                            baseConfigurations.push({
+                                              processing: 'Fresh',
+                                              packageType: packageType.name,
+                                              packageSize: '-',
+                                              itemSize: itemSizes
+                                            })
+                                          } else {
+                                            // Handle old structure with separate sizes
+                                            packageType.sizes.forEach(size => {
+                                              const itemSizes = packageType.sizeClassifications && packageType.sizeClassifications.length > 0
+                                                ? packageType.sizeClassifications.map(sc => sc.name).join(', ')
+                                                : '-'
+                                              
                                               baseConfigurations.push({
                                                 processing: 'Fresh',
                                                 packageType: packageType.name,
                                                 packageSize: size.name,
-                                                itemSize: '-'
+                                                itemSize: itemSizes
                                               })
-                                            }
-                                          })
+                                            })
+                                          }
                                         })
                                       }
 
@@ -246,7 +262,7 @@ export default function CommodityStructure() {
                                                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cut/Processing</th>
                                                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Type</th>
                                                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Size</th>
-                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Size</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Sizes</th>
                                                     </tr>
                                                   </thead>
                                                   <tbody className="divide-y divide-gray-100">
@@ -344,7 +360,7 @@ export default function CommodityStructure() {
                                                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Cut/Processing</th>
                                                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Type</th>
                                                       <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Package Size</th>
-                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Size</th>
+                                                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Item Sizes</th>
                                                     </tr>
                                                   </thead>
                                                   <tbody className="divide-y divide-gray-100">

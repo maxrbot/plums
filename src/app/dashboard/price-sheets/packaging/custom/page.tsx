@@ -18,25 +18,59 @@ export default function CustomCommodityStructure() {
     // For now, simulate processing
     setTimeout(() => {
       setExtractedData({
-        commodity: 'Chili Peppers',
+        commodity: 'American Cucumbers',
         varieties: [
-          { name: 'Jalapeno', package: '38# Volume Filled Carton' },
-          { name: 'Caribe', package: '25# Volume Filled Carton' },
-          { name: 'Serrano', package: '35# Volume Filled Carton' },
-          { name: 'Banana', package: '35# Volume Filled Carton' }
+          { name: 'Supers', package: '68-72ct Volume Filled Carton' },
+          { name: 'Selects', package: '70-75ct Volume Filled Carton' },
+          { name: 'Selects', package: '54-58ct Volume Filled Carton' },
+          { name: 'Large', package: '80-90ct Volume Filled Carton' },
+          { name: 'Small', package: 'Volume Filled Carton' },
+          { name: 'Plains', package: '24ct Place-Packed Carton' },
+          { name: '24s', package: '36ct Place-Packed Carton' },
+          { name: '36s', package: 'Place-Packed RPC #6425' },
+          { name: '68-72s', package: 'Place-Packed RPC #6411' },
+          { name: '36s', package: 'Place-Packed RPC #6413' }
         ],
         packages: [
           {
-            name: '38# Volume Filled Carton',
-            logistics: { palletSize: '48"×40"', hi: 7, ti: 7, boxes: 49 }
+            name: '68-72ct Volume Filled Carton',
+            logistics: { palletSize: '48"×40"', hi: 7, ti: 6, boxes: 42 }
           },
           {
-            name: '25# Volume Filled Carton',
-            logistics: { palletSize: '48"×40"', hi: 7, ti: 7, boxes: 49 }
+            name: '70-75ct Volume Filled Carton',
+            logistics: { palletSize: '48"×40"', hi: 7, ti: 6, boxes: 42 }
           },
           {
-            name: '35# Volume Filled Carton',
-            logistics: { palletSize: '48"×40"', hi: 7, ti: 7, boxes: 49 }
+            name: '54-58ct Volume Filled Carton',
+            logistics: { palletSize: '48"×40"', hi: 7, ti: 6, boxes: 42 }
+          },
+          {
+            name: '80-90ct Volume Filled Carton',
+            logistics: { palletSize: '48"×40"', hi: 7, ti: 6, boxes: 42 }
+          },
+          {
+            name: 'Volume Filled Carton',
+            logistics: { palletSize: '48"×40"', hi: 7, ti: 6, boxes: 42 }
+          },
+          {
+            name: '24ct Place-Packed Carton',
+            logistics: { palletSize: '48"×40"', hi: 10, ti: 10, boxes: 100 }
+          },
+          {
+            name: '36ct Place-Packed Carton',
+            logistics: { palletSize: '48"×40"', hi: 9, ti: 9, boxes: 81 }
+          },
+          {
+            name: 'Place-Packed RPC #6425',
+            logistics: { palletSize: '48"×40"', hi: 5, ti: 8, boxes: 40 }
+          },
+          {
+            name: 'Place-Packed RPC #6411',
+            logistics: { palletSize: '48"×40"', hi: 16, ti: 5, boxes: 80 }
+          },
+          {
+            name: 'Place-Packed RPC #6413',
+            logistics: { palletSize: '48"×40"', hi: 16, ti: 5, boxes: 80 }
           }
         ]
       })
@@ -102,16 +136,7 @@ export default function CustomCommodityStructure() {
                   value={specSheetText}
                   onChange={(e) => setSpecSheetText(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
-                  placeholder="Paste your spec sheet here...
-
-Example:
-Size Jalapeno n/a Caribe n/a Serrano n/a Banana n/a
-Wt. 38# 25# 35# 35#
-Pack Type Volume Filled Volume Filled Volume Filled Volume Filled
-Package Count Carton n/a Carton n/a Carton n/a Carton n/a
-Pallet Size 48&quot;x40&quot; 48&quot;x40&quot; 48&quot;x40&quot; 48&quot;x40&quot;
-Hi Ti 7 7 7 7 7 7 7 7
-Box Count 49 49 49 49"
+                  placeholder="Paste your spec sheet here..."
                 />
               </div>
               <div className="flex justify-end">
@@ -144,56 +169,63 @@ Box Count 49 49 49 49"
         {extractedData && (
           <div className="bg-white shadow rounded-lg border-2 border-blue-200">
             <div className="px-6 py-4 bg-blue-50 border-b border-blue-200">
-              <h3 className="text-lg font-medium text-blue-900">Extracted Structure Preview</h3>
-              <p className="mt-1 text-sm text-blue-700">
-                Review the extracted data and confirm to add it to your custom structure.
-              </p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-blue-900">Extracted Structure Preview</h3>
+                  <p className="mt-1 text-sm text-blue-700">
+                    Review the extracted data and confirm to add it to your custom structure.
+                  </p>
+                </div>
+                <div className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                  {extractedData.commodity}
+                </div>
+              </div>
             </div>
             <div className="px-6 py-6">
               <div className="space-y-6">
-                {/* Commodity Name */}
+                {/* Processing & Packaging Options */}
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-2">Commodity</h4>
-                  <div className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                    {extractedData.commodity}
-                  </div>
-                </div>
-
-                {/* Varieties */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-3">Varieties Found ({extractedData.varieties.length})</h4>
-                  <div className="space-y-2">
-                    {extractedData.varieties.map((variety: any, idx: number) => (
-                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <div>
-                          <span className="font-medium text-gray-900">{variety.name}</span>
-                        </div>
-                        <div className="text-sm text-gray-600">{variety.package}</div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Packaging Options */}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900 mb-3">Packaging Options ({extractedData.packages.length})</h4>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Processing & Packaging Options</h4>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
+                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Package</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pallet Size</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hi × Ti</th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Boxes/Pallet</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Package Type</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pallet Size</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hi × Ti</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Boxes/Pallet</th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
                         {extractedData.packages.map((pkg: any, idx: number) => (
-                          <tr key={idx}>
+                          <tr key={idx} className="hover:bg-gray-50">
                             <td className="px-4 py-3 text-sm font-medium text-gray-900">{pkg.name}</td>
                             <td className="px-4 py-3 text-sm text-gray-600">{pkg.logistics.palletSize}</td>
                             <td className="px-4 py-3 text-sm text-gray-600">{pkg.logistics.hi} × {pkg.logistics.ti}</td>
                             <td className="px-4 py-3 text-sm text-gray-600">{pkg.logistics.boxes}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Variety-Specific Differences */}
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Variety-Specific Differences</h4>
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-lg">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size Classification</th>
+                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Typical Package</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {extractedData.varieties.map((variety: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{variety.name}</td>
+                            <td className="px-4 py-3 text-sm text-gray-600">{variety.package}</td>
                           </tr>
                         ))}
                       </tbody>

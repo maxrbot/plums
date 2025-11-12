@@ -21,6 +21,8 @@ export interface User extends BaseDocument {
     email: string
     phone: string
     website?: string
+    companySize?: 'small' | 'medium' | 'large' | 'enterprise'
+    industry?: string
     address?: {
       street: string
       city: string
@@ -39,6 +41,17 @@ export interface User extends BaseDocument {
       priceAlerts: boolean
       marketUpdates: boolean
     }
+    pricesheet?: {
+      deliveryMethod?: 'link' | 'inline'
+      defaultEmailMessage?: string
+      companyLogo?: string | null
+    }
+  }
+  
+  pricesheetSettings?: {
+    deliveryMethod?: 'link' | 'inline'
+    defaultEmailMessage?: string
+    companyLogo?: string | null
   }
   
   billing: {

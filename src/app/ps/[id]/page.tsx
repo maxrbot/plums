@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { CheckCircleIcon, ClockIcon, SparklesIcon } from '@heroicons/react/24/outline'
 
 interface PriceSheetProduct {
@@ -44,6 +44,8 @@ interface UserInfo {
 
 export default function PublicPriceSheetViewer() {
   const params = useParams()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const id = params?.id as string
 
   const [priceSheet, setPriceSheet] = useState<PriceSheet | null>(null)
@@ -342,7 +344,7 @@ export default function PublicPriceSheetViewer() {
                               </th>
                               {showPricing && (
                                 <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  Price
+                                  FOB Price
                                 </th>
                               )}
                             </tr>
@@ -519,17 +521,31 @@ export default function PublicPriceSheetViewer() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-gray-600 mb-2">
+            <p className="text-gray-600 mb-4">
               Have questions or ready to place an order?
             </p>
-            {user?.email && (
-              <a
-                href={`mailto:${user.email}?subject=Inquiry about ${priceSheet.title}`}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+            <div className="flex items-center justify-center gap-3">
+              <button
+                onClick={() => {
+                  const queryString = searchParams?.toString() ? `?${searchParams.toString()}` : ''
+                  router.push(`/ps/${id}/order${queryString}`)
+                }}
+                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
               >
-                Contact {companyName}
-              </a>
-            )}
+                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Build Order
+              </button>
+              {user?.email && (
+                <a
+                  href={`mailto:${user.email}?subject=Inquiry about ${priceSheet.title}`}
+                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+                >
+                  Contact {companyName}
+                </a>
+              )}
+            </div>
           </div>
           
           <p className="text-xs text-gray-400 mt-6">

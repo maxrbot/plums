@@ -18,6 +18,7 @@ interface EmailPreviewModalProps {
   onSave?: (contactId: string, subject: string, message: string) => void
   savedCustomContent?: { subject?: string; content?: string } // Pre-saved custom content
   isPreview?: boolean // If true, show note about personalized URLs
+  deliveryMethod?: 'link' | 'inline' // User's preferred delivery method
 }
 
 // Generate HTML email preview matching the real email template
@@ -28,7 +29,8 @@ const generateEmailHTML = (
   priceSheetUrl?: string,
   productsCount?: number,
   userName?: string,
-  userEmail?: string
+  userEmail?: string,
+  deliveryMethod?: 'link' | 'inline'
 ) => {
   const firstName = contact.firstName || 'there'
   const url = priceSheetUrl || '#'
@@ -36,6 +38,33 @@ const generateEmailHTML = (
   const fromName = userName || 'Your Team'
   const fromEmail = userEmail || 'sales@acrelist.com'
   
+  // If inline delivery method, show simplified email with product placeholder
+  if (deliveryMethod === 'inline') {
+    return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; padding: 20px;">
+<div style="padding: 20px;">
+<p style="color: #1f2937; font-size: 15px; line-height: 1.6; margin: 0 0 10px 0;">Hi ${firstName},</p>
+<p style="color: #1f2937; font-size: 15px; line-height: 1.6; margin: 0 0 15px 0; white-space: pre-wrap;">${message}</p>
+<div style="background-color: #f9fafb; border-radius: 6px; padding: 20px; margin: 15px 0; border: 2px dashed #d1d5db;">
+<p style="color: #6b7280; font-size: 13px; line-height: 1.6; margin: 0 0 10px 0; text-align: center; font-weight: 500;">📋 Product List Will Appear Here</p>
+<div style="font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.7; color: #374151; margin: 10px 0;">
+<div style="color: #9ca3af;">Romaine Lettuce - 24ct - $18.00</div>
+<div style="color: #9ca3af;">Iceberg Lettuce - 24ct - $16.00</div>
+<div style="color: #9ca3af;">Red Leaf Lettuce - 24ct - $20.00</div>
+<div style="color: #9ca3af;">...</div>
+</div>
+<p style="color: #6b7280; font-size: 11px; line-height: 1.4; margin: 10px 0 0 0; text-align: center; font-style: italic;">Prices from "View Sheet" will be inserted when email is sent</p>
+</div>
+<p style="color: #1f2937; font-size: 15px; line-height: 1.6; margin: 20px 0 10px 0;">Ready to order? <a href="${url}" style="color: #2563eb; text-decoration: underline; font-weight: 500;">Build Order</a></p>
+<p style="color: #6b7280; font-size: 13px; line-height: 1.5; margin: 25px 0 5px 0;"><a href="${url}" style="color: #6b7280; text-decoration: underline;">View online price sheet</a></p>
+</div>
+<div style="border-top: 1px solid #e5e7eb; padding: 20px 20px 0 20px; margin-top: 30px;">
+<p style="margin: 0 0 3px 0; color: #1f2937; font-size: 14px;">${fromName}</p>
+<p style="margin: 0; color: #6b7280; font-size: 13px;">${fromEmail}</p>
+</div>
+</div>`
+  }
+  
+  // Default: Link delivery method (current template)
   return `<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden;">
 <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 40px 30px; text-align: center;">
 <h1 style="color: #ffffff; margin: 0 0 8px 0; font-size: 28px; font-weight: 700;">${subject}</h1>
@@ -43,8 +72,7 @@ const generateEmailHTML = (
 </div>
 <div style="padding: 40px 30px;">
 <p style="color: #111827; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">Hi ${firstName},</p>
-<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0; white-space: pre-wrap;">${message}</p>
-<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0;">Click the button below to view the full price sheet with current availability and pricing:</p>
+<p style="color: #374151; font-size: 16px; line-height: 1.6; margin: 0 0 30px 0; white-space: pre-wrap;">${message}</p>
 <div style="text-align: center; margin: 40px 0;">
 <span style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; text-decoration: none; padding: 16px 40px; border-radius: 8px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.3); cursor: default;">View Price Sheet →</span>
 </div>
@@ -72,7 +100,8 @@ export default function EmailPreviewModal({
   userEmail,
   onSave,
   savedCustomContent,
-  isPreview = false
+  isPreview = false,
+  deliveryMethod = 'link'
 }: EmailPreviewModalProps) {
   // Editable state - initialize with saved content if it exists
   const [isEditing, setIsEditing] = useState(false)
@@ -80,13 +109,13 @@ export default function EmailPreviewModal({
     savedCustomContent?.subject || priceSheetTitle || 'Price Sheet'
   )
   const [editedMessage, setEditedMessage] = useState(
-    savedCustomContent?.content || customMessage || "I wanted to share our latest pricing with you. Please take a look at what we have available."
+    savedCustomContent?.content || customMessage || "Here's our latest pricing and availability:"
   )
   const [hasChanges, setHasChanges] = useState(false)
   const [showSavedMessage, setShowSavedMessage] = useState(false)
 
   const originalSubject = savedCustomContent?.subject || priceSheetTitle || 'Price Sheet'
-  const originalMessage = savedCustomContent?.content || customMessage || "I wanted to share our latest pricing with you. Please take a look at what we have available."
+  const originalMessage = savedCustomContent?.content || customMessage || "Here's our latest pricing and availability:"
 
   // Reset when modal opens/closes or contact changes
   useEffect(() => {
@@ -137,7 +166,8 @@ export default function EmailPreviewModal({
     priceSheetUrl,
     productsCount,
     userName,
-    userEmail
+    userEmail,
+    deliveryMethod
   )
 
   return (
@@ -185,6 +215,9 @@ export default function EmailPreviewModal({
                             Custom Version
                           </span>
                         )}
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
+                          {deliveryMethod === 'inline' ? '📋 Inline Format' : '🔗 Link Format'}
+                        </span>
                       </p>
                     </div>
                   </div>

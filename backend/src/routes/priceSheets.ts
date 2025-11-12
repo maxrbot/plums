@@ -569,6 +569,18 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         ? (userName ? `${userName} - ${companyName}` : companyName)
         : (userName || userDoc.email)
       
+      // Check user's delivery method preference and default message
+      const deliveryMethod = userDoc.pricesheetSettings?.deliveryMethod || userDoc.preferences?.pricesheet?.deliveryMethod || 'link'
+      const defaultEmailMessage = userDoc.pricesheetSettings?.defaultEmailMessage || userDoc.preferences?.pricesheet?.defaultEmailMessage || "Here's our latest pricing and availability:"
+      
+      // If inline delivery, fetch products for the price sheet
+      let products: any[] = []
+      if (deliveryMethod === 'inline') {
+        products = await db.collection<PriceSheetProduct>('priceSheetProducts')
+          .find({ priceSheetId: priceSheet._id })
+          .toArray()
+      }
+      
       // Send emails - handle custom content per contact
       let sent = 0
       let failed = 0
@@ -594,7 +606,50 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         
         // Use custom subject/message if provided, otherwise use defaults
         const emailSubject = customContent?.subject || subject || priceSheet.title
-        const emailMessage = customContent?.content || customMessage
+        const emailMessage = customContent?.content || customMessage || defaultEmailMessage
+        
+        // Prepare products for inline delivery (with contact-specific pricing if available)
+        const emailProducts = deliveryMethod === 'inline' && products.length > 0
+          ? products.map(p => {
+              const productId = p._id.toString()
+              let finalPrice = p.price
+              
+              // First, check if there's custom pricing from the send/schedule page (edited prices)
+              if (contactCustomPricing?.[productId] !== undefined) {
+                finalPrice = contactCustomPricing[productId]
+              } else {
+                // Apply contact-specific pricing adjustments from contact settings
+                const pricesheetSettings = contact.pricesheetSettings || {}
+                const globalAdjustment = pricesheetSettings.globalAdjustment || 0
+                const cropAdjustments = pricesheetSettings.cropAdjustments || []
+                
+                // Check for crop-specific adjustment
+                const cropKey = `${p.cropId}-${p.variationId}`
+                const cropAdjustment = cropAdjustments.find((adj: any) => 
+                  `${adj.cropId}-${adj.variationId}` === cropKey
+                )
+                
+                // Apply adjustment (crop-specific takes precedence over global)
+                const adjustment = cropAdjustment?.adjustment ?? globalAdjustment
+                if (adjustment !== 0 && finalPrice) {
+                  finalPrice = finalPrice * (1 + adjustment / 100)
+                }
+              }
+              
+              return {
+                name: p.productName || `${p.variety || ''} ${p.commodity || ''}`.trim(),
+                packageType: p.packageType || '',
+                grade: p.grade,
+                price: finalPrice,
+                overrideComment: p.overrideComment
+              }
+            })
+          : undefined
+        
+        // Order URL for inline delivery
+        const orderUrl = deliveryMethod === 'inline' 
+          ? `${personalizedUrl.replace('/ps/', '/ps/').replace('?', '/order?')}`
+          : undefined
         
         try {
           await sendBulkPriceSheetEmails([recipient], {
@@ -612,7 +667,11 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             // BCC sender if requested
             ...(bccSender && { bcc: userDoc.email }),
             // Contact ID for tracking
-            contactId: contactId
+            contactId: contactId,
+            // Delivery method and products for inline delivery
+            deliveryMethod: deliveryMethod,
+            ...(emailProducts && { products: emailProducts }),
+            ...(orderUrl && { orderUrl: orderUrl })
           })
           
           // Store the sent email record with all custom data

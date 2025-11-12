@@ -71,6 +71,10 @@ export default function PriceSheetPreviewModal({
   const [editedPrices, setEditedPrices] = useState<Record<string, number | string>>({}) // Can be number (price) or string (comment)
   const [isSavingPrices, setIsSavingPrices] = useState(false)
   
+  // Pricing tools state
+  const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>('FOB')
+  const [bulkAdjustment, setBulkAdjustment] = useState<string>('')
+  
   // Handle price/comment change - flexible input
   const handlePriceChange = (productId: string, newValue: string) => {
     // If it's a valid number, store as number; otherwise store as string (comment)
@@ -114,6 +118,26 @@ export default function PriceSheetPreviewModal({
     return product.overrideComment
   }
   
+  // Apply bulk adjustment to all products
+  const handleApplyBulkAdjustment = () => {
+    const adjustment = parseFloat(bulkAdjustment)
+    if (isNaN(adjustment) || adjustment === 0) return
+    
+    const newEditedPrices: Record<string, number | string> = { ...editedPrices }
+    
+    products.forEach(product => {
+      // Only apply to products with numeric prices (not comments)
+      const currentPrice = getDisplayPrice(product)
+      if (currentPrice !== null) {
+        const newPrice = Math.max(0, currentPrice + adjustment) // Don't allow negative prices
+        newEditedPrices[product.id] = parseFloat(newPrice.toFixed(2))
+      }
+    })
+    
+    setEditedPrices(newEditedPrices)
+    setBulkAdjustment('') // Clear the input after applying
+  }
+  
   // Save custom pricing
   const handleSaveCustomPricing = () => {
     if (!onSaveCustomPricing) return
@@ -136,6 +160,8 @@ export default function PriceSheetPreviewModal({
     setIsEditingPrices(false)
     setEditedPrices({})
     setIsSavingPrices(false)
+    setPriceType('FOB')
+    setBulkAdjustment('')
     onClose()
   }
   // Group products by shipping point, then by commodity
@@ -264,6 +290,69 @@ export default function PriceSheetPreviewModal({
                   </div>
                 )}
 
+                {/* Pricing Tools Panel - Only show when editing prices */}
+                {isEditingPrices && allowPriceEditing && (
+                  <div className="bg-gradient-to-r from-lime-50 to-green-50 border-y border-lime-200 px-6 py-4">
+                    <div className="flex items-center justify-between gap-6">
+                      {/* Price Type Toggle */}
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm font-medium text-gray-700">Price Type:</span>
+                        <div className="flex rounded-lg border border-gray-300 bg-white overflow-hidden">
+                          <button
+                            type="button"
+                            onClick={() => setPriceType('FOB')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors ${
+                              priceType === 'FOB'
+                                ? 'bg-lime-500 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            FOB
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPriceType('DELIVERED')}
+                            className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-300 ${
+                              priceType === 'DELIVERED'
+                                ? 'bg-lime-500 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-50'
+                            }`}
+                          >
+                            DELIVERED
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Bulk Adjustment Tool */}
+                      <div className="flex items-center space-x-3">
+                        <span className="text-sm font-medium text-gray-700">Adjust All Prices:</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm text-gray-600">$</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={bulkAdjustment}
+                            onChange={(e) => setBulkAdjustment(e.target.value)}
+                            className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleApplyBulkAdjustment}
+                            disabled={!bulkAdjustment || parseFloat(bulkAdjustment) === 0}
+                            className="px-4 py-2 text-sm font-medium text-white bg-lime-600 rounded-md hover:bg-lime-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Apply
+                          </button>
+                        </div>
+                        <span className="text-xs text-gray-500">
+                          (+ to add, - to subtract)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Framed Document Preview */}
                 <div className="bg-gray-50 px-6 py-6">
                   <div className="bg-white border-2 border-gray-300 rounded-lg shadow-sm">
@@ -271,7 +360,7 @@ export default function PriceSheetPreviewModal({
                     <div className="px-8 py-6 border-b border-gray-200">
                       <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">{title}</h2>
                       <p className="text-sm text-gray-600 text-center">
-                        {userEmail || 'sales@acrelist.com'} • {userPhone || '(555) 123-4567'}
+                        Pricing and Availability Subject to Change
                       </p>
                     </div>
 
@@ -313,7 +402,7 @@ export default function PriceSheetPreviewModal({
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Size</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Grade</th>
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Avail</th>
-                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Price</th>
+                                <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">{priceType} Price</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">

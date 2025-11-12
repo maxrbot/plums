@@ -24,6 +24,15 @@ export interface SendPriceSheetEmailParams {
   customContent?: string // Raw custom email content (overrides template)
   bcc?: string // BCC email address
   contactId?: string // Contact ID for tracking
+  deliveryMethod?: 'link' | 'inline' // How to deliver the price sheet
+  products?: Array<{ // Products for inline delivery
+    name: string
+    packageType: string
+    grade?: string
+    price?: number
+    overrideComment?: string
+  }>
+  orderUrl?: string // Direct link to order page for inline delivery
 }
 
 export interface EmailSendResult {
@@ -33,10 +42,29 @@ export interface EmailSendResult {
 }
 
 /**
+ * Generate inline product list HTML for email
+ */
+function generateInlineProductList(products: Array<any>, showAll: boolean = false): string {
+  const displayProducts = showAll ? products : products.slice(0, 8)
+  const hasMore = products.length > 8
+  
+  return displayProducts.map(product => {
+    const priceDisplay = product.overrideComment 
+      ? `Contact for pricing - ${product.overrideComment}`
+      : product.price 
+        ? `$${product.price.toFixed(2)}`
+        : 'Contact for pricing'
+    
+    const grade = product.grade ? ` - ${product.grade}` : ''
+    return `${product.name} - ${product.packageType}${grade} - ${priceDisplay}`
+  }).join('\n') + (hasMore && !showAll ? `\n\n+ ${products.length - 8} more items` : '')
+}
+
+/**
  * Generate HTML email template for price sheet
  */
 function generatePriceSheetEmailHTML(params: SendPriceSheetEmailParams): string {
-  const { to, from, priceSheetTitle, priceSheetUrl, customMessage, productsCount, customContent } = params
+  const { to, from, priceSheetTitle, priceSheetUrl, customMessage, productsCount, customContent, deliveryMethod, products, orderUrl } = params
   const firstName = to.name.split(' ')[0] || 'there'
   
   // If custom content is provided, use a simpler template
@@ -83,7 +111,55 @@ function generatePriceSheetEmailHTML(params: SendPriceSheetEmailParams): string 
     `.trim()
   }
   
-  // Otherwise use the standard template
+  // If inline delivery method is selected and products are provided
+  if (deliveryMethod === 'inline' && products && products.length > 0) {
+    const productList = generateInlineProductList(products, false)
+    const hasMore = products.length > 8
+    const viewFullSheetText = hasMore ? `<p style="margin: 10px 0; color: #374151; font-size: 14px; line-height: 1.6;">View entire price sheet with all ${productsCount} items: <a href="${priceSheetUrl}" style="color: #2563eb; text-decoration: underline;">View Full Price Sheet</a></p>` : ''
+    
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${priceSheetTitle}</title>
+</head>
+<body style="margin: 0; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #ffffff;">
+  <div style="max-width: 600px;">
+    <p style="margin: 0 0 10px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Hi ${firstName},
+    </p>
+    
+    ${customMessage ? `<p style="margin: 0 0 15px 0; color: #1f2937; font-size: 15px; line-height: 1.6; white-space: pre-wrap;">${customMessage}</p>` : `<p style="margin: 0 0 15px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">Here's our latest pricing and availability:</p>`}
+    
+    <pre style="margin: 15px 0; white-space: pre-wrap; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; font-size: 14px; line-height: 1.7; color: #1f2937;">${productList}</pre>
+    
+    ${viewFullSheetText}
+    
+    <p style="margin: 20px 0 10px 0; color: #1f2937; font-size: 15px; line-height: 1.6;">
+      Ready to order? <a href="${orderUrl || priceSheetUrl}" style="color: #2563eb; text-decoration: underline; font-weight: 500;">Build Order</a>
+    </p>
+    
+    <p style="margin: 25px 0 5px 0; color: #6b7280; font-size: 13px; line-height: 1.5;">
+      <a href="${priceSheetUrl}" style="color: #6b7280; text-decoration: underline;">View online price sheet</a>
+    </p>
+    
+    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+      <p style="margin: 0 0 3px 0; color: #1f2937; font-size: 14px;">
+        ${from.name}
+      </p>
+      <p style="margin: 0; color: #6b7280; font-size: 13px;">
+        ${from.email}
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+    `.trim()
+  }
+  
+  // Otherwise use the standard template (link delivery)
   return `
 <!DOCTYPE html>
 <html lang="en">
@@ -118,11 +194,7 @@ function generatePriceSheetEmailHTML(params: SendPriceSheetEmailParams): string 
                 Hi ${firstName},
               </p>
               
-              ${customMessage ? `<p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${customMessage}</p>` : `<p style="margin: 0 0 20px 0; color: #374151; font-size: 16px; line-height: 1.6;">I wanted to share our latest pricing with you. Please take a look at what we have available.</p>`}
-              
-              <p style="margin: 0 0 30px 0; color: #374151; font-size: 16px; line-height: 1.6;">
-                Click the button below to view the full price sheet with current availability and pricing:
-              </p>
+              ${customMessage ? `<p style="margin: 0 0 30px 0; color: #374151; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${customMessage}</p>` : `<p style="margin: 0 0 30px 0; color: #374151; font-size: 16px; line-height: 1.6;">Here's our latest pricing and availability:</p>`}
               
               <!-- CTA Button -->
               <table width="100%" cellpadding="0" cellspacing="0">
@@ -176,7 +248,7 @@ function generatePriceSheetEmailHTML(params: SendPriceSheetEmailParams): string 
  * Generate plain text version of email
  */
 function generatePriceSheetEmailText(params: SendPriceSheetEmailParams): string {
-  const { to, from, priceSheetTitle, priceSheetUrl, customMessage, productsCount, customContent } = params
+  const { to, from, priceSheetTitle, priceSheetUrl, customMessage, productsCount, customContent, deliveryMethod, products, orderUrl } = params
   const firstName = to.name.split(' ')[0] || 'there'
   
   // If custom content is provided, use it directly
@@ -192,14 +264,39 @@ Powered by Acrelist • Fresh Produce Price Management
     `.trim()
   }
   
-  // Otherwise use the standard template
+  // If inline delivery method
+  if (deliveryMethod === 'inline' && products && products.length > 0) {
+    const productList = generateInlineProductList(products, false)
+    const hasMore = products.length > 8
+    const viewFullSheetText = hasMore ? `\n\nView entire price sheet with all ${productsCount} items:\n${priceSheetUrl}\n` : ''
+    
+    return `
+Hi ${firstName},
+
+${customMessage || "Here's our latest pricing and availability:"}
+
+${productList}
+${viewFullSheetText}
+Ready to order? ${orderUrl || priceSheetUrl}
+
+View online price sheet: ${priceSheetUrl}
+
+---
+${from.name}
+${from.email}
+
+Powered by Acrelist
+    `.trim()
+  }
+  
+  // Otherwise use the standard template (link delivery)
   return `
 ${priceSheetTitle}
 ${productsCount} products available
 
 Hi ${firstName},
 
-${customMessage || "I wanted to share our latest pricing with you. Please take a look at what we have available."}
+${customMessage || "Here's our latest pricing and availability:"}
 
 View the full price sheet here:
 ${priceSheetUrl}

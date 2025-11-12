@@ -1016,6 +1016,8 @@ export default function ScheduleSendPage() {
       {emailPreviewModal.contact && priceSheet && (() => {
         const contactId = emailPreviewModal.contact.id || (emailPreviewModal.contact as any)._id
         const savedCustomContent = customEmailContent[contactId]
+        const deliveryMethod = user?.pricesheetSettings?.deliveryMethod || user?.preferences?.pricesheet?.deliveryMethod || 'link'
+        const defaultEmailMessage = user?.pricesheetSettings?.defaultEmailMessage || user?.preferences?.pricesheet?.defaultEmailMessage || "Here's our latest pricing and availability:"
         
         return (
           <EmailPreviewModal
@@ -1025,12 +1027,13 @@ export default function ScheduleSendPage() {
             priceSheetTitle={priceSheet.title}
             priceSheetUrl={`${typeof window !== 'undefined' ? window.location.origin : ''}/ps/${sheetId}`}
             productsCount={priceSheet.productsCount || 0}
-            customMessage={customMessage || undefined}
+            customMessage={customMessage || defaultEmailMessage}
             userName={user?.profile?.contactName || user?.profile?.name || user?.name}
             userEmail={user?.email || user?.profile?.email}
             onSave={handleSaveEmailContent}
             savedCustomContent={savedCustomContent}
             isPreview={true}
+            deliveryMethod={deliveryMethod}
           />
         )
       })()}

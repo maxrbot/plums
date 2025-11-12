@@ -11,11 +11,9 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
   RocketLaunchIcon,
-  DocumentTextIcon,
-  EyeIcon
+  DocumentTextIcon
 } from '@heroicons/react/24/outline'
 import { useUser } from '@/contexts/UserContext'
-import TemplatePreviewModal from '@/components/modals/TemplatePreviewModal'
 
 // Mock user data - this would come from backend
 const initialUserData = {
@@ -60,10 +58,8 @@ const initialUserData = {
   
   // Pricesheet Preferences
   pricesheetSettings: {
-    defaultTemplate: 'classic' as 'classic' | 'premium' | 'compact',
-    showMarketPrices: true,
-    groupByRegion: true,
-    includeSeasonality: true,
+    deliveryMethod: 'link' as 'link' | 'inline',
+    defaultEmailMessage: "Here's our latest pricing and availability:",
     companyLogo: null as string | null
   }
 }
@@ -77,7 +73,6 @@ export default function Settings() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [isDraggingLogo, setIsDraggingLogo] = useState(false)
-  const [showTemplatePreview, setShowTemplatePreview] = useState(false)
 
   // Update form data when user data loads
   useEffect(() => {
@@ -94,8 +89,8 @@ export default function Settings() {
         
         // Company Info
         companyName: user.profile.companyName || '',
-        companySize: 'medium' as 'small' | 'medium' | 'large' | 'enterprise', // Default
-        industry: 'Organic Produce', // Default
+        companySize: user.profile.companySize || 'medium' as 'small' | 'medium' | 'large' | 'enterprise',
+        industry: user.profile.industry || '',
         website: user.profile.website || '',
         
         // Address from user data
@@ -127,13 +122,11 @@ export default function Settings() {
         
         // Pricesheet Preferences (load from user data or use defaults)
         pricesheetSettings: (() => {
-          const savedSettings = user.preferences?.pricesheet
+          const savedSettings = user.preferences?.pricesheet || user.pricesheetSettings
           console.log('📥 Loading pricesheet settings from user:', savedSettings)
           return savedSettings || {
-            defaultTemplate: 'classic' as 'classic' | 'premium' | 'compact',
-            showMarketPrices: true,
-            groupByRegion: true,
-            includeSeasonality: true,
+            deliveryMethod: 'link' as 'link' | 'inline',
+            defaultEmailMessage: "Here's our latest pricing and availability:",
             companyLogo: null as string | null
           }
         })()
@@ -196,6 +189,8 @@ export default function Settings() {
           contactName: `${userData.firstName} ${userData.lastName}`.trim(),
           phone: userData.phone,
           companyName: userData.companyName,
+          companySize: userData.companySize,
+          industry: userData.industry,
           website: userData.website,
           address: {
             street: userData.address,
@@ -368,34 +363,6 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Rapid Onboarding Button */}
-      <div className="mb-8">
-        <div className="bg-gradient-to-r from-lime-50 to-cyan-50 border border-lime-200 rounded-lg p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="flex-shrink-0">
-                <div className="h-12 w-12 rounded-full bg-gradient-to-r from-lime-500 to-cyan-500 flex items-center justify-center">
-                  <RocketLaunchIcon className="h-6 w-6 text-white" />
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">Accelerated Setup</h3>
-                <p className="text-sm text-gray-600">
-                  Import your company data automatically from your website and jumpstart your profile in minutes.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/dashboard/settings/accelerated-setup"
-              className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gradient-to-r from-lime-600 to-cyan-600 hover:from-lime-700 hover:to-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 transition-all duration-200"
-            >
-              <SparklesIcon className="h-5 w-5 mr-2" />
-              Launch Setup
-            </Link>
-          </div>
-        </div>
-      </div>
-
       {/* Tabs */}
       <div className="mb-8">
         <nav className="flex space-x-8">
@@ -484,6 +451,39 @@ export default function Settings() {
         {activeTab === 'company' && (
           <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Company Information</h3>
+            
+            {/* Accelerated Setup - Coming Soon */}
+            <div className="mb-6">
+              <div className="bg-gradient-to-r from-lime-50 to-cyan-50 border border-lime-200 rounded-lg p-4 opacity-60 cursor-not-allowed">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-r from-lime-500 to-cyan-500 flex items-center justify-center">
+                        <RocketLaunchIcon className="h-5 w-5 text-white" />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="flex items-center space-x-2">
+                        <h4 className="text-base font-semibold text-gray-900">Accelerated Setup</h4>
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                          Coming Soon
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-0.5">
+                        Import your company data automatically from your website and jumpstart your profile in minutes.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    disabled
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-400 cursor-not-allowed"
+                  >
+                    <SparklesIcon className="h-4 w-4 mr-2" />
+                    Launch Setup
+                  </button>
+                </div>
+              </div>
+            </div>
             
             <div className="space-y-6">
               {/* Basic Company Info */}
@@ -730,52 +730,58 @@ export default function Settings() {
           <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Subscription Details</h3>
             
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+            <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-lg p-6 mb-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-lg font-medium text-blue-900">
-                    {userData.subscription.tier.charAt(0).toUpperCase() + userData.subscription.tier.slice(1)} Plan
-                  </h4>
-                  <p className="text-blue-700 mt-1">{userData.subscription.amount}</p>
+                  <div className="flex items-center space-x-3">
+                    <h4 className="text-lg font-medium text-blue-900">
+                      Free Trial
+                    </h4>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                      Beta Access
+                    </span>
+                  </div>
+                  <p className="text-blue-700 mt-2">Full platform access at no cost</p>
+                  <p className="text-sm text-blue-600 mt-1">Thank you for being an early user! 🎉</p>
                 </div>
                 <div className="text-right">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                    {userData.subscription.status.charAt(0).toUpperCase() + userData.subscription.status.slice(1)}
+                    Active
                   </span>
                   <p className="text-sm text-blue-600 mt-1">
-                    Next billing: {new Date(userData.subscription.nextBilling).toLocaleDateString()}
+                    No billing required
                   </p>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div className="space-y-4 opacity-50 pointer-events-none">
+              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
                 <div>
                   <h4 className="text-sm font-medium text-gray-900">Change Plan</h4>
                   <p className="text-sm text-gray-500">Upgrade or downgrade your subscription</p>
                 </div>
-                <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                <button className="text-sm font-medium text-gray-400 cursor-not-allowed">
                   Manage Plan
                 </button>
               </div>
               
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
                 <div>
                   <h4 className="text-sm font-medium text-gray-900">Payment Method</h4>
                   <p className="text-sm text-gray-500">Update your billing information</p>
                 </div>
-                <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                <button className="text-sm font-medium text-gray-400 cursor-not-allowed">
                   Update Payment
                 </button>
               </div>
               
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg bg-gray-50">
                 <div>
                   <h4 className="text-sm font-medium text-gray-900">Billing History</h4>
                   <p className="text-sm text-gray-500">View past invoices and payments</p>
                 </div>
-                <button className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                <button className="text-sm font-medium text-gray-400 cursor-not-allowed">
                   View History
                 </button>
               </div>
@@ -790,7 +796,7 @@ export default function Settings() {
               <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h5 className="text-sm font-medium text-red-900">Cancel Subscription & Delete Account</h5>
+                    <h5 className="text-sm font-medium text-red-900">Delete Account</h5>
                     <p className="text-sm text-red-700 mt-1">
                       Permanently delete your account and all data including price sheets, contacts, and analytics. 
                       This action cannot be undone.
@@ -807,167 +813,208 @@ export default function Settings() {
 
         {activeTab === 'pricesheet' && (
           <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-medium text-gray-900">Price Sheet Settings</h3>
-              <button
-                onClick={() => setShowTemplatePreview(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <EyeIcon className="h-4 w-4 mr-2" />
-                View Your Pricesheet Style
-              </button>
-            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-6">Price Sheet Settings</h3>
             
-            {/* Template Selection */}
+            {/* Delivery Method Selection */}
             <div className="mb-8">
-              <h4 className="text-base font-medium text-gray-900 mb-4">Default Template</h4>
-              <p className="text-sm text-gray-600 mb-6">Choose your preferred price sheet layout. This will be applied when you preview price sheets.</p>
+              <h4 className="text-base font-medium text-gray-900 mb-4">Price Sheet Delivery Method</h4>
+              <p className="text-sm text-gray-600 mb-6">Choose how you want to send price sheets to your contacts.</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {/* Classic Template */}
-                <div className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                  userData.pricesheetSettings?.defaultTemplate === 'classic' 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultTemplate: 'classic' })}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-4">
+                {/* Link to Price Sheet (Current) */}
+                <div 
+                  className={`relative border-2 rounded-lg p-5 cursor-pointer transition-all ${
+                    userData.pricesheetSettings?.deliveryMethod === 'link' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, deliveryMethod: 'link' })}
                 >
-                  <div className="aspect-w-16 aspect-h-10 mb-3">
-                    <div className="bg-white border border-gray-200 rounded p-2 text-xs">
-                      <div className="bg-gray-100 h-2 mb-1 rounded"></div>
-                      <div className="space-y-1">
-                        <div className="flex space-x-1">
-                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
-                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
-                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
+                  <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="radio"
+                        checked={userData.pricesheetSettings?.deliveryMethod === 'link'}
+                        onChange={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, deliveryMethod: 'link' })}
+                        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <div className="flex items-center">
+                        <h5 className="font-semibold text-gray-900">Link to Price Sheet</h5>
+                        <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Recommended
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Sends a link to your branded price sheet page
+                      </p>
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Track customer views and engagement</span>
                         </div>
-                        <div className="flex space-x-1">
-                          <div className="bg-gray-100 h-1 flex-1 rounded"></div>
-                          <div className="bg-gray-100 h-1 flex-1 rounded"></div>
-                          <div className="bg-gray-100 h-1 flex-1 rounded"></div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Always shows current prices (live updates)</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Professional branded presentation</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Customers can revisit anytime</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <h5 className="font-medium text-gray-900">Classic Table</h5>
-                  <p className="text-sm text-gray-500 mt-1">Clean table format, grouped by region</p>
-                  {userData.pricesheetSettings?.defaultTemplate === 'classic' && (
-                    <div className="absolute top-2 right-2">
-                      <CheckIcon className="h-5 w-5 text-blue-600" />
-                    </div>
-                  )}
                 </div>
 
-                {/* Premium Template */}
-                <div className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                  userData.pricesheetSettings?.defaultTemplate === 'premium' 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultTemplate: 'premium' })}
+                {/* Inline Price List */}
+                <div 
+                  className={`relative border-2 rounded-lg p-5 cursor-pointer transition-all ${
+                    userData.pricesheetSettings?.deliveryMethod === 'inline' 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, deliveryMethod: 'inline' })}
                 >
-                  <div className="aspect-w-16 aspect-h-10 mb-3">
-                    <div className="bg-white border border-gray-200 rounded p-2 text-xs">
-                      <div className="bg-gradient-to-r from-blue-100 to-green-100 h-2 mb-1 rounded"></div>
-                      <div className="space-y-1">
-                        <div className="bg-gray-100 h-3 w-3/4 rounded mb-1"></div>
-                        <div className="flex space-x-1">
-                          <div className="bg-green-200 h-1 w-1/4 rounded"></div>
-                          <div className="bg-gray-200 h-1 flex-1 rounded"></div>
+                  <div className="flex items-start">
+                    <div className="flex items-center h-5">
+                      <input
+                        type="radio"
+                        checked={userData.pricesheetSettings?.deliveryMethod === 'inline'}
+                        onChange={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, deliveryMethod: 'inline' })}
+                        className="h-4 w-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="ml-4 flex-1">
+                      <h5 className="font-semibold text-gray-900">Inline Price List</h5>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Display products directly in the email body
+                      </p>
+                      <div className="mt-3 space-y-1.5">
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Immediate visibility (no click required)</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Works offline in email clients</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-700">
+                          <CheckIcon className="h-4 w-4 text-green-600 mr-2 flex-shrink-0" />
+                          <span>Faster for customers who know what they want</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <ExclamationTriangleIcon className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
+                          <span>No view tracking (only order page visits)</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <ExclamationTriangleIcon className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
+                          <span>Prices are snapshot at send time</span>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-500">
+                          <ExclamationTriangleIcon className="h-4 w-4 text-amber-500 mr-2 flex-shrink-0" />
+                          <span>Best for price sheets with 8 or fewer items</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <h5 className="font-medium text-gray-900">Premium Catalog</h5>
-                  <p className="text-sm text-gray-500 mt-1">Card-based layout, visual focus</p>
-                  {userData.pricesheetSettings?.defaultTemplate === 'premium' && (
-                    <div className="absolute top-2 right-2">
-                      <CheckIcon className="h-5 w-5 text-blue-600" />
-                    </div>
-                  )}
                 </div>
-
-                {/* Compact Template */}
-                <div className={`relative border-2 rounded-lg p-4 cursor-pointer transition-all ${
-                  userData.pricesheetSettings?.defaultTemplate === 'compact' 
-                    ? 'border-blue-500 bg-blue-50' 
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-                onClick={() => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultTemplate: 'compact' })}
-                >
-                  <div className="aspect-w-16 aspect-h-10 mb-3">
-                    <div className="bg-white border border-gray-200 rounded p-2 text-xs">
-                      <div className="bg-gray-100 h-1 mb-1 rounded"></div>
-                      <div className="space-y-0.5">
-                        <div className="flex space-x-0.5">
-                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
-                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
-                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
-                          <div className="bg-gray-200 h-0.5 flex-1 rounded"></div>
+                </div>
+                
+                {/* Preview Examples */}
+                <div className="lg:col-span-1">
+                  <div className="sticky top-6">
+                    <h5 className="text-sm font-medium text-gray-900 mb-3">Email Preview</h5>
+                    
+                    {/* Link Method Preview */}
+                    {userData.pricesheetSettings?.deliveryMethod === 'link' && (
+                      <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <div className="bg-gradient-to-r from-green-500 to-green-600 px-4 py-3 text-center">
+                          <div className="text-white font-semibold text-sm">Weekly Price Sheet</div>
+                          <div className="text-green-100 text-xs mt-0.5">15 products available</div>
                         </div>
-                        <div className="flex space-x-0.5">
-                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
-                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
-                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
-                          <div className="bg-gray-100 h-0.5 flex-1 rounded"></div>
+                        <div className="p-4 space-y-2.5">
+                          <div className="text-xs text-gray-700 font-medium">Hi John,</div>
+                          <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                            {userData.pricesheetSettings?.defaultEmailMessage || "Here's our latest pricing and availability:"}
+                          </div>
+                          <div className="pt-2 pb-1">
+                            <div className="bg-gradient-to-r from-green-500 to-green-600 text-white text-center py-2.5 rounded-md font-semibold text-xs shadow-sm">
+                              View Price Sheet
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500 pt-1">
+                            If you have any questions, please reach out.
+                          </div>
+                        </div>
+                        <div className="bg-gray-50 border-t border-gray-200 px-4 py-3">
+                          <div className="text-xs font-medium text-gray-700">{userData.companyName || 'Your Company'}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{userData.email}</div>
                         </div>
                       </div>
-                    </div>
+                    )}
+                    
+                    {/* Inline Method Preview */}
+                    {userData.pricesheetSettings?.deliveryMethod === 'inline' && (
+                      <div className="border-2 border-gray-300 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <div className="p-4 space-y-2">
+                          <div className="text-xs text-gray-700 font-medium">Hi John,</div>
+                          <div className="text-xs text-gray-600 leading-relaxed whitespace-pre-wrap">
+                            {userData.pricesheetSettings?.defaultEmailMessage || "Here's our latest pricing and availability:"}
+                          </div>
+                          <div className="bg-gray-50 rounded px-2.5 py-2 my-2 space-y-1 font-mono text-[10px] text-gray-700 leading-relaxed">
+                            <div>Romaine - 24ct - $18.00</div>
+                            <div>Iceberg - 24ct - $16.00</div>
+                            <div>Red Leaf - 24ct - $20.00</div>
+                            <div>Cabbage - 50lb - $22.00</div>
+                            <div>Broccoli - 20lb - $28.00</div>
+                            <div className="text-gray-500 pt-1">+ 10 more items</div>
+                          </div>
+                          <div className="text-xs text-gray-600 pt-1">
+                            View entire price sheet: <span className="text-blue-600 underline">View Full</span>
+                          </div>
+                          <div className="text-xs text-gray-600 pt-1">
+                            Ready to order? <span className="text-blue-600 underline font-medium">Build Order</span>
+                          </div>
+                          <div className="text-xs text-gray-500 pt-2">
+                            <span className="text-blue-600 underline">View online price sheet</span>
+                          </div>
+                        </div>
+                        <div className="border-t border-gray-200 px-4 py-3">
+                          <div className="text-xs text-gray-700">{userData.companyName || 'Your Company'}</div>
+                          <div className="text-xs text-gray-500 mt-0.5">{userData.email}</div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <h5 className="font-medium text-gray-900">Compact List</h5>
-                  <p className="text-sm text-gray-500 mt-1">Dense format, more data visible</p>
-                  {userData.pricesheetSettings?.defaultTemplate === 'compact' && (
-                    <div className="absolute top-2 right-2">
-                      <CheckIcon className="h-5 w-5 text-blue-600" />
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Display Options */}
-            <div className="border-t border-gray-200 pt-6">
-              <h4 className="text-base font-medium text-gray-900 mb-4">Display Options</h4>
+            {/* Default Email Message */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h4 className="text-base font-medium text-gray-900 mb-4">Default Email Message</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                This message will appear in all price sheet emails by default. You can customize it for individual sends.
+              </p>
               
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-900">Show Market Prices</label>
-                    <p className="text-sm text-gray-500">Display USDA market prices alongside your prices</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={userData.pricesheetSettings?.showMarketPrices || false}
-                    onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, showMarketPrices: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-900">Group by Shipping Point</label>
-                    <p className="text-sm text-gray-500">Organize products by shipping point</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={userData.pricesheetSettings?.groupByRegion || false}
-                    onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, groupByRegion: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <label className="text-sm font-medium text-gray-900">Include Seasonality</label>
-                    <p className="text-sm text-gray-500">Show seasonal availability indicators</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={userData.pricesheetSettings?.includeSeasonality || false}
-                    onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, includeSeasonality: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                </div>
+              <div>
+                <label htmlFor="defaultEmailMessage" className="block text-sm font-medium text-gray-700 mb-2">
+                  Message
+                </label>
+                <textarea
+                  id="defaultEmailMessage"
+                  value={userData.pricesheetSettings?.defaultEmailMessage || "Here's our latest pricing and availability:"}
+                  onChange={(e) => updateUserData('pricesheetSettings', { ...userData.pricesheetSettings, defaultEmailMessage: e.target.value })}
+                  rows={3}
+                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  placeholder="Here's our latest pricing and availability:"
+                />
               </div>
             </div>
 
@@ -1054,21 +1101,6 @@ export default function Settings() {
           </div>
         )}
       </div>
-
-      {/* Template Preview Modal */}
-      <TemplatePreviewModal
-        isOpen={showTemplatePreview}
-        onClose={() => setShowTemplatePreview(false)}
-        template={userData.pricesheetSettings?.defaultTemplate || 'classic'}
-        settings={{
-          showMarketPrices: userData.pricesheetSettings?.showMarketPrices || true,
-          groupByRegion: userData.pricesheetSettings?.groupByRegion || true,
-          includeSeasonality: userData.pricesheetSettings?.includeSeasonality || true,
-          companyLogo: userData.pricesheetSettings?.companyLogo || null
-        }}
-        companyName={userData.companyName || 'Your Company'}
-      />
-
     </>
   )
 }

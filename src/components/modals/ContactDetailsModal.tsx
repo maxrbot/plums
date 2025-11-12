@@ -32,6 +32,8 @@ interface PricesheetSettings {
   globalAdjustment: number // percentage adjustment for all items
   cropAdjustments: CropAdjustment[]
   showDiscountStrikethrough: boolean // whether to show strikethrough for discounts
+  deliveredPricing: boolean // whether to include freight in pricing
+  deliveryZipCode?: string // zip code for freight calculation
 }
 
 interface ContactDetailsModalProps {
@@ -48,10 +50,13 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
     deliveryMethod: 'email',
     globalAdjustment: 0,
     cropAdjustments: [],
-    showDiscountStrikethrough: true
+    showDiscountStrikethrough: true,
+    deliveredPricing: false,
+    deliveryZipCode: ''
   })
   const [isLoadingCrops, setIsLoadingCrops] = useState(false)
   const [globalAdjustmentEnabled, setGlobalAdjustmentEnabled] = useState(false)
+  const [deliveredPricingEnabled, setDeliveredPricingEnabled] = useState(false)
   const [showCropDropdown, setShowCropDropdown] = useState(false)
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
@@ -75,11 +80,14 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
         deliveryMethod: contact.preferredContactMethod === 'phone' ? 'sms' : 'email',
         globalAdjustment: contact.pricingAdjustment || 0,
         cropAdjustments: [],
-        showDiscountStrikethrough: true
+        showDiscountStrikethrough: true,
+        deliveredPricing: false,
+        deliveryZipCode: ''
       }
       
       setPricesheetSettings(existingSettings)
       setGlobalAdjustmentEnabled((existingSettings.globalAdjustment || 0) !== 0)
+      setDeliveredPricingEnabled(existingSettings.deliveredPricing || false)
     }
   }, [isOpen, contact])
 
@@ -667,6 +675,58 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                             </div>
                           )}
                         </div>
+                      </div>
+
+                      {/* Delivered Pricing */}
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-sm font-medium text-gray-900">Delivered Pricing</h4>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={deliveredPricingEnabled}
+                              onChange={(e) => {
+                                setDeliveredPricingEnabled(e.target.checked)
+                                setPricesheetSettings(prev => ({
+                                  ...prev,
+                                  deliveredPricing: e.target.checked,
+                                  deliveryZipCode: e.target.checked ? prev.deliveryZipCode : ''
+                                }))
+                                setHasUnsavedChanges(true)
+                              }}
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                          </label>
+                        </div>
+                        
+                        {deliveredPricingEnabled && (
+                          <>
+                            <p className="text-xs text-gray-500 mb-3">Include freight costs in pricing based on delivery location</p>
+                            <div className="flex items-center space-x-3">
+                              <label htmlFor="delivery-zip" className="text-sm text-gray-700">
+                                Delivery Zip Code:
+                              </label>
+                              <input
+                                id="delivery-zip"
+                                type="text"
+                                maxLength={5}
+                                pattern="[0-9]{5}"
+                                placeholder="12345"
+                                value={pricesheetSettings.deliveryZipCode || ''}
+                                onChange={(e) => {
+                                  const value = e.target.value.replace(/\D/g, '').slice(0, 5)
+                                  setPricesheetSettings(prev => ({
+                                    ...prev,
+                                    deliveryZipCode: value
+                                  }))
+                                  setHasUnsavedChanges(true)
+                                }}
+                                className="block w-28 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                              />
+                            </div>
+                          </>
+                        )}
                       </div>
 
                       {/* Global Pricing Adjustment */}

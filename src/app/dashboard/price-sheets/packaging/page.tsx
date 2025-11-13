@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
-import { Breadcrumbs } from '../../../../components/ui'
 import { allCommodities } from '../../../../config'
 
 export default function CommodityStructure() {
@@ -35,13 +34,6 @@ export default function CommodityStructure() {
     <>
       {/* Header */}
       <div className="mb-8">
-        <Breadcrumbs 
-          items={[
-            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Commodity Structure', current: true }
-          ]} 
-          className="mb-4"
-        />
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Commodity Structure</h1>

@@ -6,7 +6,6 @@ import {
   ShieldCheckIcon, 
   TrashIcon
 } from '@heroicons/react/24/outline'
-import { Breadcrumbs } from '../../../../components/ui'
 import AddCertificationModal from '../../../../components/modals/AddCertificationModal'
 import { Capability, CropManagement } from '../../../../types'
 import { certificationsApi, cropsApi } from '../../../../lib/api'
@@ -170,17 +169,8 @@ export default function Certifications() {
     <>
       {/* Header */}
       <div className="mb-8">
-        <Breadcrumbs 
-          items={[
-            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Certifications', current: true }
-          ]} 
-          className="mb-4"
-        />
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Certifications</h1>
-          <p className="mt-2 text-gray-600">Manage your organic, food safety, and quality certifications for price sheet generation.</p>
-        </div>
+        <h1 className="text-3xl font-bold text-gray-900">Certifications</h1>
+        <p className="mt-2 text-gray-600">Manage your organic, food safety, and quality certifications for price sheet generation.</p>
       </div>
 
       {/* Certifications Section */}

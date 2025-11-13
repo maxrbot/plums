@@ -419,13 +419,36 @@ export default function CropManagement() {
       setCrops(prev => prev.map(crop => 
         crop.id === updatedCrop.id ? transformedCrop : crop
       ))
-      setIsModalOpen(false)
+      
+      // Clear editing state BEFORE closing modal to prevent stale data
       setEditingCrop(null)
+      setIsModalOpen(false)
       
       console.log('✅ Crop updated successfully:', response.crop)
     } catch (err) {
       console.error('Failed to update crop:', err)
       setError(err instanceof Error ? err.message : 'Failed to update crop')
+      // On error, also clear the editing state to prevent stale data
+      setEditingCrop(null)
+    }
+  }
+
+  const handleDeleteCrop = async (cropId: string) => {
+    try {
+      setError(null)
+      
+      console.log('🗑️ Deleting crop with ID:', cropId)
+      
+      // Delete from backend
+      await cropsApi.delete(cropId)
+      
+      // Remove from local state
+      setCrops(prev => prev.filter(crop => crop.id !== cropId))
+      
+      console.log('✅ Crop deleted successfully')
+    } catch (err) {
+      console.error('Failed to delete crop:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete crop')
     }
   }
 
@@ -827,6 +850,9 @@ export default function CropManagement() {
                           <thead className="bg-gray-50">
                             <tr>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                PLU
+                              </th>
+                              <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Variation
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -849,6 +875,9 @@ export default function CropManagement() {
                           <tbody className="bg-white divide-y divide-gray-200">
                             {crop.variations.map((variation, index) => (
                               <tr key={variation.id || `${crop.id || crop.commodity}-var-${index}`} className="hover:bg-gray-50">
+                                <td className="px-3 py-3 text-sm text-gray-600">
+                                  {variation.plu || '-'}
+                                </td>
                                 <td className="px-3 py-3 text-sm text-gray-900">
                                   <div className="font-medium capitalize">
                                     {/* Build variation name: Type + Variety (or either one) */}
@@ -944,42 +973,27 @@ export default function CropManagement() {
             editingCrop: editingCrop ? { id: editingCrop.id, category: editingCrop.category, commodity: editingCrop.commodity } : null
           })
           
-          if (editingCrop) {
-            // Update existing crop
-            console.log('📝 Using edit mode - updating existing crop')
+          // Always check for the latest version of the crop from the crops state
+          // This prevents using stale editingCrop data
+          const latestCrop = crops.find(crop => 
+            crop.category === cropData.category && crop.commodity === cropData.commodity
+          )
+          
+          if (latestCrop) {
+            // Update existing crop with the latest data
+            console.log('📝 Updating existing crop with latest data from state')
             const updatedCrop = {
-              ...editingCrop,
+              ...latestCrop, // Use latest crop data, not stale editingCrop
               ...cropData
             }
             handleUpdateCrop(updatedCrop)
           } else {
-            // Check if this commodity already exists (should be an update, not create)
-            const existingCrop = crops.find(crop => 
-              crop.category === cropData.category && crop.commodity === cropData.commodity
-            )
-            
-            console.log('🔍 Checking for existing crop:', {
-              found: !!existingCrop,
-              existingId: existingCrop?.id,
-              category: cropData.category,
-              commodity: cropData.commodity
-            })
-            
-            if (existingCrop) {
-              // This is actually an update to an existing commodity
-              const updatedCrop = {
-                ...existingCrop,
-                variations: cropData.variations
-              }
-              console.log('🔄 Auto-detected existing crop - updating instead of creating')
-              handleUpdateCrop(updatedCrop)
-            } else {
-              // Truly new crop
-              console.log('✨ Creating new crop')
-              handleAddCrop(cropData)
-            }
+            // Truly new crop
+            console.log('✨ Creating new crop')
+            handleAddCrop(cropData)
           }
         }}
+        onDelete={handleDeleteCrop}
         availableRegions={regions}
         existingCrops={crops}
         existingCrop={editingCrop || undefined}

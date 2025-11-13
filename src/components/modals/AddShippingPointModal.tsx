@@ -10,9 +10,10 @@ interface AddShippingPointModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (shippingPoint: Omit<ShippingPoint, 'id'>) => void
+  editingRegion?: ShippingPoint | null
 }
 
-export default function AddShippingPointModal({ isOpen, onClose, onSave }: AddShippingPointModalProps) {
+export default function AddShippingPointModal({ isOpen, onClose, onSave, editingRegion }: AddShippingPointModalProps) {
   const [formData, setFormData] = useState({
     name: '',
     location: '',
@@ -29,7 +30,46 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave }: AddSh
   
   const [showNotesInput, setShowNotesInput] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null)
+  const [hasChanges, setHasChanges] = useState(false)
   const locationInputRef = useRef<HTMLInputElement>(null)
+
+  // Populate form when editing
+  useEffect(() => {
+    if (editingRegion && isOpen) {
+      setFormData({
+        name: editingRegion.name || '',
+        location: editingRegion.location?.formattedAddress || `${editingRegion.city}, ${editingRegion.state}`,
+        facilityType: editingRegion.facilityType || 'warehouse',
+        capacity: editingRegion.capacity || '',
+        notes: editingRegion.notes || '',
+        status: editingRegion.status || 'active',
+        shipping: editingRegion.shipping || {
+          zones: [],
+          methods: ['Truck'],
+          leadTime: 2
+        }
+      })
+      setShowNotesInput(!!editingRegion.notes)
+      if (editingRegion.location) {
+        setSelectedPlace({
+          placeId: editingRegion.location.placeId || '',
+          formattedAddress: editingRegion.location.formattedAddress || '',
+          city: editingRegion.location.city || editingRegion.city || '',
+          state: editingRegion.location.state || editingRegion.state || '',
+          country: editingRegion.location.country || 'US',
+          coordinates: editingRegion.location.coordinates
+        })
+      }
+      setHasChanges(false)
+    }
+  }, [editingRegion, isOpen])
+
+  // Track changes to form data
+  useEffect(() => {
+    if (editingRegion && isOpen) {
+      setHasChanges(true)
+    }
+  }, [formData])
 
   // Initialize Google Places autocomplete
   useEffect(() => {
@@ -150,6 +190,7 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave }: AddSh
       }
     }
     
+    console.log('🔧 Modal submitting data:', shippingPointData)
     onSave(shippingPointData)
     handleClose()
   }
@@ -170,6 +211,7 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave }: AddSh
     })
     setShowNotesInput(false)
     setSelectedPlace(null)
+    setHasChanges(false)
     onClose()
   }
 
@@ -216,11 +258,14 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave }: AddSh
                   </div>
                   <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left w-full">
                     <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900">
-                      Add Shipping Point
+                      {editingRegion ? 'Edit Shipping Point' : 'Add Shipping Point'}
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500">
-                        Add a new facility, warehouse, or distribution center where you ship products from.
+                        {editingRegion 
+                          ? 'Update the details of your shipping point.'
+                          : 'Add a new facility, warehouse, or distribution center where you ship products from.'
+                        }
                       </p>
                     </div>
                   </div>
@@ -383,9 +428,10 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave }: AddSh
                     </button>
                     <button
                       type="submit"
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700"
+                      disabled={editingRegion && !hasChanges}
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                     >
-                      Add Shipping Point
+                      {editingRegion ? 'Save Changes' : 'Add Shipping Point'}
                     </button>
                   </div>
                 </form>

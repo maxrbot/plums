@@ -54,6 +54,13 @@ export interface User extends BaseDocument {
     companyLogo?: string | null
   }
   
+  packagingStructure?: {
+    [commodityId: string]: {
+      packageTypes: Array<{ id: string; name: string }>
+      sizeGrades: Array<{ id: string; name: string }>
+    }
+  }
+  
   billing: {
     plan: string
     billingCycle: 'monthly' | 'annual'

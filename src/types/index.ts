@@ -177,6 +177,7 @@ export interface CropVariation {
   subtype?: string;      // Optional subtype (e.g., "cherry", "roma")
   variety?: string;      // Optional variety (e.g., "Sweet 100", "San Marzano")
   isOrganic: boolean;
+  plu?: string;          // PLU code (e.g., "4062")
   shippingPoints: ShippingPointConfig[];
   targetPricing: {
     minPrice: number;
@@ -200,6 +201,9 @@ export interface ShippingPointConfig {
     startMonth: number;
     endMonth: number;
     isYearRound: boolean;
+    isSplitSeason?: boolean;
+    secondSeasonStart?: number;
+    secondSeasonEnd?: number;
   };
   shipping?: {
     zones?: string[];    // ["West Coast", "Southwest"]

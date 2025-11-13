@@ -25,6 +25,7 @@ export interface PriceSheetProduct {
   specialNotes?: string
   hasOverride?: boolean
   overrideComment?: string
+  plu?: string // PLU code
 }
 
 interface PriceSheetPreviewModalProps {
@@ -427,11 +428,18 @@ export default function PriceSheetPreviewModal({
                                 return (
                                   <tr key={product.id} className="hover:bg-gray-50">
                                     <td className="px-3 py-2">
-                                      <div className="text-xs font-medium text-gray-900">
-                                        {product.isOrganic && (
-                                          <span className="text-green-600 font-semibold">Organic </span>
+                                      <div className="flex items-center gap-1.5">
+                                        <div className="text-xs font-medium text-gray-900">
+                                          {product.isOrganic && (
+                                            <span className="text-green-600 font-semibold">Organic </span>
+                                          )}
+                                          {displayName}
+                                        </div>
+                                        {product.plu && (
+                                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700 border border-gray-300">
+                                            #{product.plu}
+                                          </span>
                                         )}
-                                        {displayName}
                                       </div>
                                       {product.isStickered && (
                                         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200 mt-1">

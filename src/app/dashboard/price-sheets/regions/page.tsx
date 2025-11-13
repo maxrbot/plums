@@ -47,6 +47,7 @@ const mockShippingPoints: ShippingPoint[] = [
 export default function ShippingPoints() {
   const [regions, setRegions] = useState<ShippingPoint[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingRegion, setEditingRegion] = useState<ShippingPoint | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -64,8 +65,8 @@ export default function ShippingPoints() {
       // Backend now returns transformed data with 'id' field
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const transformedRegions: ShippingPoint[] = response.regions.map((region: any, index: number) => {
-        // Use placeId if available, otherwise fallback to _id, then generate unique ID
-        const regionId = region.location?.placeId || region.id || region._id?.toString() || `temp_${Date.now()}_${index}`
+        // Use MongoDB _id as the primary ID (needed for API calls), fallback to other IDs
+        const regionId = region.id || region._id?.toString() || `temp_${Date.now()}_${index}`
         return {
           id: regionId,
           name: region.name || 'Unknown Region',
@@ -80,7 +81,10 @@ export default function ShippingPoints() {
           farmingTypes: region.farmingTypes || [],
           acreage: region.acreage || '',
           notes: region.notes || '',
-          location: region.location || {}
+          location: region.location || {},
+          facilityType: region.facilityType,
+          capacity: region.capacity,
+          shipping: region.shipping
         }
       })
       
@@ -92,6 +96,16 @@ export default function ShippingPoints() {
       setRegions(mockShippingPoints)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const handleSaveRegion = async (shippingPointData: Omit<ShippingPoint, 'id'>) => {
+    if (editingRegion) {
+      // Update existing region
+      await handleUpdateRegion(editingRegion.id, shippingPointData)
+    } else {
+      // Create new region
+      await handleAddRegion(shippingPointData)
     }
   }
 
@@ -121,10 +135,12 @@ export default function ShippingPoints() {
         acreage: ''
       }
 
+      console.log('📤 Sending shipping point data:', shippingPointData)
       const response = await shippingPointsApi.create(shippingPointData)
+      console.log('📥 Received response:', response.region)
       
-      // Add the new region to the list
-      const regionId = response.region.location?.placeId || response.region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
+      // Add the new region to the list - use the MongoDB ID from response
+      const regionId = response.region.id || response.region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
       const transformedRegion: ShippingPoint = {
         id: regionId,
         name: response.region.name,
@@ -151,6 +167,7 @@ export default function ShippingPoints() {
       
       setRegions([...regions, transformedRegion])
       setIsModalOpen(false)
+      setEditingRegion(null)
       
       console.log('✅ Region created successfully:', response.region)
     } catch (err) {
@@ -159,10 +176,70 @@ export default function ShippingPoints() {
     }
   }
 
+  const handleUpdateRegion = async (regionId: number | string, updatedData: Omit<ShippingPoint, 'id'>) => {
+    try {
+      setError(null)
+      
+      // Transform frontend data to backend format
+      const shippingPointData = {
+        name: updatedData.name,
+        facilityType: updatedData.facilityType,
+        location: updatedData.location || {
+          city: updatedData.city,
+          state: updatedData.state,
+          country: 'US',
+          formattedAddress: `${updatedData.city}, ${updatedData.state}`,
+        },
+        capacity: updatedData.capacity,
+        notes: updatedData.notes || '',
+        shipping: updatedData.shipping || {
+          zones: [],
+          methods: ['Truck'],
+          leadTime: 2
+        },
+        // Legacy fields for backward compatibility
+        farmingTypes: [],
+        acreage: ''
+      }
+
+      const response = await shippingPointsApi.update(regionId.toString(), shippingPointData)
+      
+      // Update the region in the list
+      setRegions(prev => prev.map(region => {
+        if (region.id === regionId) {
+          return {
+            ...region,
+            name: response.region.name,
+            city: response.region.location?.city || '',
+            state: response.region.location?.state || '',
+            facilityType: response.region.facilityType,
+            capacity: response.region.capacity,
+            notes: response.region.notes || '',
+            location: response.region.location,
+            shipping: response.region.shipping || {
+              zones: [],
+              methods: ['Truck'],
+              leadTime: 2
+            }
+          }
+        }
+        return region
+      }))
+      
+      setIsModalOpen(false)
+      setEditingRegion(null)
+      
+      console.log('✅ Region updated successfully:', response.region)
+    } catch (err) {
+      console.error('Failed to update region:', err)
+      setError(err instanceof Error ? err.message : 'Failed to update region')
+    }
+  }
+
   const handleDeleteRegion = async (regionId: number | string) => {
     try {
       setError(null)
-      await regionsApi.delete(regionId.toString())
+      await shippingPointsApi.delete(regionId.toString())
       setRegions(prev => prev.filter(region => region.id !== regionId))
       console.log('✅ Region deleted successfully')
     } catch (err) {
@@ -188,7 +265,10 @@ export default function ShippingPoints() {
             <p className="mt-2 text-gray-600">Manage your facilities, warehouses, and distribution centers where you ship products from.</p>
           </div>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => {
+              setEditingRegion(null)
+              setIsModalOpen(true)
+            }}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
           >
             <PlusIcon className="h-4 w-4 mr-2" />
@@ -299,7 +379,10 @@ export default function ShippingPoints() {
             <p className="mt-1 text-sm text-gray-500">Get started by adding your first shipping point.</p>
             <div className="mt-6">
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => {
+                  setEditingRegion(null)
+                  setIsModalOpen(true)
+                }}
                 className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 <PlusIcon className="h-4 w-4 mr-2" />
@@ -336,6 +419,10 @@ export default function ShippingPoints() {
                     
                     <div className="flex items-center space-x-2">
                       <button 
+                        onClick={() => {
+                          setEditingRegion(region)
+                          setIsModalOpen(true)
+                        }}
                         className="p-1 text-gray-400 hover:text-blue-600 transition-colors"
                         title="Edit region"
                       >
@@ -359,11 +446,15 @@ export default function ShippingPoints() {
 
 
 
-      {/* Add Region Modal */}
+      {/* Add/Edit Region Modal */}
       <AddShippingPointModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSave={handleAddRegion}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingRegion(null)
+        }}
+        onSave={handleSaveRegion}
+        editingRegion={editingRegion}
       />
     </>
   )

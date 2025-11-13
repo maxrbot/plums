@@ -11,7 +11,10 @@ import {
   ChatBubbleLeftRightIcon, 
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  CubeIcon,
+  ShieldCheckIcon,
+  LockClosedIcon
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
 
@@ -27,7 +30,10 @@ const navigation = [
   { name: 'Price Sheets', href: '/dashboard/price-sheets', icon: DocumentTextIcon },
   { name: 'Contacts', href: '/dashboard/contacts', icon: UserGroupIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
-  { name: 'Market Intelligence', href: '/dashboard/price-sheets/insights', icon: LightBulbIcon },
+  { name: 'divider' }, // Visual separator
+  { name: 'Market Intelligence', href: '/dashboard/price-sheets/insights', icon: LightBulbIcon, locked: true },
+  { name: 'Commodity Structure', href: '/dashboard/price-sheets/packaging', icon: CubeIcon, locked: true },
+  { name: 'Certifications', href: '/dashboard/price-sheets/certifications', icon: ShieldCheckIcon, locked: true },
   // { name: 'AI Chatbot', href: '/dashboard/chatbot', icon: ChatBubbleLeftRightIcon }, // Hidden for v1
 ]
 
@@ -81,10 +87,20 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           <nav className="flex-1 p-4 pt-6">
             {/* Main Navigation */}
             <div className="space-y-1">
-              {filteredNavigation.map((item) => {
+              {filteredNavigation.map((item, index) => {
+                // Handle divider
+                if (item.name === 'divider') {
+                  return (
+                    <div key={`divider-${index}`} className="py-2">
+                      <div className="border-t border-slate-700"></div>
+                    </div>
+                  )
+                }
+
                 const isCurrent = pathname === item.href
                 const isChatbotSection = pathname.startsWith('/dashboard/chatbot')
                 const isPriceSheetsSection = pathname.startsWith('/dashboard/price-sheets')
+                const isLocked = item.locked === true
                 const isDisabled = !userFeatures.includes(
                   item.name === 'AI Chatbot' ? 'ai_chatbot' :
                   item.name === 'Analytics' ? 'analytics' :
@@ -95,15 +111,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 return (
                   <div key={item.name}>
                     <Link
-                      href={isDisabled ? '#' : item.href}
+                      href={(isDisabled || isLocked) ? '#' : item.href}
                       className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                         isCurrent
                           ? 'bg-slate-700 text-lime-400'
-                          : isDisabled
-                          ? 'text-gray-500 cursor-not-allowed'
+                          : (isDisabled || isLocked)
+                          ? 'text-gray-500 cursor-not-allowed opacity-60'
                           : 'text-gray-300 hover:bg-slate-700 hover:text-white'
                       }`}
-                      onClick={isDisabled ? (e) => e.preventDefault() : undefined}
+                      onClick={(isDisabled || isLocked) ? (e) => e.preventDefault() : undefined}
                     >
                       <item.icon
                         className={`mr-3 h-5 w-5 flex-shrink-0 ${
@@ -112,7 +128,10 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         aria-hidden="true"
                       />
                       {item.name}
-                      {isDisabled && (
+                      {isLocked && (
+                        <LockClosedIcon className="ml-auto h-4 w-4 text-gray-500" />
+                      )}
+                      {isDisabled && !isLocked && (
                         <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
                           {user.subscriptionTier === 'basic' ? 'Premium' : 'Enterprise'}
                         </span>
@@ -145,26 +164,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                           Commodities
                         </Link>
                         <Link
-                          href="/dashboard/price-sheets/packaging"
+                          href="/dashboard/price-sheets/packaging-structure"
                           className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            pathname === '/dashboard/price-sheets/packaging'
+                            pathname === '/dashboard/price-sheets/packaging-structure'
                               ? 'bg-slate-700 text-lime-400'
                               : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
                           }`}
                         >
-                          <span className="text-xs mr-2">🏗️</span>
-                          Commodity Structure
-                        </Link>
-                        <Link
-                          href="/dashboard/price-sheets/certifications"
-                          className={`group flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                            pathname === '/dashboard/price-sheets/certifications'
-                              ? 'bg-slate-700 text-lime-400'
-                              : 'text-gray-400 hover:bg-slate-700 hover:text-gray-300'
-                          }`}
-                        >
-                          <span className="text-xs mr-2">🏆</span>
-                          Certifications
+                          <span className="text-xs mr-2">📦</span>
+                          Packaging
                         </Link>
                       </div>
                     )}

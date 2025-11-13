@@ -10,6 +10,7 @@ interface AddVariationModalProps {
   isOpen: boolean
   onClose: () => void
   onSave: (cropManagement: CropManagement) => void
+  onDelete?: (cropId: string) => void // Callback to delete the entire crop
   availableRegions: GrowingRegion[]
   existingCrops: CropManagement[] // All existing crops to check for duplicates
   existingCrop?: CropManagement // For editing existing commodity
@@ -50,7 +51,8 @@ const months = [
 export default function AddVariationModal({ 
   isOpen, 
   onClose, 
-  onSave, 
+  onSave,
+  onDelete,
   availableRegions, 
   existingCrops,
   existingCrop,
@@ -71,6 +73,7 @@ export default function AddVariationModal({
     subtype: '',
     variety: '',
     isOrganic: false,
+    plu: '',
     shippingPoints: [],
     targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
     growingPractices: [],
@@ -148,6 +151,7 @@ export default function AddVariationModal({
           subtype: v.subtype || '',
           variety: v.variety || '',
           isOrganic: v.isOrganic,
+          plu: v.plu || '',
           shippingPoints: v.shippingPoints || v.growingRegions || [],
           targetPricing: v.targetPricing,
           growingPractices: v.growingPractices,
@@ -201,6 +205,7 @@ export default function AddVariationModal({
         subtype: '',
         variety: '',
         isOrganic: false,
+        plu: '',
         shippingPoints: [],
         targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
         growingPractices: [],
@@ -216,26 +221,8 @@ export default function AddVariationModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (formData.variations.length === 0) {
-      alert('Please add at least one variation')
-      return
-    }
-
-    const cropManagement: CropManagement = {
-      id: existingCrop?.id || `crop_${Date.now()}`,
-      category: formData.category,
-      commodity: formData.commodity,
-      variations: formData.variations.map((v, index) => ({
-        ...v,
-        id: `variation_${Date.now()}_${index}`
-      })),
-      status: 'active',
-      createdAt: existingCrop?.createdAt || new Date().toISOString()
-    }
-
-    onSave(cropManagement)
-    handleClose()
+    // Form submission is now handled by individual add/remove actions
+    // This just prevents default form behavior
   }
 
   const handleClose = () => {
@@ -245,8 +232,10 @@ export default function AddVariationModal({
       variations: []
     })
     setCurrentVariation({
+      subtype: '',
       variety: '',
       isOrganic: false,
+      plu: '',
       shippingPoints: [],
       targetPricing: { minPrice: 0, maxPrice: 0, unit: 'lb', notes: '' },
       growingPractices: [],
@@ -266,12 +255,33 @@ export default function AddVariationModal({
       return
     }
 
+    // Create the new variation with ID
+    const newVariation = {
+      ...currentVariation,
+      id: `variation_${Date.now()}`
+    }
+
+    // Build the complete crop management object
+    const updatedVariations = [...formData.variations, newVariation]
+    const cropManagement: CropManagement = {
+      id: existingCrop?.id || `crop_${Date.now()}`,
+      category: formData.category,
+      commodity: formData.commodity,
+      variations: updatedVariations,
+      status: 'active',
+      createdAt: existingCrop?.createdAt || new Date().toISOString()
+    }
+
+    // Save immediately
+    onSave(cropManagement)
+
+    // Update local state to show the new variation
     setFormData(prev => ({
       ...prev,
-      variations: [...prev.variations, { ...currentVariation }]
+      variations: updatedVariations
     }))
 
-    // Reset current variation
+    // Reset current variation form
     setCurrentVariation({
       subtype: '',
       variety: '',
@@ -285,12 +295,46 @@ export default function AddVariationModal({
     })
     setShowAdditionalInputs(false)
     setShowAddVariationForm(false)
+    // Don't close modal - stay on the page showing Current Variations
   }
 
   const removeVariation = (index: number) => {
+    const updatedVariations = formData.variations.filter((_, i) => i !== index)
+    
+    // If removing the last variation, delete the entire crop
+    if (updatedVariations.length === 0) {
+      if (existingCrop?.id && onDelete) {
+        // Delete the entire crop from the database
+        onDelete(existingCrop.id.toString())
+        // Close the modal
+        onClose()
+      } else {
+        // If no existing crop (shouldn't happen), just update local state
+        setFormData(prev => ({
+          ...prev,
+          variations: []
+        }))
+      }
+      return
+    }
+
+    // Build the complete crop management object with remaining variations
+    const cropManagement: CropManagement = {
+      id: existingCrop?.id || `crop_${Date.now()}`,
+      category: formData.category,
+      commodity: formData.commodity,
+      variations: updatedVariations,
+      status: 'active',
+      createdAt: existingCrop?.createdAt || new Date().toISOString()
+    }
+
+    // Save immediately
+    onSave(cropManagement)
+
+    // Update local state
     setFormData(prev => ({
       ...prev,
-      variations: prev.variations.filter((_, i) => i !== index)
+      variations: updatedVariations
     }))
   }
 
@@ -316,6 +360,25 @@ export default function AddVariationModal({
       shippingPoints: prev.shippingPoints.map(region => 
         region.regionId === regionId 
           ? { ...region, availability: { ...region.availability, [field]: value } }
+          : region
+      )
+    }))
+  }
+
+  const toggleSplitSeason = (regionId: string) => {
+    setCurrentVariation(prev => ({
+      ...prev,
+      shippingPoints: prev.shippingPoints.map(region => 
+        region.regionId === regionId 
+          ? { 
+              ...region, 
+              availability: { 
+                ...region.availability, 
+                isSplitSeason: !region.availability.isSplitSeason,
+                secondSeasonStart: region.availability.isSplitSeason ? 0 : region.availability.secondSeasonStart || 0,
+                secondSeasonEnd: region.availability.isSplitSeason ? 0 : region.availability.secondSeasonEnd || 0
+              } 
+            }
           : region
       )
     }))
@@ -350,6 +413,14 @@ export default function AddVariationModal({
     if (startMonth === 0 || endMonth === 0) return false
     const monthsInRange = getMonthsInRange(startMonth, endMonth)
     return monthsInRange.includes(month)
+  }
+
+  // Helper function to check if a month is in either season (for split seasons)
+  const isMonthInAnySeason = (month: number, regionConfig: any): boolean => {
+    const inFirstSeason = isMonthInRange(month, regionConfig.availability.startMonth, regionConfig.availability.endMonth)
+    if (!regionConfig.availability.isSplitSeason) return inFirstSeason
+    const inSecondSeason = isMonthInRange(month, regionConfig.availability.secondSeasonStart || 0, regionConfig.availability.secondSeasonEnd || 0)
+    return inFirstSeason || inSecondSeason
   }
 
   const toggleGrowingPractice = (practice: string) => {
@@ -498,37 +569,84 @@ export default function AddVariationModal({
 
                   {/* Current Variations Summary */}
                   {formData.variations.length > 0 && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h4 className="text-sm font-medium text-gray-900 mb-3">Current Variations ({formData.variations.length})</h4>
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-100">
+                      <h4 className="text-sm font-semibold text-gray-900 mb-3">Current Variations ({formData.variations.length})</h4>
                       <div className="space-y-2">
-                        {formData.variations.map((variation, index) => (
-                          <div key={`variation-${variation.variety}-${variation.isOrganic}-${index}`} className="flex items-center justify-between bg-white rounded-md p-3 border">
-                            <div className="flex items-center space-x-3">
-                              <span className="text-sm font-medium text-gray-900 capitalize">
-                                {/* Build variation name: Type + Variety (or either one) */}
-                                {variation.subtype && typeof variation.subtype === 'string' && (
-                                  <span className="text-gray-700">{variation.subtype.replace('-', ' ')}</span>
-                                )}
-                                {variation.subtype && variation.variety && ' '}
-                                {variation.variety && (
-                                  <span className="text-gray-900">{variation.variety}</span>
-                                )}
-                                {!variation.subtype && !variation.variety && 'Standard'}
-                                <span className="text-gray-500 font-normal"> ({variation.isOrganic ? 'Organic' : 'Conventional'})</span>
-                              </span>
-                              <span className="text-xs text-gray-500">
-                                {variation.shippingPoints?.length || variation.growingRegions?.length || 0} shipping point(s)
-                              </span>
+                        {formData.variations.map((variation, index) => {
+                          const shippingPoints = variation.shippingPoints || variation.growingRegions || []
+                          const totalMonths = shippingPoints.reduce((total, sp) => {
+                            if (sp.availability.isYearRound) return 12
+                            const firstSeason = getMonthsInRange(sp.availability.startMonth, sp.availability.endMonth).length
+                            const secondSeason = sp.availability.isSplitSeason && sp.availability.secondSeasonStart && sp.availability.secondSeasonEnd
+                              ? getMonthsInRange(sp.availability.secondSeasonStart, sp.availability.secondSeasonEnd).length
+                              : 0
+                            return Math.max(total, firstSeason + secondSeason)
+                          }, 0)
+                          
+                          // Get season summary for each shipping point
+                          const seasonSummaries = shippingPoints.map(sp => {
+                            if (sp.availability.isYearRound) return 'Year-round'
+                            const first = `${months[sp.availability.startMonth - 1]?.label.slice(0, 3)}-${months[sp.availability.endMonth - 1]?.label.slice(0, 3)}`
+                            if (sp.availability.isSplitSeason && sp.availability.secondSeasonStart && sp.availability.secondSeasonEnd) {
+                              const second = `${months[sp.availability.secondSeasonStart - 1]?.label.slice(0, 3)}-${months[sp.availability.secondSeasonEnd - 1]?.label.slice(0, 3)}`
+                              return `${first}, ${second}`
+                            }
+                            return first
+                          })
+                          const uniqueSeasons = [...new Set(seasonSummaries)]
+                          
+                          return (
+                            <div key={`variation-${variation.variety}-${variation.isOrganic}-${index}`} className="bg-white rounded-lg p-3 border border-gray-200 hover:border-blue-300 transition-colors">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  {/* PLU Badge */}
+                                  {variation.plu && (
+                                    <span className="inline-flex items-center px-2 py-1 rounded bg-blue-50 text-blue-700 text-xs font-mono font-medium whitespace-nowrap">
+                                      #{variation.plu}
+                                    </span>
+                                  )}
+                                  
+                                  {/* Name & Badge */}
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-sm font-semibold text-gray-900 capitalize truncate">
+                                      {variation.subtype && typeof variation.subtype === 'string' && (
+                                        <span className="text-gray-700">{variation.subtype.replace('-', ' ')}</span>
+                                      )}
+                                      {variation.subtype && variation.variety && ' '}
+                                      {variation.variety && (
+                                        <span className="text-gray-900">{variation.variety}</span>
+                                      )}
+                                      {!variation.subtype && !variation.variety && 'Standard'}
+                                    </span>
+                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium whitespace-nowrap ${
+                                      variation.isOrganic 
+                                        ? 'bg-green-100 text-green-700' 
+                                        : 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {variation.isOrganic ? 'Organic' : 'Conv.'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Compact Stats */}
+                                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                                    <span className="whitespace-nowrap">{shippingPoints.length} location{shippingPoints.length !== 1 ? 's' : ''}</span>
+                                    <span className="text-gray-300">•</span>
+                                    <span className="whitespace-nowrap">{uniqueSeasons.join(' & ')}</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Remove Button */}
+                                <button
+                                  type="button"
+                                  onClick={() => removeVariation(index)}
+                                  className="ml-3 text-red-500 hover:text-red-700 text-xs font-medium whitespace-nowrap"
+                                >
+                                  Remove
+                                </button>
+                              </div>
                             </div>
-                            <button
-                              type="button"
-                              onClick={() => removeVariation(index)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </div>
                   )}
@@ -617,6 +735,23 @@ export default function AddVariationModal({
                             </label>
                           </div>
                         </div>
+
+                        <div>
+                          <label htmlFor="plu" className="block text-sm font-medium text-gray-700 mb-2">
+                            PLU Code
+                          </label>
+                          <input
+                            type="text"
+                            id="plu"
+                            value={currentVariation.plu || ''}
+                            onChange={(e) => setCurrentVariation(prev => ({ ...prev, plu: e.target.value }))}
+                            placeholder="e.g., 4062"
+                            className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Optional 4-5 digit PLU code
+                          </p>
+                        </div>
                       </div>
 
                       {/* Growing Regions */}
@@ -662,45 +797,100 @@ export default function AddVariationModal({
                                       </div>
                                       
                                       {!regionConfig.availability.isYearRound && (
-                                        <div className="grid grid-cols-6 gap-1">
-                                          {months.map(month => (
-                                            <button
-                                              key={`month-${month.value}-${regionConfig.regionId}`}
-                                              type="button"
-                                              onClick={() => {
-                                                const currentStart = regionConfig.availability.startMonth
-                                                const currentEnd = regionConfig.availability.endMonth
-                                                
-                                                if (currentStart === 0) {
-                                                  // First month selected - set as start
-                                                  updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
-                                                } else if (currentEnd === 0) {
-                                                  // Second month selected - set as end (allow cross-year ranges)
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                } else if (currentStart === month.value) {
-                                                  // Clicking start month again, reset both
-                                                  updateRegionSeasonality(regionConfig.regionId, 'startMonth', 0)
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
-                                                } else if (currentEnd === month.value) {
-                                                  // Clicking end month again, reset to just start
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
-                                                } else {
-                                                  // Clicking a different month - set as new end
-                                                  updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
-                                                }
-                                              }}
-                                              className={`px-2 py-1 text-xs rounded border transition-colors ${
-                                                regionConfig.availability.startMonth === month.value || regionConfig.availability.endMonth === month.value
-                                                  ? 'bg-blue-500 border-blue-500 text-white font-semibold' // Start/End months
-                                                  : isMonthInRange(month.value, regionConfig.availability.startMonth, regionConfig.availability.endMonth)
-                                                  ? 'bg-blue-100 border-blue-300 text-blue-800' // Months in range
-                                                  : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50' // Unselected months
-                                              }`}
-                                            >
-                                              {month.label.slice(0, 3)}
-                                            </button>
-                                          ))}
-                                        </div>
+                                        <>
+                                          <div className="mb-2">
+                                            <div className="text-xs text-gray-600 mb-1">Primary Season:</div>
+                                            <div className="grid grid-cols-6 gap-1">
+                                              {months.map(month => (
+                                                <button
+                                                  key={`month-${month.value}-${regionConfig.regionId}`}
+                                                  type="button"
+                                                  onClick={() => {
+                                                    const currentStart = regionConfig.availability.startMonth
+                                                    const currentEnd = regionConfig.availability.endMonth
+                                                    
+                                                    if (currentStart === 0) {
+                                                      // First month selected - set as start
+                                                      updateRegionSeasonality(regionConfig.regionId, 'startMonth', month.value)
+                                                    } else if (currentEnd === 0) {
+                                                      // Second month selected - set as end (allow cross-year ranges)
+                                                      updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
+                                                    } else if (currentStart === month.value) {
+                                                      // Clicking start month again, reset both
+                                                      updateRegionSeasonality(regionConfig.regionId, 'startMonth', 0)
+                                                      updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
+                                                    } else if (currentEnd === month.value) {
+                                                      // Clicking end month again, reset to just start
+                                                      updateRegionSeasonality(regionConfig.regionId, 'endMonth', 0)
+                                                    } else {
+                                                      // Clicking a different month - set as new end
+                                                      updateRegionSeasonality(regionConfig.regionId, 'endMonth', month.value)
+                                                    }
+                                                  }}
+                                                  className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                                    regionConfig.availability.startMonth === month.value || regionConfig.availability.endMonth === month.value
+                                                      ? 'bg-blue-500 border-blue-500 text-white font-semibold' // Start/End months
+                                                      : isMonthInRange(month.value, regionConfig.availability.startMonth, regionConfig.availability.endMonth)
+                                                      ? 'bg-blue-100 border-blue-300 text-blue-800' // Months in range
+                                                      : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50' // Unselected months
+                                                  }`}
+                                                >
+                                                  {month.label.slice(0, 3)}
+                                                </button>
+                                              ))}
+                                            </div>
+                                          </div>
+
+                                          {/* Split Season Toggle */}
+                                          <button
+                                            type="button"
+                                            onClick={() => toggleSplitSeason(regionConfig.regionId)}
+                                            className="text-xs text-purple-600 hover:text-purple-800 font-medium mb-2"
+                                          >
+                                            {regionConfig.availability.isSplitSeason ? '− Remove Split Season' : '+ Add Split Season'}
+                                          </button>
+
+                                          {/* Second Season Calendar */}
+                                          {regionConfig.availability.isSplitSeason && (
+                                            <div className="mt-2 pt-2 border-t border-gray-200">
+                                              <div className="text-xs text-gray-600 mb-1">Second Season:</div>
+                                              <div className="grid grid-cols-6 gap-1">
+                                                {months.map(month => (
+                                                  <button
+                                                    key={`month2-${month.value}-${regionConfig.regionId}`}
+                                                    type="button"
+                                                    onClick={() => {
+                                                      const currentStart = regionConfig.availability.secondSeasonStart || 0
+                                                      const currentEnd = regionConfig.availability.secondSeasonEnd || 0
+                                                      
+                                                      if (currentStart === 0) {
+                                                        updateRegionSeasonality(regionConfig.regionId, 'secondSeasonStart', month.value)
+                                                      } else if (currentEnd === 0) {
+                                                        updateRegionSeasonality(regionConfig.regionId, 'secondSeasonEnd', month.value)
+                                                      } else if (currentStart === month.value) {
+                                                        updateRegionSeasonality(regionConfig.regionId, 'secondSeasonStart', 0)
+                                                        updateRegionSeasonality(regionConfig.regionId, 'secondSeasonEnd', 0)
+                                                      } else if (currentEnd === month.value) {
+                                                        updateRegionSeasonality(regionConfig.regionId, 'secondSeasonEnd', 0)
+                                                      } else {
+                                                        updateRegionSeasonality(regionConfig.regionId, 'secondSeasonEnd', month.value)
+                                                      }
+                                                    }}
+                                                    className={`px-2 py-1 text-xs rounded border transition-colors ${
+                                                      (regionConfig.availability.secondSeasonStart || 0) === month.value || (regionConfig.availability.secondSeasonEnd || 0) === month.value
+                                                        ? 'bg-purple-500 border-purple-500 text-white font-semibold'
+                                                        : isMonthInRange(month.value, regionConfig.availability.secondSeasonStart || 0, regionConfig.availability.secondSeasonEnd || 0)
+                                                        ? 'bg-purple-100 border-purple-300 text-purple-800'
+                                                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                                                    }`}
+                                                  >
+                                                    {month.label.slice(0, 3)}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </>
                                       )}
                                       
                                       {regionConfig.availability.isYearRound && (
@@ -710,7 +900,7 @@ export default function AddVariationModal({
                                       )}
                                       
                                       {!regionConfig.availability.isYearRound && regionConfig.availability.startMonth > 0 && regionConfig.availability.endMonth > 0 && (
-                                        <div className="text-xs text-gray-600 mt-1">
+                                        <div className="text-xs text-gray-600 mt-2">
                                           <div className="flex items-center justify-between">
                                             <span>
                                               {months[regionConfig.availability.startMonth - 1].label} - {months[regionConfig.availability.endMonth - 1].label}
@@ -722,6 +912,16 @@ export default function AddVariationModal({
                                           {regionConfig.availability.startMonth > regionConfig.availability.endMonth && (
                                             <div className="text-xs text-orange-600 mt-1">
                                               ⚠️ Cross-year season (winter crop)
+                                            </div>
+                                          )}
+                                          {regionConfig.availability.isSplitSeason && regionConfig.availability.secondSeasonStart && regionConfig.availability.secondSeasonEnd && (
+                                            <div className="flex items-center justify-between mt-1 pt-1 border-t border-gray-200">
+                                              <span className="text-purple-600">
+                                                + {months[regionConfig.availability.secondSeasonStart - 1].label} - {months[regionConfig.availability.secondSeasonEnd - 1].label}
+                                              </span>
+                                              <span className="text-purple-600 font-medium">
+                                                {getMonthsInRange(regionConfig.availability.secondSeasonStart, regionConfig.availability.secondSeasonEnd).length} months
+                                              </span>
                                             </div>
                                           )}
                                         </div>
@@ -760,12 +960,17 @@ export default function AddVariationModal({
                       {showAdditionalInputs && (
                         <div className="mt-4 space-y-6 border-t border-gray-200 pt-4">
                           {/* 1. Target Pricing Section */}
-                          <div className="bg-blue-50 p-4 rounded-lg">
+                          <div className="bg-blue-50 p-4 rounded-lg opacity-60">
                             <div className="mb-3">
-                              <h5 className="text-sm font-medium text-gray-900">Target Pricing</h5>
+                              <div className="flex items-center justify-between">
+                                <h5 className="text-sm font-medium text-gray-900">Target Pricing</h5>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Coming Soon
+                                </span>
+                              </div>
                               <p className="text-xs text-gray-600 mt-1">These prices will flow through to the price sheet generator as suggested values.</p>
                             </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 pointer-events-none">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700">
                                   Min Price
@@ -777,12 +982,9 @@ export default function AddVariationModal({
                                   <input
                                     type="number"
                                     step="0.01"
+                                    disabled
                                     value={currentVariation.targetPricing.minPrice === 0 ? '' : currentVariation.targetPricing.minPrice}
-                                    onChange={(e) => setCurrentVariation(prev => ({
-                                      ...prev,
-                                      targetPricing: { ...prev.targetPricing, minPrice: parseFloat(e.target.value) || 0 }
-                                    }))}
-                                    className="pl-7 pr-3 py-2 mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                    className="pl-7 pr-3 py-2 mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 text-gray-500 shadow-sm cursor-not-allowed sm:text-sm"
                                     placeholder="0.00"
                                   />
                                 </div>
@@ -798,12 +1000,9 @@ export default function AddVariationModal({
                                   <input
                                     type="number"
                                     step="0.01"
+                                    disabled
                                     value={currentVariation.targetPricing.maxPrice === 0 ? '' : currentVariation.targetPricing.maxPrice}
-                                    onChange={(e) => setCurrentVariation(prev => ({
-                                      ...prev,
-                                      targetPricing: { ...prev.targetPricing, maxPrice: parseFloat(e.target.value) || 0 }
-                                    }))}
-                                    className="pl-7 pr-3 py-2 mt-1 block w-full rounded-md border border-gray-300 bg-white text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                    className="pl-7 pr-3 py-2 mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 text-gray-500 shadow-sm cursor-not-allowed sm:text-sm"
                                     placeholder="0.00"
                                   />
                                 </div>
@@ -813,12 +1012,9 @@ export default function AddVariationModal({
                                   Unit
                                 </label>
                                 <select
+                                  disabled
                                   value={currentVariation.targetPricing.unit}
-                                  onChange={(e) => setCurrentVariation(prev => ({
-                                    ...prev,
-                                    targetPricing: { ...prev.targetPricing, unit: e.target.value }
-                                  }))}
-                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500 shadow-sm cursor-not-allowed sm:text-sm"
                                 >
                                   <option value="lb">lb</option>
                                   <option value="kg">kg</option>
@@ -832,20 +1028,25 @@ export default function AddVariationModal({
                           </div>
 
                           {/* 2. Order Requirements Section */}
-                          <div className="bg-green-50 p-4 rounded-lg">
+                          <div className="bg-green-50 p-4 rounded-lg opacity-60">
                             <div className="mb-3">
-                              <h5 className="text-sm font-medium text-gray-900">Order Requirements</h5>
+                              <div className="flex items-center justify-between">
+                                <h5 className="text-sm font-medium text-gray-900">Order Requirements</h5>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Coming Soon
+                                </span>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 pointer-events-none">
                               <div>
                                 <label className="block text-sm font-medium text-gray-700">
                                   Min Order
                                 </label>
                                 <input
                                   type="number"
+                                  disabled
                                   value={currentVariation.minOrder === 0 ? '' : currentVariation.minOrder}
-                                  onChange={(e) => setCurrentVariation(prev => ({ ...prev, minOrder: parseInt(e.target.value) || 0 }))}
-                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500 shadow-sm cursor-not-allowed sm:text-sm"
                                   placeholder="e.g. 3, 500, 50"
                                 />
                               </div>
@@ -854,9 +1055,9 @@ export default function AddVariationModal({
                                   Order Unit
                                 </label>
                                 <select
+                                  disabled
                                   value={currentVariation.orderUnit || 'case'}
-                                  onChange={(e) => setCurrentVariation(prev => ({ ...prev, orderUnit: e.target.value }))}
-                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                                  className="mt-1 block w-full rounded-md border border-gray-300 bg-gray-100 px-3 py-2 text-gray-500 shadow-sm cursor-not-allowed sm:text-sm"
                                 >
                                   <option value="case">Cases</option>
                                   <option value="pallet">Pallets</option>
@@ -875,22 +1076,27 @@ export default function AddVariationModal({
                           </div>
 
                           {/* 3. Additional Certifications Section */}
-                          <div className="bg-gray-50 p-4 rounded-lg">
+                          <div className="bg-gray-50 p-4 rounded-lg opacity-60">
                             <div className="mb-3">
-                              <h5 className="text-sm font-medium text-gray-900">
-                                Optional {currentVariation.isOrganic ? 'Certifications' : 'Practices & Certifications'}
-                              </h5>
+                              <div className="flex items-center justify-between">
+                                <h5 className="text-sm font-medium text-gray-900">
+                                  Optional {currentVariation.isOrganic ? 'Certifications' : 'Practices & Certifications'}
+                                </h5>
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                                  Coming Soon
+                                </span>
+                              </div>
                             </div>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pointer-events-none">
                               {getAvailableCertifications().map((cert, index) => (
-                                <label key={`cert-${cert}-${index}`} className="flex items-center">
+                                <label key={`cert-${cert}-${index}`} className="flex items-center cursor-not-allowed">
                                   <input
                                     type="checkbox"
+                                    disabled
                                     checked={currentVariation.growingPractices.includes(cert)}
-                                    onChange={() => toggleGrowingPractice(cert)}
-                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                    className="h-4 w-4 text-gray-400 border-gray-300 rounded cursor-not-allowed"
                                   />
-                                  <span className="ml-2 text-sm text-gray-700">{cert}</span>
+                                  <span className="ml-2 text-sm text-gray-500">{cert}</span>
                                 </label>
                               ))}
                             </div>
@@ -973,23 +1179,6 @@ export default function AddVariationModal({
                             </button>
                           </div>
                   )}
-                  {/* Form Actions */}
-                  <div className="mt-6 flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={handleClose}
-                      className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={formData.variations.length === 0}
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 disabled:bg-gray-500 disabled:cursor-not-allowed"
-                    >
-                      {isEditMode ? 'Save Changes' : 'Save Variations'}
-                    </button>
-                  </div>
                 </form>
               </Dialog.Panel>
             </Transition.Child>

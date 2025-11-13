@@ -17,6 +17,17 @@ import { PriceSheetProduct } from '@/components/modals/PriceSheetPreviewModal'
  * @param options - Optional overrides for specific fields
  * @returns Formatted product ready for preview modal
  */
+/**
+ * Helper function to capitalize first letter of each word
+ */
+function capitalizeWords(str: string | undefined): string | undefined {
+  if (!str) return str
+  return str
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ')
+}
+
 export function formatProductForPreview(
   product: any,
   options?: {
@@ -28,11 +39,11 @@ export function formatProductForPreview(
     id: product._id || product.id,
     productName: product.productName || `${product.commodity || ''} ${product.variety || ''}`.trim() || 'Unknown Product',
     commodity: product.commodity,
-    variety: product.variety,
+    variety: capitalizeWords(product.variety),
     subtype: product.subtype,
     region: product.regionName || product.region || 'Unknown Region',
     packageType: product.packageType || '',
-    size: product.size,
+    size: capitalizeWords(product.size),
     countSize: product.countSize,
     grade: product.grade,
     basePrice: product.hasOverride || product.price === null ? null : product.price,
@@ -43,7 +54,8 @@ export function formatProductForPreview(
     isStickered: product.isStickered || false,
     specialNotes: product.specialNotes,
     hasOverride: product.hasOverride || false,
-    overrideComment: product.overrideComment
+    overrideComment: product.overrideComment,
+    plu: product.plu
   }
 }
 

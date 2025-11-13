@@ -233,6 +233,12 @@ const shippingPointsRoutes: FastifyPluginAsync = async (fastify) => {
         updatedAt: new Date()
       }
       
+      // Get the old shipping point first (before updating) to know the old name
+      const oldShippingPoint = await db.collection<ShippingPoint>('shippingPoints').findOne({
+        _id: new ObjectId(id),
+        userId: userDoc._id
+      })
+      
       const result = await db.collection<ShippingPoint>('shippingPoints').findOneAndUpdate(
         { _id: new ObjectId(id), userId: userDoc._id },
         { $set: updatePayload },
@@ -244,6 +250,91 @@ const shippingPointsRoutes: FastifyPluginAsync = async (fastify) => {
           error: 'Shipping Point Not Found',
           message: 'Shipping point not found'
         })
+      }
+      
+      // If the name changed, update all crop variations that reference this shipping point
+      if (updateData.name && oldShippingPoint) {
+        const oldName = oldShippingPoint.name
+        console.log(`🔄 Updating crop variations for shipping point ${id} (old name: "${oldName}") with new name: "${updateData.name}"`)
+        
+        // First, let's see what's actually in the database
+        const allCrops = await db.collection('cropManagement').find({
+          userId: userDoc._id,
+          'variations.shippingPoints': { $exists: true }
+        }).toArray()
+        
+        console.log(`📋 Found ${allCrops.length} crops with shipping points`)
+        
+        // Show all unique shipping point names and IDs
+        const allShippingPoints = new Set<string>()
+        allCrops.forEach((crop: any) => {
+          crop.variations?.forEach((variation: any) => {
+            variation.shippingPoints?.forEach((sp: any) => {
+              allShippingPoints.add(`ID: ${sp.regionId} | Name: ${sp.regionName}`)
+            })
+          })
+        })
+        
+        console.log(`📋 All shipping points in crops:`)
+        allShippingPoints.forEach(sp => console.log(`   - ${sp}`))
+        
+        // Get the Google Places ID from the shipping point (if it exists)
+        const placeId = oldShippingPoint.location?.placeId
+        console.log(`📍 Shipping point has placeId: ${placeId || 'none'}`)
+        
+        // Update using regionId/regionName (the actual field names used in the database)
+        // Try to match by MongoDB ObjectId first
+        const updateResult = await db.collection('cropManagement').updateMany(
+          { 
+            userId: userDoc._id,
+            'variations.shippingPoints.regionId': id
+          },
+          { 
+            $set: { 
+              'variations.$[].shippingPoints.$[point].regionName': updateData.name 
+            } 
+          },
+          {
+            arrayFilters: [{ 'point.regionId': id }]
+          }
+        )
+        
+        // Try to match by Google Places ID (the actual ID stored in old variations)
+        let updateByPlaceIdResult = { modifiedCount: 0 }
+        if (placeId) {
+          updateByPlaceIdResult = await db.collection('cropManagement').updateMany(
+            { 
+              userId: userDoc._id,
+              'variations.shippingPoints.regionId': placeId
+            },
+            { 
+              $set: { 
+                'variations.$[].shippingPoints.$[point].regionName': updateData.name 
+              } 
+            },
+            {
+              arrayFilters: [{ 'point.regionId': placeId }]
+            }
+          )
+        }
+        
+        // Also try to match by the old name (for variations that might have been created with name-based IDs)
+        const updateByNameResult = await db.collection('cropManagement').updateMany(
+          { 
+            userId: userDoc._id,
+            'variations.shippingPoints.regionName': oldName
+          },
+          { 
+            $set: { 
+              'variations.$[].shippingPoints.$[point].regionName': updateData.name 
+            } 
+          },
+          {
+            arrayFilters: [{ 'point.regionName': oldName }]
+          }
+        )
+        
+        console.log(`✅ Updated ${updateResult.modifiedCount} by MongoDB ID + ${updateByPlaceIdResult.modifiedCount} by Places ID + ${updateByNameResult.modifiedCount} by name = ${updateResult.modifiedCount + updateByPlaceIdResult.modifiedCount + updateByNameResult.modifiedCount} total documents`)
       }
       
       // Transform _id to id for frontend compatibility

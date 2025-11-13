@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { CheckCircleIcon, ClockIcon, SparklesIcon } from '@heroicons/react/24/outline'
+import { CheckCircleIcon, ClockIcon, SparklesIcon, ExclamationTriangleIcon, XCircleIcon, StarIcon } from '@heroicons/react/24/outline'
 
 interface PriceSheetProduct {
   _id: string
@@ -122,20 +122,30 @@ export default function PublicPriceSheetViewer() {
         className: 'bg-green-50 text-green-700 border-green-200',
         label: 'Available'
       },
-      'Limited': {
+      'Coming Soon': {
         icon: ClockIcon,
-        className: 'bg-amber-50 text-amber-700 border-amber-200',
-        label: 'Limited'
-      },
-      'New Crop': {
-        icon: SparklesIcon,
         className: 'bg-blue-50 text-blue-700 border-blue-200',
-        label: 'New Crop'
+        label: 'Coming Soon'
       },
-      'Pre-order': {
-        icon: ClockIcon,
+      'End of Season': {
+        icon: ExclamationTriangleIcon,
+        className: 'bg-amber-50 text-amber-700 border-amber-200',
+        label: 'End of Season'
+      },
+      'Limited Supply': {
+        icon: ExclamationTriangleIcon,
+        className: 'bg-orange-50 text-orange-700 border-orange-200',
+        label: 'Limited Supply'
+      },
+      'Sold Out': {
+        icon: XCircleIcon,
+        className: 'bg-red-50 text-red-700 border-red-200',
+        label: 'Sold Out'
+      },
+      'Program': {
+        icon: StarIcon,
         className: 'bg-purple-50 text-purple-700 border-purple-200',
-        label: 'Pre-order'
+        label: 'Program'
       }
     }
 
@@ -521,31 +531,23 @@ export default function PublicPriceSheetViewer() {
         {/* Footer */}
         <div className="mt-8 text-center">
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <p className="text-gray-600 mb-4">
-              Have questions or ready to place an order?
-            </p>
-            <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={() => {
-                  const queryString = searchParams?.toString() ? `?${searchParams.toString()}` : ''
-                  router.push(`/ps/${id}/order${queryString}`)
-                }}
-                className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl"
-              >
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              onClick={() => {
+                const queryString = searchParams?.toString() ? `?${searchParams.toString()}` : ''
+                router.push(`/ps/${id}/order${queryString}`)
+              }}
+              className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <div className="flex items-center justify-center">
+                <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
                 </svg>
-                Build Order
-              </button>
-              {user?.email && (
-                <a
-                  href={`mailto:${user.email}?subject=Inquiry about ${priceSheet.title}`}
-                  className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
-                >
-                  Contact {companyName}
-                </a>
-              )}
-            </div>
+                <div className="text-left">
+                  <div className="text-lg font-semibold">Submit Order Request</div>
+                  <div className="text-sm text-blue-100 font-normal">Quick & easy — takes 30 seconds</div>
+                </div>
+              </div>
+            </button>
           </div>
           
           <p className="text-xs text-gray-400 mt-6">

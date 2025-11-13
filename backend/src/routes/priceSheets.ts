@@ -639,7 +639,9 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
               return {
                 name: p.productName || `${p.variety || ''} ${p.commodity || ''}`.trim(),
                 packageType: p.packageType || '',
+                size: p.size || '',
                 grade: p.grade,
+                availability: p.availability || 'Available',
                 price: finalPrice,
                 overrideComment: p.overrideComment
               }

@@ -131,9 +131,11 @@ export default function PriceSheetDuplicateModal({
   const getAvailabilityBadge = (availability: string) => {
     const badgeClasses: Record<string, string> = {
       'Available': 'bg-green-50 text-green-700 border-green-200',
-      'Limited': 'bg-amber-50 text-amber-700 border-amber-200',
-      'New Crop': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Pre-order': 'bg-purple-50 text-purple-700 border-purple-200'
+      'Coming Soon': 'bg-blue-50 text-blue-700 border-blue-200',
+      'End of Season': 'bg-amber-50 text-amber-700 border-amber-200',
+      'Limited Supply': 'bg-orange-50 text-orange-700 border-orange-200',
+      'Sold Out': 'bg-red-50 text-red-700 border-red-200',
+      'Program': 'bg-purple-50 text-purple-700 border-purple-200'
     }
     const className = badgeClasses[availability] || badgeClasses['Available']
     return className
@@ -181,7 +183,7 @@ export default function PriceSheetDuplicateModal({
   
   // Get available availability options
   const getAvailabilityOptions = () => {
-    return ['Available', 'Limited', 'New Crop', 'Pre-order']
+    return ['Available', 'Coming Soon', 'End of Season', 'Limited Supply', 'Sold Out', 'Program']
   }
 
   return (
@@ -357,16 +359,7 @@ export default function PriceSheetDuplicateModal({
                                               {(() => {
                                                 const gradeOptions = getGradeOptions(product.commodity)
                                                 return gradeOptions.length > 0 ? (
-                                                  <select
-                                                    value={product.grade || ''}
-                                                    onChange={(e) => handleFieldChange(product.id, 'grade', e.target.value)}
-                                                    className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                                  >
-                                                    <option value="">-</option>
-                                                    {gradeOptions.map(grade => (
-                                                      <option key={grade} value={grade}>{grade}</option>
-                                                    ))}
-                                                  </select>
+                                                  <span className="text-xs text-gray-700">{product.grade || 'No 1'}</span>
                                                 ) : (
                                                   <span className="text-xs text-gray-500">{product.grade || '-'}</span>
                                                 )

@@ -49,14 +49,39 @@ function generateInlineProductList(products: Array<any>, showAll: boolean = fals
   const hasMore = products.length > 8
   
   return displayProducts.map(product => {
+    // Build product display: [Commodity] - [Variety] - Package - Size - Grade - [availability tag if not "Available"] - Price
+    let display = product.name // Commodity - Variety
+    
+    // Add package type
+    if (product.packageType) {
+      display += ` - ${product.packageType}`
+    }
+    
+    // Add size
+    if (product.size) {
+      display += ` - ${product.size}`
+    }
+    
+    // Add grade
+    if (product.grade) {
+      display += ` - ${product.grade}`
+    }
+    
+    // Add availability tag if not "Available"
+    if (product.availability && product.availability !== 'Available') {
+      display += ` - ${product.availability}`
+    }
+    
+    // Add price or override comment
     const priceDisplay = product.overrideComment 
-      ? `Contact for pricing - ${product.overrideComment}`
+      ? product.overrideComment // Just show the comment as-is
       : product.price 
         ? `$${product.price.toFixed(2)}`
         : 'Contact for pricing'
     
-    const grade = product.grade ? ` - ${product.grade}` : ''
-    return `${product.name} - ${product.packageType}${grade} - ${priceDisplay}`
+    display += ` - ${priceDisplay}`
+    
+    return display
   }).join('\n') + (hasMore && !showAll ? `\n\n+ ${products.length - 8} more items` : '')
 }
 

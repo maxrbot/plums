@@ -27,8 +27,8 @@ interface PriceSheetProduct {
 
 interface OrderItem extends PriceSheetProduct {
   quantity: number
-  unit: 'cases' | 'pallets'
-  subtotal: number
+  unit: 'units' | 'pallets'
+  subtotal: number | null
 }
 
 interface PriceSheet {
@@ -117,7 +117,7 @@ export default function OrderBuilder() {
       const newItem: OrderItem = {
         ...product,
         quantity: 1,
-        unit: 'cases',
+        unit: 'units',
         subtotal: product.price || 0
       }
       setOrderItems([...orderItems, newItem])
@@ -132,10 +132,12 @@ export default function OrderBuilder() {
     
     setOrderItems(orderItems.map(item => {
       if (item._id === productId) {
+        // If unit is pallets, subtotal is null (TBD)
+        const subtotal = item.unit === 'pallets' ? null : (item.price || 0) * quantity
         return {
           ...item,
           quantity,
-          subtotal: (item.price || 0) * quantity
+          subtotal
         }
       }
       return item
@@ -149,9 +151,13 @@ export default function OrderBuilder() {
   const toggleUnit = (productId: string) => {
     setOrderItems(orderItems.map(item => {
       if (item._id === productId) {
+        const newUnit = item.unit === 'units' ? 'pallets' : 'units'
+        // If switching to pallets, set subtotal to null (TBD)
+        const subtotal = newUnit === 'pallets' ? null : (item.price || 0) * item.quantity
         return {
           ...item,
-          unit: item.unit === 'cases' ? 'pallets' : 'cases'
+          unit: newUnit,
+          subtotal
         }
       }
       return item
@@ -159,18 +165,63 @@ export default function OrderBuilder() {
   }
 
   const getOrderTotal = () => {
-    return orderItems.reduce((total, item) => total + item.subtotal, 0)
+    return orderItems.reduce((total, item) => {
+      // Only add to total if subtotal is not null (not a pallet order)
+      return total + (item.subtotal || 0)
+    }, 0)
+  }
+
+  const hasPalletItems = () => {
+    return orderItems.some(item => item.unit === 'pallets')
+  }
+
+  const getOrderStats = () => {
+    const uniqueProducts = orderItems.length
+    const totalUnits = orderItems.filter(item => item.unit === 'units').reduce((sum, item) => sum + item.quantity, 0)
+    const totalPallets = orderItems.filter(item => item.unit === 'pallets').reduce((sum, item) => sum + item.quantity, 0)
+    const uniqueCommodities = new Set(orderItems.map(item => item.commodity)).size
+    const organicCount = orderItems.filter(item => item.isOrganic).length
+    
+    // FTL calculations (26 pallets = standard FTL)
+    const FTL_CAPACITY = 26
+    const palletEquivalent = totalPallets + (totalUnits / 50) // Rough estimate: 50 units ≈ 1 pallet
+    const ftlPercentage = Math.min((palletEquivalent / FTL_CAPACITY) * 100, 100)
+    const palletsToFTL = Math.max(0, FTL_CAPACITY - palletEquivalent)
+    
+    let loadType = 'LTL' // Less Than Truckload
+    if (palletEquivalent >= FTL_CAPACITY * 2) loadType = 'Multi-Truck'
+    else if (palletEquivalent >= FTL_CAPACITY) loadType = 'Full Truckload'
+    else if (palletEquivalent >= FTL_CAPACITY * 0.75) loadType = 'Partial FTL'
+    
+    return {
+      uniqueProducts,
+      totalUnits,
+      totalPallets,
+      uniqueCommodities,
+      organicCount,
+      palletEquivalent: Math.round(palletEquivalent * 10) / 10,
+      ftlPercentage: Math.round(ftlPercentage),
+      palletsToFTL: Math.round(palletsToFTL * 10) / 10,
+      loadType
+    }
   }
 
   const handleSubmitOrder = () => {
-    const orderSummary = orderItems.map(item => 
-      `${item.quantity} ${item.unit} - ${item.productName || `${item.variety} ${item.commodity}`} (${item.packageType}) - $${item.subtotal.toFixed(2)}`
-    ).join('\n')
+    const orderSummary = orderItems.map(item => {
+      const priceDisplay = item.subtotal !== null 
+        ? `$${item.subtotal.toFixed(2)}`
+        : 'Price TBD (Pallet Configuration Required)'
+      return `${item.quantity} ${item.unit} - ${item.productName || `${item.variety} ${item.commodity}`} (${item.packageType}) - ${priceDisplay}`
+    }).join('\n')
     
     const total = getOrderTotal()
+    const hasPallets = hasPalletItems()
     const subject = `Order Request - ${priceSheet?.title}`
     const commentsSection = orderComments.trim() ? `\n\nAdditional Comments:\n${orderComments}\n` : ''
-    const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}\n\nTotal: $${total.toFixed(2)}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
+    const totalSection = hasPallets 
+      ? `\n\nSubtotal (units only): $${total.toFixed(2)}\n*Final total pending pallet configuration*`
+      : `\n\nTotal: $${total.toFixed(2)}`
+    const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${totalSection}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
     
     setEmailContent({ subject, body })
     setShowEmailModal(true)
@@ -233,7 +284,10 @@ export default function OrderBuilder() {
         {/* Header */}
         <div className="mb-6">
           <button
-            onClick={() => router.back()}
+            onClick={() => {
+              const queryString = searchParams?.toString() ? `?${searchParams.toString()}` : ''
+              router.push(`/ps/${id}${queryString}`)
+            }}
             className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeftIcon className="h-4 w-4 mr-1" />
@@ -305,7 +359,7 @@ export default function OrderBuilder() {
                             
                             <button
                               onClick={() => addToOrder(product)}
-                              disabled={product.availability !== 'Available'}
+                              disabled={product.availability === 'Sold Out' || (product.hasOverride && product.overrideComment)}
                               className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                                 isInOrder
                                   ? 'bg-green-100 text-green-700 border border-green-300'
@@ -356,7 +410,13 @@ export default function OrderBuilder() {
                               <h4 className="text-sm font-medium text-gray-900">
                                 {item.productName || `${item.variety} ${item.commodity}`}
                               </h4>
-                              <p className="text-xs text-gray-600">{item.packageType}</p>
+                              <div className="text-xs text-gray-600 space-x-1">
+                                <span>{item.packageType}</span>
+                                {(item.size || item.countSize) && (
+                                  <span>• {item.size || item.countSize}</span>
+                                )}
+                                {item.grade && <span>• {item.grade}</span>}
+                              </div>
                             </div>
                             <button
                               onClick={() => removeFromOrder(item._id)}
@@ -373,7 +433,16 @@ export default function OrderBuilder() {
                               >
                                 -
                               </button>
-                              <span className="w-10 text-center font-medium text-sm">{item.quantity}</span>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const value = parseInt(e.target.value) || 1
+                                  updateQuantity(item._id, value)
+                                }}
+                                className="w-14 text-center font-medium text-sm border border-gray-300 rounded px-2 py-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                              />
                               <button
                                 onClick={() => updateQuantity(item._id, item.quantity + 1)}
                                 className="w-7 h-7 flex items-center justify-center bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
@@ -388,18 +457,147 @@ export default function OrderBuilder() {
                               </button>
                             </div>
                             <span className="font-semibold text-gray-900 text-sm">
-                              ${item.subtotal.toFixed(2)}
+                              {item.subtotal !== null ? (
+                                `$${item.subtotal.toFixed(2)}`
+                              ) : (
+                                <span className="text-orange-600 text-xs">TBD</span>
+                              )}
                             </span>
                           </div>
                         </div>
                       ))}
                     </div>
                     
+                    {/* Order Insights Section */}
+                    {orderItems.length > 0 && (() => {
+                      const stats = getOrderStats()
+                      const loadTypeColors: Record<string, string> = {
+                        'LTL': 'bg-blue-100 text-blue-700 border-blue-300',
+                        'Partial FTL': 'bg-yellow-100 text-yellow-700 border-yellow-300',
+                        'Full Truckload': 'bg-green-100 text-green-700 border-green-300',
+                        'Multi-Truck': 'bg-purple-100 text-purple-700 border-purple-300'
+                      }
+                      
+                      return (
+                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-4 mb-4 border border-blue-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-gray-900">Order Insights</h3>
+                            <span className={`px-2 py-1 text-xs font-medium rounded border ${loadTypeColors[stats.loadType]}`}>
+                              {stats.loadType}
+                            </span>
+                          </div>
+                          
+                          {/* Quick Stats - Minimal & Sleek */}
+                          {(stats.uniqueProducts > 1 || stats.uniqueCommodities > 1 || stats.totalUnits > 0 || stats.totalPallets > 0) && (
+                            <div className="flex items-center gap-4 mb-3 text-xs">
+                              {stats.uniqueProducts > 1 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-500">Products:</span>
+                                  <span className="font-semibold text-gray-900">{stats.uniqueProducts}</span>
+                                </div>
+                              )}
+                              {stats.uniqueCommodities > 1 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-500">Commodities:</span>
+                                  <span className="font-semibold text-gray-900">{stats.uniqueCommodities}</span>
+                                </div>
+                              )}
+                              {stats.totalUnits > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-500">Units:</span>
+                                  <span className="font-semibold text-blue-600">{stats.totalUnits}</span>
+                                </div>
+                              )}
+                              {stats.totalPallets > 0 && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-gray-500">Pallets:</span>
+                                  <span className="font-semibold text-indigo-600">{stats.totalPallets}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* FTL Progress */}
+                          <div className="bg-white rounded-lg p-3 border border-gray-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-xs font-medium text-gray-700">Truckload Capacity</span>
+                              <span className="text-xs font-bold text-gray-900">{stats.ftlPercentage}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-3 mb-2 overflow-hidden">
+                              <div 
+                                className={`h-3 rounded-full transition-all duration-500 ${
+                                  stats.ftlPercentage >= 100 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                                  stats.ftlPercentage >= 75 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                                  'bg-gradient-to-r from-blue-400 to-blue-500'
+                                }`}
+                                style={{ width: `${Math.min(stats.ftlPercentage, 100)}%` }}
+                              />
+                            </div>
+                            <div className="flex items-start justify-between text-xs">
+                              <div>
+                                <span className="text-gray-600">Est. Pallets: </span>
+                                <span className="font-semibold text-gray-900">{stats.palletEquivalent}</span>
+                                <span className="text-gray-500"> / 26</span>
+                              </div>
+                              {stats.palletsToFTL > 0 && stats.ftlPercentage < 100 && (
+                                <div className="text-right">
+                                  <span className="text-orange-600 font-medium">
+                                    +{stats.palletsToFTL} to FTL
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {stats.ftlPercentage >= 100 && (
+                              <div className="mt-2 flex items-center text-xs text-green-700 bg-green-50 rounded px-2 py-1">
+                                <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                </svg>
+                                Eligible for FTL rates!
+                              </div>
+                            )}
+                            {stats.ftlPercentage >= 50 && stats.ftlPercentage < 75 && (
+                              <div className="mt-2 text-xs text-blue-700 bg-blue-50 rounded px-2 py-1">
+                                💡 Add {stats.palletsToFTL} more pallets for better freight rates
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Organic Badge */}
+                          {stats.organicCount > 0 && (
+                            <div className="mt-3 flex items-center text-xs text-green-700 bg-green-50 rounded-lg px-3 py-2 border border-green-200">
+                              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              <span className="font-medium">
+                                {stats.organicCount} organic product{stats.organicCount > 1 ? 's' : ''} included
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })()}
+                    
                     <div className="border-t-2 border-gray-300 pt-4 mb-4">
-                      <div className="flex items-center justify-between text-lg font-bold">
-                        <span>Total</span>
-                        <span className="text-green-600">${getOrderTotal().toFixed(2)}</span>
-                      </div>
+                      {hasPalletItems() ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="text-gray-700">Subtotal (units only)</span>
+                            <span className="text-gray-900 font-semibold">${getOrderTotal().toFixed(2)}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-lg font-bold">
+                            <span>Total</span>
+                            <span className="text-orange-600">TBD</span>
+                          </div>
+                          <p className="text-xs text-orange-600 italic">
+                            *Final total pending pallet configuration
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between text-lg font-bold">
+                          <span>Total</span>
+                          <span className="text-green-600">${getOrderTotal().toFixed(2)}</span>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Comments Section */}
@@ -425,9 +623,10 @@ export default function OrderBuilder() {
                       Submit Order Request
                     </button>
                     
-                    <p className="text-xs text-gray-500 text-center mt-3">
-                      This will send an email to {companyName} with your order details
-                    </p>
+                    <div className="text-xs text-gray-500 text-center mt-3 space-y-1">
+                      <p>This will send a message to {companyName} with your order details.</p>
+                      <p>Request will be sent on behalf of <span className="font-medium text-gray-700">{searchParams?.get('buyer') || 'your company'}</span>.</p>
+                    </div>
                   </>
                 )}
               </div>

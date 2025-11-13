@@ -334,6 +334,44 @@ export default function CleanPriceSheetPage() {
     return grouped
   }
 
+  // Helper function to group selected products by shipping point and commodity (like preview modal)
+  const getSelectedProductsGrouped = () => {
+    const grouped: Record<string, Record<string, ProcessedProduct[]>> = {}
+    
+    Array.from(selectedProductIds).forEach(productId => {
+      const product = products.find(p => p.id === productId)
+      if (!product) return
+      
+      const shippingPoint = product.region || 'Other'
+      if (!grouped[shippingPoint]) {
+        grouped[shippingPoint] = {}
+      }
+      
+      const commodity = product.commodity || 'Other'
+      const commodityKey = commodity.charAt(0).toUpperCase() + commodity.slice(1)
+      if (!grouped[shippingPoint][commodityKey]) {
+        grouped[shippingPoint][commodityKey] = []
+      }
+      
+      grouped[shippingPoint][commodityKey].push(product)
+    })
+    
+    return grouped
+  }
+
+  // Helper function to get availability badge colors
+  const getAvailabilityBadgeClasses = (availability: string) => {
+    const badgeClasses: Record<string, string> = {
+      'Available': 'bg-green-50 text-green-700 border-green-300',
+      'Coming Soon': 'bg-blue-50 text-blue-700 border-blue-300',
+      'End of Season': 'bg-amber-50 text-amber-700 border-amber-300',
+      'Limited Supply': 'bg-orange-50 text-orange-700 border-orange-300',
+      'Sold Out': 'bg-red-50 text-red-700 border-red-300',
+      'Program': 'bg-purple-50 text-purple-700 border-purple-300'
+    }
+    return badgeClasses[availability] || badgeClasses['Available']
+  }
+
   // Helper function to format seasonality (from complex version)
   const formatSeasonality = (availability: any): string => {
     if (!availability) return 'Year-round'
@@ -654,157 +692,20 @@ export default function CleanPriceSheetPage() {
   }
 
   const initializeProductPackaging = (productId: string, commodity: string) => {
-    const config = getLegacyCommodityPackaging(commodity)
-    if (!config) {
-      console.log(`❌ No config found for commodity: ${commodity}`)
-      return
-    }
-
-    console.log(`🔧 Initializing packaging for ${commodity}:`, {
-      hasProcessing: config.hasProcessing,
-      processingTypes: config.processing?.types?.length || 0,
-      packagingTypes: config.packaging?.types?.length || 0,
-      defaultType: config.processing?.defaultType
-    })
-
-    const defaults: any = {}
+    console.log(`🔧 Initializing packaging for ${commodity}`)
     
-    if (config.hasProcessing && config.processing?.types && config.processing.types.length > 0) {
-      // Use the configured default processing type
-      const defaultProcessingType = config.processing.types.find(pt => pt.isDefault) || 
-                                   config.processing.types.find(pt => pt.id === config.processing.defaultType) ||
-                                   config.processing.types[0]
-      
-      if (defaultProcessingType) {
-        defaults.processingType = defaultProcessingType.id
-        console.log(`  ✅ Default processing type: ${defaultProcessingType.name} (${defaultProcessingType.id})`)
-        
-        // Find the default package type within this processing type
-        const defaultPackageType = defaultProcessingType.packageTypes.find(pt => pt.isDefault) || defaultProcessingType.packageTypes[0]
-        if (defaultPackageType) {
-          defaults.packageType = defaultPackageType.id
-          console.log(`  ✅ Default package type: ${defaultPackageType.name} (${defaultPackageType.id})`)
-          
-          // Find the default size within this package type
-          const defaultSize = defaultPackageType.sizes.find(s => s.isDefault) || defaultPackageType.sizes[0]
-          if (defaultSize) {
-            defaults.size = defaultSize.id
-            console.log(`  ✅ Default size: ${defaultSize.name} (${defaultSize.id})`)
-          } else {
-            console.log(`  ❌ No sizes found for package type: ${defaultPackageType.name}`)
-          }
-          
-          // Find the default fruit count if available
-          if (defaultPackageType.sizeClassifications && defaultPackageType.sizeClassifications.length > 0) {
-            const defaultFruitCount = defaultPackageType.sizeClassifications.find(fc => fc.isDefault) || defaultPackageType.sizeClassifications[0]
-            if (defaultFruitCount) {
-              defaults.sizeClassification = defaultFruitCount.id
-              console.log(`  ✅ Default fruit count: ${defaultFruitCount.name} (${defaultFruitCount.id})`)
-            }
-          }
-        } else {
-          console.log(`  ❌ No package types found for processing type: ${defaultProcessingType.name}`)
-        }
-      } else {
-        console.log(`  ❌ No default processing type found`)
-      }
-    } else if (config.packaging?.types && config.packaging.types.length > 0) {
-      // Direct packaging (no processing) - use packaging defaults
-      console.log(`  📦 Using direct packaging (no processing)`)
-      const defaultPackageType = config.packaging.types.find(pt => pt.isDefault) || config.packaging.types[0]
-      if (defaultPackageType) {
-        defaults.packageType = defaultPackageType.id
-        console.log(`  ✅ Default package type: ${defaultPackageType.name} (${defaultPackageType.id})`)
-        
-        // Find the default size
-        const defaultSize = defaultPackageType.sizes.find(s => s.isDefault) || defaultPackageType.sizes[0]
-        if (defaultSize) {
-          defaults.size = defaultSize.id
-          console.log(`  ✅ Default size: ${defaultSize.name} (${defaultSize.id})`)
-        } else {
-          console.log(`  ❌ No sizes found for package type: ${defaultPackageType.name}`)
-        }
-        
-        // Find the default fruit count if available
-        if (defaultPackageType.sizeClassifications && defaultPackageType.sizeClassifications.length > 0) {
-          const defaultFruitCount = defaultPackageType.sizeClassifications.find(fc => fc.isDefault) || defaultPackageType.sizeClassifications[0]
-          if (defaultFruitCount) {
-            defaults.sizeClassification = defaultFruitCount.id
-            console.log(`  ✅ Default fruit count: ${defaultFruitCount.name} (${defaultFruitCount.id})`)
-          }
-        }
-      } else {
-        console.log(`  ❌ No package types found in direct packaging`)
-      }
+    // Initialize with default grade only (no legacy config defaults)
+    // User will select package type and size from their custom packaging structure
+    const defaults: any = {
+      grade: 'No 1' // Default grade - always has a selection
     }
     
-    // Set the default grade
-    if (config.quality?.defaultGrade) {
-      defaults.grade = config.quality.defaultGrade
-    } else if (config.quality?.grades && config.quality.grades.length > 0) {
-      defaults.grade = config.quality.grades[0]
-    }
-
-    console.log(`🎯 Initialized packaging for ${commodity}:`, defaults)
-
     setProductPackaging(prev => ({
       ...prev,
       [productId]: defaults
     }))
-
-    // Calculate initial price using the defaults we just set
-    const product = products.find(p => p.id === productId)
-    const marketData = getMarketDataSample(commodity, product?.variety || '')
     
-    if (marketData && defaults.size) {
-      const pricePerLb = marketData.basePrice
-      let packageWeight = 1
-      
-      // Get package weight from the size we just set
-      const weightMatch = defaults.size.match(/^(\d+(?:\.\d+)?)lb$/)
-      if (weightMatch) {
-        packageWeight = parseFloat(weightMatch[1])
-      } else {
-        // Check for count-based package (like 24ct, 30ct, 24 Count, 30 Count)
-        const countMatch = defaults.size.match(/^(\d+)\s*(?:ct|count)$/i)
-        if (countMatch && product?.variety) {
-          const itemCount = parseFloat(countMatch[1])
-          
-          // Get item weight from variety config using helper function
-          const itemWeight = getItemWeight(product.commodity, product.variety.toLowerCase())
-          if (itemWeight > 0) {
-            packageWeight = itemCount * itemWeight
-            console.log(`📊 Initial count-based calculation: ${itemCount} items × ${itemWeight}lb = ${packageWeight}lb`)
-          }
-        } else if (config) {
-          // Get weight from config
-          let packageType: any
-          if (config.hasProcessing && defaults.processingType) {
-            const processingType = config.processing?.types?.find(pt => pt.id === defaults.processingType)
-            packageType = processingType?.packageTypes?.find(pt => pt.id === defaults.packageType)
-          } else if (config.packaging?.types) {
-            packageType = config.packaging.types.find(pt => pt.id === defaults.packageType)
-          }
-          
-          if (packageType?.sizes) {
-            const sizeConfig = packageType.sizes.find((s: any) => s.id === defaults.size)
-            if (sizeConfig?.weight) {
-              const configWeightMatch = sizeConfig.weight.match(/^(\d+(?:\.\d+)?)lb$/)
-              if (configWeightMatch) {
-                packageWeight = parseFloat(configWeightMatch[1])
-              }
-            }
-          }
-        }
-      }
-      
-      const totalPrice = pricePerLb * packageWeight
-      setProductPrices(prev => ({
-        ...prev,
-        [productId]: totalPrice.toFixed(2)
-      }))
-      console.log(`💰 Calculated initial price for ${productId}: $${totalPrice.toFixed(2)} ($${pricePerLb.toFixed(2)}/lb × ${packageWeight}lb)`)
-    }
+    console.log(`✅ Initialized with default grade for ${commodity}`)
   }
 
   const updateProductPackaging = (productId: string, field: string, value: string) => {
@@ -1170,45 +1071,48 @@ export default function CleanPriceSheetPage() {
     let countDisplay = ''
     
     if (packaging) {
-      // Package type name
-      packageTypeDisplay = packaging.packageType || ''
+      // Get package type name from user's packaging structure
+      const packagingStructure = user?.packagingStructure?.[product.commodity]
       
-      // Get the commodity config to check if size is weight or count based
-      const config = getLegacyCommodityPackaging(product.commodity)
-      let packageTypeConfig: any = undefined
-      
-      if (config?.hasProcessing && packaging.processingType && packaging.packageType) {
-        const processingType = config.processing?.types?.find((pt: any) => pt.id === packaging.processingType)
-        packageTypeConfig = processingType?.packageTypes?.find((pt: any) => pt.id === packaging.packageType)
-      } else if (config?.packaging?.types && packaging.packageType) {
-        packageTypeConfig = config.packaging.types.find((pt: any) => pt.id === packaging.packageType)
+      // Look up package type name by ID
+      if (packagingStructure?.packageTypes && packaging.packageType && packaging.packageType !== '') {
+        const packageType = packagingStructure.packageTypes.find((pkg: any) => pkg.id === packaging.packageType)
+        packageTypeDisplay = packageType?.name || ''
       }
       
-      if (packaging.size && packageTypeConfig?.sizes) {
-        const selectedSize = packageTypeConfig.sizes.find((s: any) => s.id === packaging.size)
-        if (selectedSize) {
-          // If size has weight property, it goes in size field
-          if (selectedSize.weight) {
-            sizeDisplay = selectedSize.name
-          }
-          // If size has count property (and no weight), it goes in count field
-          else if (selectedSize.count) {
-            countDisplay = selectedSize.name
-          }
+      // Look up size name by ID
+      if (packagingStructure?.sizeGrades && packaging.size && packaging.size !== '') {
+        const sizeGrade = packagingStructure.sizeGrades.find((size: any) => size.id === packaging.size)
+        sizeDisplay = sizeGrade?.name || ''
+      }
+      
+      // Legacy support for old commodity config structure (if no custom packaging)
+      if ((!packageTypeDisplay || !sizeDisplay) && (packaging.packageType || packaging.size || packaging.sizeClassification)) {
+        const config = getLegacyCommodityPackaging(product.commodity)
+        let packageTypeConfig: any = undefined
+        
+        if (config?.hasProcessing && packaging.processingType && packaging.packageType) {
+          const processingType = config.processing?.types?.find((pt: any) => pt.id === packaging.processingType)
+          packageTypeConfig = processingType?.packageTypes?.find((pt: any) => pt.id === packaging.packageType)
+        } else if (config?.packaging?.types && packaging.packageType) {
+          packageTypeConfig = config.packaging.types.find((pt: any) => pt.id === packaging.packageType)
         }
-      }
-      
-      // Fruit counts (for citrus) - special handling
-      if (packaging.sizeClassification) {
-        // If we have both a weight-based size AND a fruit count (citrus case)
-        // Combine size with package type (e.g., "40lb Carton") and put fruit count in size column
-        if (sizeDisplay) {
-          packageTypeDisplay = `${sizeDisplay} ${packageTypeDisplay}`
-          sizeDisplay = '' // Clear sizeDisplay
-          countDisplay = packaging.sizeClassification // Fruit count goes in size column
-        } else {
-          // If no weight-based size, just use fruit count
-          countDisplay = packaging.sizeClassification
+        
+        // sizeClassification now goes in the Size column (for all commodities)
+        if (packaging.sizeClassification && packaging.sizeClassification !== '') {
+          sizeDisplay = packaging.sizeClassification
+        }
+        
+        // Legacy support: if there's a size selection (shouldn't happen with new configs)
+        if (packaging.size && packaging.size !== '' && packageTypeConfig?.sizes && packageTypeConfig.sizes.length > 0) {
+          const selectedSize = packageTypeConfig.sizes.find((s: any) => s.id === packaging.size)
+          if (selectedSize) {
+            if (selectedSize.weight) {
+              sizeDisplay = selectedSize.name
+            } else if (selectedSize.count) {
+              countDisplay = selectedSize.name
+            }
+          }
         }
       }
     }
@@ -1414,6 +1318,8 @@ export default function CleanPriceSheetPage() {
                                         <p className="text-xs text-gray-600 capitalize">{product.commodity?.replace(/-/g, ' ')}</p>
                                         <span className="text-xs text-gray-400">•</span>
                                         <p className="text-xs text-gray-600">{product.seasonality}</p>
+                                        <span className="text-xs text-gray-400">•</span>
+                                        <p className="text-xs text-gray-600">{product.region}</p>
                                       </div>
                                     </div>
                                     <div className={`w-4 h-4 rounded border-2 flex items-center justify-center ${
@@ -1480,12 +1386,36 @@ export default function CleanPriceSheetPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="p-4 space-y-3">
-                      {Array.from(selectedProductIds).map((productId) => {
-                      const product = products.find(p => p.id === productId)
-                      if (!product) return null
-                      
-                      const additionalCount = additionalPackStyles[productId] || 0
+                  <div className="p-4 space-y-4">
+                    {/* Group products by shipping point and commodity */}
+                    {Object.entries(getSelectedProductsGrouped()).map(([shippingPoint, commodities]) => (
+                      <div key={shippingPoint} className="space-y-3">
+                        {/* Shipping Point Header */}
+                        <div className="bg-gradient-to-r from-slate-50 to-gray-50 border border-gray-200 rounded-lg px-3 py-2">
+                          <div className="flex items-center space-x-2">
+                            <svg className="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <div>
+                              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Shipping Point</div>
+                              <div className="text-sm font-bold text-gray-900">{shippingPoint}</div>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Commodities within this shipping point */}
+                        {Object.entries(commodities).map(([commodity, commodityProducts]) => (
+                          <div key={commodity} className="ml-4 space-y-2">
+                            {/* Commodity Header */}
+                            <div className="px-3 py-1.5 bg-gray-50 border border-gray-200 rounded">
+                              <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">{commodity}</h4>
+                            </div>
+
+                            {/* Products in this commodity */}
+                            {commodityProducts.map((product) => {
+                              const productId = product.id
+                              const additionalCount = additionalPackStyles[productId] || 0
                       
                       return (
                         <div key={productId} className="space-y-2">
@@ -1672,13 +1602,14 @@ export default function CleanPriceSheetPage() {
                                     <select
                                       value={productAvailability[productId] || 'Available'}
                                       onChange={(e) => setProductAvailability(prev => ({ ...prev, [productId]: e.target.value }))}
-                                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                      className={`w-full px-2 py-1 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${getAvailabilityBadgeClasses(productAvailability[productId] || 'Available')}`}
                                     >
                                       <option value="Available">Available</option>
                                       <option value="Coming Soon">Coming Soon</option>
                                       <option value="End of Season">End of Season</option>
                                       <option value="Limited Supply">Limited Supply</option>
-                                      <option value="Seasonal">Seasonal</option>
+                                      <option value="Sold Out">Sold Out</option>
+                                      <option value="Program">Program</option>
                                     </select>
                                   </div>
                                   
@@ -1936,13 +1867,14 @@ export default function CleanPriceSheetPage() {
                                       <select
                                         value={productAvailability[`${productId}-additional-${index}`] || 'Available'}
                                         onChange={(e) => setProductAvailability(prev => ({ ...prev, [`${productId}-additional-${index}`]: e.target.value }))}
-                                        className="w-full px-2 py-1 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                                        className={`w-full px-2 py-1 border rounded text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${getAvailabilityBadgeClasses(productAvailability[`${productId}-additional-${index}`] || 'Available')}`}
                                       >
                                         <option value="Available">Available</option>
                                         <option value="Coming Soon">Coming Soon</option>
                                         <option value="End of Season">End of Season</option>
                                         <option value="Limited Supply">Limited Supply</option>
-                                        <option value="Seasonal">Seasonal</option>
+                                        <option value="Sold Out">Sold Out</option>
+                                        <option value="Program">Program</option>
                                       </select>
                                     </div>
                                     
@@ -2034,7 +1966,11 @@ export default function CleanPriceSheetPage() {
                           ))}
                         </div>
                       )
-                      })}
+                            })}
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

@@ -1,190 +1,347 @@
-"use client"
+'use client'
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  PlusIcon, 
-  Cog6ToothIcon, 
-  PaperAirplaneIcon,
+import {
   DocumentTextIcon,
-  SparklesIcon,
-  UserGroupIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
+  CalendarIcon,
+  PlusIcon,
+  PaperAirplaneIcon,
+  EyeIcon,
   DocumentDuplicateIcon,
-  MapPinIcon,
-  ShieldCheckIcon,
-  ArrowRightIcon,
   ArchiveBoxIcon,
-  CurrencyDollarIcon
+  UserGroupIcon
 } from '@heroicons/react/24/outline'
-import { regionsApi, cropsApi, certificationsApi, packagingApi, contactsApi, priceSheetsApi } from '../../../lib/api'
-import type { GrowingRegion, CropManagement, Capability, Contact } from '../../../types'
+import PriceSheetPreviewModal from '@/components/modals/PriceSheetPreviewModal'
+import PriceSheetDuplicateModal from '@/components/modals/PriceSheetDuplicateModal'
+import { priceSheetsApi } from '@/lib/api'
+import { useUser } from '@/contexts/UserContext'
+import { formatProductsForPreview } from '@/lib/priceSheetUtils'
 
-interface DashboardMetrics {
-  regions: {
-    count: number
-    data: GrowingRegion[]
-    lastUpdated?: string
-  }
-  crops: {
-    count: number
-    commodities: number
-    variations: number
-    organicCount: number
-    conventionalCount: number
-    data: CropManagement[]
-    lastUpdated?: string
-  }
-  certifications: {
-    count: number
-    data: Capability[]
-    lastUpdated?: string
-  }
-  packaging: {
-    count: number
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    data: any[]
-    lastUpdated?: string
-  }
-  contacts: {
-    count: number
-    activeCount: number
-    data: Contact[]
-  }
-  priceSheets: {
-    count: number
-    readyCount: number
+interface PriceSheet {
+  _id: string
+  title: string
+  status: 'draft' | 'active' | 'archived'
+  createdAt: string
+  updatedAt: string
+  lastSentAt?: string
+  productsCount?: number
+  productCount?: number // Support both field names
+  productIds?: string[]
+  recipientCount?: number
+  sentTo?: string[] // Array of contact emails
+  metadata?: {
+    recipientCount?: number
+    openRate?: number
   }
 }
 
 export default function PriceSheets() {
-  const [metrics, setMetrics] = useState<DashboardMetrics>({
-    regions: { count: 0, data: [] },
-    crops: { count: 0, commodities: 0, variations: 0, organicCount: 0, conventionalCount: 0, data: [] },
-    certifications: { count: 0, data: [] },
-    packaging: { count: 0, data: [] },
-    contacts: { count: 0, activeCount: 0, data: [] },
-    priceSheets: { count: 0, readyCount: 0 }
-  })
+  const { user } = useUser()
+  const [priceSheets, setPriceSheets] = useState<PriceSheet[]>([])
+  const [filteredSheets, setFilteredSheets] = useState<PriceSheet[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'active' | 'draft' | 'sent' | 'archived'>('active')
+  const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'title'>('newest')
+  
+  // Preview modal state
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
+  const [previewPriceSheet, setPreviewPriceSheet] = useState<any>(null)
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false)
+  
+  // Duplicate modal state
+  const [isDuplicateOpen, setIsDuplicateOpen] = useState(false)
+  const [duplicatePriceSheet, setDuplicatePriceSheet] = useState<any>(null)
+  const [isLoadingDuplicate, setIsLoadingDuplicate] = useState(false)
+  const [currentSheetId, setCurrentSheetId] = useState<string>('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [hasSaved, setHasSaved] = useState(false)
 
   useEffect(() => {
-    loadDashboardMetrics()
+    loadPriceSheets()
   }, [])
 
-  const loadDashboardMetrics = async () => {
+  useEffect(() => {
+    filterAndSortSheets()
+  }, [priceSheets, searchQuery, statusFilter, sortBy])
+
+  const loadPriceSheets = async () => {
     try {
-      setError(null)
-      
-      // Load all data in parallel
-      const [regionsRes, cropsRes, certificationsRes, packagingRes, contactsRes, priceSheetsRes] = await Promise.all([
-        regionsApi.getAll().catch(() => ({ regions: [] })),
-        cropsApi.getAll().catch(() => ({ crops: [] })),
-        certificationsApi.getAll().catch(() => ({ certifications: [] })),
-        packagingApi.getAll().catch(() => ({ packaging: [] })),
-        contactsApi.getAll().catch(() => ({ contacts: [] })),
-        priceSheetsApi.getAll().catch(() => ({ priceSheets: [] }))
-      ])
-
-      const regions = regionsRes.regions || []
-      const crops = cropsRes.crops || []
-      const certifications = certificationsRes.certifications || []
-      const packaging = packagingRes.packaging || []
-      const contacts = contactsRes.contacts || []
-      const priceSheets = priceSheetsRes.priceSheets || []
-
-      // Calculate crop metrics
-      const totalVariations = crops.reduce((sum, crop) => sum + (crop.variations?.length || 0), 0)
-      const organicCount = crops.reduce((sum, crop) => 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sum + (crop.variations?.filter((v: any) => v.type === 'organic').length || 0), 0)
-      const conventionalCount = crops.reduce((sum, crop) => 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        sum + (crop.variations?.filter((v: any) => v.type === 'conventional').length || 0), 0)
-      const uniqueCommodities = new Set(crops.map(crop => crop.commodity)).size
-
-      // Calculate contact metrics
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const activeContacts = contacts.filter((c: any) => c.status === 'active').length
-
-      setMetrics({
-        regions: {
-          count: regions.length,
-          data: regions,
-          lastUpdated: regions[0]?.updatedAt || regions[0]?.createdAt
-        },
-        crops: {
-          count: totalVariations,
-          commodities: uniqueCommodities,
-          variations: totalVariations,
-          organicCount,
-          conventionalCount,
-          data: crops,
-          lastUpdated: crops[0]?.updatedAt || crops[0]?.createdAt
-        },
-        certifications: {
-          count: certifications.length,
-          data: certifications,
-          lastUpdated: certifications[0]?.updatedAt || certifications[0]?.createdAt
-        },
-        packaging: {
-          count: packaging.length,
-          data: packaging,
-          lastUpdated: packaging[0]?.updatedAt || packaging[0]?.createdAt
-        },
-        contacts: {
-          count: contacts.length,
-          activeCount: activeContacts,
-          data: contacts
-        },
-        priceSheets: {
-          count: priceSheets.length,
-          readyCount: priceSheets.length // For now, assume all are ready
-        }
-      })
-
-      console.log('Dashboard metrics loaded:', {
-        regions: regions.length,
-        crops: crops.length,
-        certifications: certifications.length,
-        packaging: packaging.length,
-        contacts: contacts.length,
-        priceSheets: priceSheets.length
-      })
-
-    } catch (err) {
-      console.error('Failed to load dashboard metrics:', err)
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data')
+      setIsLoading(true)
+      const response = await priceSheetsApi.getAll()
+      setPriceSheets(response.priceSheets || [])
+    } catch (error) {
+      console.error('Failed to load price sheets:', error)
     } finally {
       setIsLoading(false)
     }
   }
-  if (error) {
-    return (
-      <div className="mb-8">
-        <div className="bg-red-50 border border-red-200 rounded-md p-4">
-          <div className="flex">
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error Loading Dashboard</h3>
-              <div className="mt-2 text-sm text-red-700">
-                <p>{error}</p>
-              </div>
-              <div className="mt-4">
-                <button
-                  onClick={() => {
-                    setError(null)
-                    loadDashboardMetrics()
-                  }}
-                  className="bg-red-100 px-3 py-2 rounded-md text-sm font-medium text-red-800 hover:bg-red-200"
-                >
-                  Try Again
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
+
+  const filterAndSortSheets = () => {
+    let filtered = [...priceSheets]
+
+    // Apply search filter
+    if (searchQuery) {
+      filtered = filtered.filter(sheet =>
+        sheet.title.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    // Apply status filter
+    if (statusFilter === 'active') {
+      // 'Active' means show everything EXCEPT archived (drafts, sent, active status)
+      filtered = filtered.filter(sheet => sheet.status !== 'archived')
+    } else {
+      // Show specific status only (draft, sent, or archived)
+      filtered = filtered.filter(sheet => sheet.status === statusFilter)
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'newest':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        case 'oldest':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        case 'title':
+          return a.title.localeCompare(b.title)
+        default:
+          return 0
+      }
+    })
+
+    setFilteredSheets(filtered)
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
+  }
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800'
+      case 'draft':
+        return 'bg-yellow-100 text-yellow-800'
+      case 'archived':
+        return 'bg-gray-100 text-gray-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const handlePreviewPriceSheet = async (sheetId: string) => {
+    try {
+      setIsLoadingPreview(true)
+      
+      // Get the price sheet details
+      const sheetResponse = await priceSheetsApi.getById(sheetId)
+      
+      // Get the products
+      const productsResponse = await priceSheetsApi.getProducts(sheetId)
+      const products = productsResponse.products || []
+      
+      // Look up package and size names from user's packaging structure
+      // (in case they were saved as IDs instead of names)
+      const enrichedProducts = products.map((product: any) => {
+        const packagingStructure = user?.packagingStructure?.[product.commodity]
+        
+        let packageTypeDisplay = product.packageType || ''
+        let sizeDisplay = product.size || ''
+        
+        // If packageType looks like an ID (starts with pkg_), look it up
+        if (packageTypeDisplay.startsWith('pkg_') && packagingStructure?.packageTypes) {
+          const packageType = packagingStructure.packageTypes.find((pkg: any) => pkg.id === packageTypeDisplay)
+          if (packageType) {
+            packageTypeDisplay = packageType.name
+          }
+        }
+        
+        // If size looks like an ID (starts with size_), look it up
+        if (sizeDisplay.startsWith('size_') && packagingStructure?.sizeGrades) {
+          const sizeGrade = packagingStructure.sizeGrades.find((size: any) => size.id === sizeDisplay)
+          if (sizeGrade) {
+            sizeDisplay = sizeGrade.name
+          }
+        }
+        
+        return {
+          ...product,
+          packageType: packageTypeDisplay,
+          size: sizeDisplay
+        }
+      })
+      
+      // Convert products to preview format using shared utility
+      const previewProducts = formatProductsForPreview(enrichedProducts)
+      
+      setPreviewPriceSheet({
+        title: sheetResponse.priceSheet.title || 'Untitled Price Sheet',
+        products: previewProducts
+      })
+      setIsPreviewOpen(true)
+    } catch (error) {
+      console.error('Failed to load price sheet preview:', error)
+      alert('Failed to load price sheet preview. Please try again.')
+    } finally {
+      setIsLoadingPreview(false)
+    }
+  }
+
+  const handleDuplicatePriceSheet = async (sheetId: string) => {
+    try {
+      setIsLoadingDuplicate(true)
+      setCurrentSheetId(sheetId)
+      setHasSaved(false)
+      
+      // Get the price sheet details
+      const sheetResponse = await priceSheetsApi.getById(sheetId)
+      
+      // Get the products
+      const productsResponse = await priceSheetsApi.getProducts(sheetId)
+      const products = productsResponse.products || []
+      
+      // Store the original products with all their data for duplication
+      // Convert products to duplicate format for display
+      const duplicateProducts = products.map((product: any) => {
+        const packagingStructure = user?.packagingStructure?.[product.commodity]
+        
+        let packageTypeDisplay = product.packageType || 'N/A'
+        let sizeDisplay = product.size || ''
+        
+        // If packageType looks like an ID (starts with pkg_), look it up
+        if (packageTypeDisplay.startsWith('pkg_') && packagingStructure?.packageTypes) {
+          const packageType = packagingStructure.packageTypes.find((pkg: any) => pkg.id === packageTypeDisplay)
+          if (packageType) {
+            packageTypeDisplay = packageType.name
+          }
+        }
+        
+        // If size looks like an ID (starts with size_), look it up
+        if (sizeDisplay.startsWith('size_') && packagingStructure?.sizeGrades) {
+          const sizeGrade = packagingStructure.sizeGrades.find((size: any) => size.id === sizeDisplay)
+          if (sizeGrade) {
+            sizeDisplay = sizeGrade.name
+          }
+        }
+        
+        return {
+          id: product._id,
+          productName: product.productName || `${product.commodity || ''} ${product.variety || ''}`.trim() || 'Unknown Product',
+          commodity: product.commodity,
+          variety: product.variety,
+          subtype: product.subtype,
+          region: product.regionName || 'N/A',
+          packageType: packageTypeDisplay,
+          size: sizeDisplay,
+          countSize: product.countSize,
+          grade: product.grade,
+          price: product.price,
+          availability: product.availability || 'In Stock',
+          isOrganic: product.isOrganic || false,
+          isStickered: product.isStickered || false,
+          specialNotes: product.specialNotes,
+          hasOverride: product.hasOverride || false,
+          overrideComment: product.overrideComment,
+          // Store original product data for API call
+          _originalData: product
+        }
+      })
+      
+      setDuplicatePriceSheet({
+        title: sheetResponse.priceSheet.title || 'Untitled Price Sheet',
+        products: duplicateProducts
+      })
+      setIsDuplicateOpen(true)
+    } catch (error) {
+      console.error('Failed to load price sheet for duplication:', error)
+      alert('Failed to load price sheet. Please try again.')
+    } finally {
+      setIsLoadingDuplicate(false)
+    }
+  }
+
+  const handleSaveDuplicate = async (updatedData: { title: string; products: any[] }) => {
+    try {
+      setIsSaving(true)
+      
+      // Prepare the data for the API
+      const priceSheetData = {
+        title: updatedData.title,
+        status: 'draft' as const,
+        notes: ''
+      }
+      
+      // Map products to the format expected by the API, preserving original data
+      const productsData = updatedData.products.map(product => {
+        const original = product._originalData || {}
+        return {
+          // Use original data structure but override with updated fields
+          ...original,
+          price: product.price,
+          grade: product.grade,
+          availability: product.availability,
+          hasOverride: product.hasOverride || false,
+          overrideComment: product.overrideComment,
+          // Remove fields that shouldn't be copied
+          _id: undefined,
+          priceSheetId: undefined,
+          createdAt: undefined,
+          updatedAt: undefined
+        }
+      })
+      
+      // Create the duplicate price sheet
+      await priceSheetsApi.create({
+        priceSheet: priceSheetData,
+        products: productsData
+      })
+      
+      setHasSaved(true)
+      
+      // Reload the price sheets list to show new duplicate
+      await loadPriceSheets()
+      
+      // Auto-close after a brief delay
+      setTimeout(() => {
+        setIsDuplicateOpen(false)
+        setDuplicatePriceSheet(null)
+        setHasSaved(false)
+      }, 1500)
+    } catch (error) {
+      console.error('Failed to duplicate price sheet:', error)
+      alert('Failed to create duplicate. Please try again.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleArchivePriceSheet = async (sheetId: string, currentStatus: string) => {
+    const shouldArchive = currentStatus !== 'archived'
+    const actionText = shouldArchive ? 'archive' : 'restore'
+    
+    if (!confirm(`Are you sure you want to ${actionText} this price sheet?`)) {
+      return
+    }
+    
+    try {
+      console.log('Attempting to archive:', { sheetId, shouldArchive, actionText })
+      const result = await priceSheetsApi.archive(sheetId, shouldArchive)
+      console.log('Archive result:', result)
+      // Refresh the list
+      await loadPriceSheets()
+      alert(`Price sheet ${actionText}d successfully!`)
+    } catch (error) {
+      console.error(`Failed to ${actionText} price sheet:`, error)
+      alert(`Failed to ${actionText} price sheet: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    }
   }
 
   return (
@@ -193,311 +350,219 @@ export default function PriceSheets() {
       <div className="mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Price Sheets</h1>
-          <p className="mt-2 text-gray-600">Create professional price sheets and send them to your contacts.</p>
+          <p className="mt-2 text-gray-600">View and manage all your saved price sheets.</p>
         </div>
       </div>
 
-      {/* Main Action Tiles */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Send Price Sheet - Primary Action */}
-        <Link
-          href="/dashboard/price-sheets/send"
-          className="group relative bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 rounded-lg p-6 text-center transition-all duration-300 shadow-lg hover:shadow-xl overflow-hidden"
-        >
-          {/* Subtle animated background pattern */}
-          <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-5 transition-opacity duration-300"></div>
-          
-          <div className="relative flex flex-col items-center space-y-3">
-            <div className="p-3 bg-blue-400 bg-opacity-30 rounded-full group-hover:bg-blue-400 group-hover:bg-opacity-40 transition-all ring-2 ring-white ring-opacity-30">
-              <PaperAirplaneIcon className="h-8 w-8 text-white" />
+      {/* Price Sheets Library */}
+      <div>
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search */}
+            <div className="flex-1">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search price sheets..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-lime-500 focus:border-lime-500 sm:text-sm"
+                />
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Send Price Sheet</h3>
-              <p className="text-sm text-blue-100">Share with your buyers</p>
+
+            {/* Status Filter */}
+            <div className="flex items-center space-x-2">
+              <FunnelIcon className="h-5 w-5 text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-lime-500 focus:border-lime-500 sm:text-sm rounded-md"
+              >
+                <option value="active">Active (All non-archived)</option>
+                <option value="draft">Draft</option>
+                <option value="sent">Sent</option>
+                <option value="archived">Archived</option>
+              </select>
             </div>
-            {metrics.priceSheets.count > 0 && (
-              <div className="absolute top-2 right-2 bg-blue-400 bg-opacity-40 px-2.5 py-1 rounded-full ring-1 ring-white ring-opacity-40">
-                <span className="text-xs font-bold text-white">{metrics.priceSheets.count} ready</span>
+
+            {/* Sort By */}
+            <div className="flex items-center space-x-2">
+              <CalendarIcon className="h-5 w-5 text-gray-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as any)}
+                className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-lime-500 focus:border-lime-500 sm:text-sm rounded-md"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="title">Title (A-Z)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Results Count */}
+        <div className="mb-4">
+          <p className="text-sm text-gray-600">
+            Showing {filteredSheets.length} of {priceSheets.length} price sheets
+          </p>
+        </div>
+
+        {/* Price Sheets Grid */}
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-lime-600"></div>
+          </div>
+        ) : filteredSheets.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+            <DocumentTextIcon className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No price sheets found</h3>
+            <p className="mt-1 text-sm text-gray-500">
+              {searchQuery || statusFilter !== 'active'
+                ? 'Try adjusting your search or filters'
+                : 'Get started by creating a new price sheet'}
+            </p>
+            {!searchQuery && statusFilter === 'active' && (
+              <div className="mt-6">
+                <Link
+                  href="/dashboard/price-sheets/new"
+                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700"
+                >
+                  <PlusIcon className="h-5 w-5 mr-2" />
+                  Create New Sheet
+                </Link>
               </div>
             )}
           </div>
-        </Link>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredSheets.map((sheet) => (
+              <div
+                key={sheet._id}
+                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-lime-500 transition-all duration-200"
+              >
+                <div className="p-6">
+                  {/* Header */}
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                        {sheet.title}
+                      </h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(sheet.status)}`}>
+                          {sheet.status.charAt(0).toUpperCase() + sheet.status.slice(1)}
+                        </span>
+                        <span className="text-sm text-gray-600">
+                          • {sheet.productsCount || sheet.productCount || 0} products
+                        </span>
+                      </div>
+                    </div>
+                  </div>
 
-        {/* Price Sheet Library - Secondary */}
-        <Link
-          href="/dashboard/price-sheets/library"
-          className="group bg-white border-2 border-gray-200 hover:border-orange-300 hover:bg-orange-50 rounded-lg p-6 text-center transition-all duration-200 shadow-sm hover:shadow-md"
-        >
-          <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-all">
-              <ArchiveBoxIcon className="h-8 w-8 text-orange-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Price Sheet Library</h3>
-              <p className="text-sm text-gray-600">View & manage sheets</p>
-            </div>
-          </div>
-        </Link>
+                  {/* Metadata */}
+                  <div className="space-y-2 mb-4">
+                    <div className="flex items-center text-sm text-gray-600">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      Created {formatDate(sheet.createdAt)}
+                    </div>
+                    {sheet.lastSentAt && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                        Last sent {formatDate(sheet.lastSentAt)}
+                      </div>
+                    )}
+                    {(sheet.recipientCount ?? 0) > 0 && (
+                      <div className="flex items-center text-sm text-gray-600">
+                        <UserGroupIcon className="h-4 w-4 mr-2" />
+                        Sent to {sheet.recipientCount} {sheet.recipientCount === 1 ? 'contact' : 'contacts'}
+                      </div>
+                    )}
+                  </div>
 
-        {/* Generate New Sheet - Secondary */}
-        <Link
-          href="/dashboard/price-sheets/new"
-          className="group bg-white border-2 border-gray-200 hover:border-green-300 hover:bg-green-50 rounded-lg p-6 text-center transition-all duration-200 shadow-sm hover:shadow-md"
-        >
-          <div className="flex flex-col items-center space-y-3">
-            <div className="p-3 bg-green-100 rounded-full group-hover:bg-green-200 transition-all">
-              <PlusIcon className="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Generate New Sheet</h3>
-              <p className="text-sm text-gray-600">Create from scratch</p>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Simple Metrics Bar */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-8">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-8">
-            {isLoading ? (
-              <div className="flex items-center space-x-2 text-gray-600">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
-                <span className="text-sm">Loading metrics...</span>
+                  {/* Actions */}
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => handlePreviewPriceSheet(sheet._id)}
+                      disabled={isLoadingPreview}
+                      className="inline-flex items-center justify-center px-2 py-2 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                      title="Preview"
+                    >
+                      <EyeIcon className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDuplicatePriceSheet(sheet._id)}
+                      disabled={isLoadingDuplicate}
+                      className="inline-flex items-center justify-center px-2 py-2 border border-blue-300 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50"
+                      title="Duplicate"
+                    >
+                      <DocumentDuplicateIcon className="h-4 w-4" />
+                    </button>
+                    <Link
+                      href={`/dashboard/price-sheets/send?sheetId=${sheet._id}`}
+                      className="inline-flex items-center justify-center px-2 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700"
+                      title="Send"
+                    >
+                      <PaperAirplaneIcon className="h-4 w-4" />
+                    </Link>
+                  </div>
+                    {/* Archive Button */}
+                    <button
+                      onClick={() => handleArchivePriceSheet(sheet._id, sheet.status)}
+                      className={`w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md ${
+                        sheet.status === 'archived'
+                          ? 'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300'
+                          : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-300'
+                      }`}
+                      title={sheet.status === 'archived' ? 'Restore' : 'Archive'}
+                    >
+                      <ArchiveBoxIcon className="h-4 w-4 mr-1" />
+                      {sheet.status === 'archived' ? 'Restore' : 'Archive'}
+                    </button>
+                  </div>
+                </div>
               </div>
-            ) : (
-              <>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Commodities:</span>
-                  <span className="text-sm font-semibold text-gray-900">{metrics.crops.commodities}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Products:</span>
-                  <span className="text-sm font-semibold text-gray-900">{metrics.crops.variations}</span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Saved Sheets:</span>
-                  <span className="text-sm font-semibold text-gray-900">{metrics.priceSheets.count}</span>
-                </div>
-              </>
-            )}
+            ))}
           </div>
-          <div className="text-xs text-gray-500">
-            Last updated: {new Date().toLocaleDateString()}
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Main Content */}
-      <div className="space-y-8">
-        {/* Data Management - Now Collapsible */}
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 p-3 bg-gray-100 rounded-lg">
-                  <Cog6ToothIcon className="h-6 w-6 text-gray-600" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">Manage Your Data</h3>
-                  <p className="text-sm text-gray-500">Setup and manage your shipping points, crops, and capabilities</p>
-                </div>
-              </div>
-            </div>
-            
-            {/* Data Management Cards - Horizontal Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
-              {isLoading ? (
-                <div className="col-span-full flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-3 text-gray-500">Loading your data...</span>
-                </div>
-              ) : (
-                <>
-                  {/* Shipping Points */}
-                  <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
-                        <MapPinIcon className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900">Shipping Points</h4>
-                        <p className="text-xs text-gray-500">Active shipping points</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1 mb-3">
-                      {metrics.regions.data.slice(0, 2).map((region, index) => (
-                        <div key={index} className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{region.name}</span>
-                        </div>
-                      ))}
-                      {metrics.regions.data.length > 2 && (
-                        <div className="text-xs text-gray-500">
-                          +{metrics.regions.data.length - 2} more...
-                        </div>
-                      )}
-                      {metrics.regions.data.length === 0 && (
-                        <div className="text-xs text-gray-400 italic">No regions added yet</div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500 truncate">
-                        {metrics.regions.lastUpdated 
-                          ? `Updated ${new Date(metrics.regions.lastUpdated).toLocaleDateString()}`
-                          : 'Not set up'
-                        }
-                      </span>
-                      <Link
-                        href="/dashboard/price-sheets/regions"
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
-                      >
-                        Manage
-                        <ArrowRightIcon className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
+      {/* Preview Modal */}
+      {isPreviewOpen && previewPriceSheet && (
+        <PriceSheetPreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => {
+            setIsPreviewOpen(false)
+            setPreviewPriceSheet(null)
+          }}
+          title={previewPriceSheet.title}
+          products={previewPriceSheet.products}
+          userEmail={user?.profile?.email || user?.email}
+          userPhone={user?.profile?.phone}
+        />
+      )}
 
-                  {/* Commodities */}
-                  <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
-                        <SparklesIcon className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900">Commodities</h4>
-                        <p className="text-xs text-gray-500">Crop varieties and seasons</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1 mb-3">
-                      {metrics.crops.organicCount > 0 && (
-                        <div className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{metrics.crops.organicCount} Organic varieties</span>
-                        </div>
-                      )}
-                      {metrics.crops.conventionalCount > 0 && (
-                        <div className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{metrics.crops.conventionalCount} Conventional varieties</span>
-                        </div>
-                      )}
-                      {metrics.crops.variations > 0 && (
-                        <div className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{metrics.crops.variations} total variations</span>
-                        </div>
-                      )}
-                      {metrics.crops.variations === 0 && (
-                        <div className="text-xs text-gray-400 italic">No crops added yet</div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500 truncate">
-                        {metrics.crops.lastUpdated 
-                          ? `Updated ${new Date(metrics.crops.lastUpdated).toLocaleDateString()}`
-                          : 'Not set up'
-                        }
-                      </span>
-                      <Link
-                        href="/dashboard/price-sheets/crops"
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
-                      >
-                        Manage
-                        <ArrowRightIcon className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Commodity Structure */}
-                  <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
-                        <ArchiveBoxIcon className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900">Commodity Structure</h4>
-                        <p className="text-xs text-gray-500">Processing & packaging options</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1 mb-3">
-                      <div className="text-xs text-gray-600">
-                        View detailed breakdown of processing, packaging, and sizing specifications for all supported commodities.
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500 truncate">
-                        Variety-specific differences
-                      </span>
-                      <Link
-                        href="/dashboard/price-sheets/packaging"
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
-                      >
-                        View
-                        <ArrowRightIcon className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* Certifications */}
-                  <div className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                    <div className="flex items-center space-x-3 mb-3">
-                      <div className="flex-shrink-0 p-2 bg-gray-100 rounded-lg">
-                        <ShieldCheckIcon className="h-5 w-5 text-gray-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-900">Certifications</h4>
-                        <p className="text-xs text-gray-500">Quality certifications</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-1 mb-3">
-                      {metrics.certifications.data.slice(0, 2).map((cert, index) => (
-                        <div key={index} className="flex items-center text-xs text-gray-600">
-                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                          <span className="truncate">{cert.name}</span>
-                        </div>
-                      ))}
-                      {metrics.certifications.data.length > 2 && (
-                        <div className="text-xs text-gray-500">
-                          +{metrics.certifications.data.length - 2} more...
-                        </div>
-                      )}
-                      {metrics.certifications.data.length === 0 && (
-                        <div className="text-xs text-gray-400 italic">No certifications added</div>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <span className="text-xs text-gray-500 truncate">
-                        {metrics.certifications.lastUpdated 
-                          ? `Updated ${new Date(metrics.certifications.lastUpdated).toLocaleDateString()}`
-                          : 'Not set up'
-                        }
-                      </span>
-                      <Link
-                        href="/dashboard/price-sheets/certifications"
-                        className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black flex-shrink-0"
-                      >
-                        Manage
-                        <ArrowRightIcon className="h-3 w-3 ml-1" />
-                      </Link>
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-
+      {/* Duplicate Modal */}
+      {isDuplicateOpen && duplicatePriceSheet && (
+        <PriceSheetDuplicateModal
+          isOpen={isDuplicateOpen}
+          onClose={() => {
+            setIsDuplicateOpen(false)
+            setDuplicatePriceSheet(null)
+            setHasSaved(false)
+          }}
+          title={duplicatePriceSheet.title}
+          products={duplicatePriceSheet.products}
+          onDuplicate={handleSaveDuplicate}
+          isSaving={isSaving}
+          hasSaved={hasSaved}
+        />
+      )}
     </>
   )
 }

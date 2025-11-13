@@ -192,9 +192,11 @@ export default function PriceSheetPreviewModal({
   const getAvailabilityBadge = (availability: string) => {
     const badgeClasses: Record<string, string> = {
       'Available': 'bg-green-50 text-green-700 border-green-200',
-      'Limited': 'bg-amber-50 text-amber-700 border-amber-200',
-      'New Crop': 'bg-blue-50 text-blue-700 border-blue-200',
-      'Pre-order': 'bg-purple-50 text-purple-700 border-purple-200'
+      'Coming Soon': 'bg-blue-50 text-blue-700 border-blue-200',
+      'End of Season': 'bg-amber-50 text-amber-700 border-amber-200',
+      'Limited Supply': 'bg-orange-50 text-orange-700 border-orange-200',
+      'Sold Out': 'bg-red-50 text-red-700 border-red-200',
+      'Program': 'bg-purple-50 text-purple-700 border-purple-200'
     }
     const className = badgeClasses[availability] || badgeClasses['Available']
     return (

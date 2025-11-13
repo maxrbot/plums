@@ -1,5 +1,6 @@
 "use client"
 
+import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
@@ -14,9 +15,12 @@ import {
   LightBulbIcon,
   CubeIcon,
   ShieldCheckIcon,
-  LockClosedIcon
+  LockClosedIcon,
+  PaperAirplaneIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
+import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
 
 // Feature access mapping - generous for demo purposes
 const featureAccess = {
@@ -40,6 +44,39 @@ const navigation = [
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { user, loading, logout } = useUser()
+  
+  // Track setup completion for action buttons
+  const [isSetupComplete, setIsSetupComplete] = useState(false)
+  const [checkingSetup, setCheckingSetup] = useState(true)
+  
+  // Check if user has completed all setup steps
+  useEffect(() => {
+    const checkSetupProgress = async () => {
+      try {
+        const [regionsRes, cropsRes, contactsRes] = await Promise.all([
+          regionsApi.getAll().catch(() => ({ regions: [] })),
+          cropsApi.getAll().catch(() => ({ crops: [] })),
+          contactsApi.getAll().catch(() => ({ contacts: [] }))
+        ])
+        
+        const hasRegions = (regionsRes.regions?.length || 0) > 0
+        const hasCrops = (cropsRes.crops?.length || 0) > 0
+        const hasContacts = (contactsRes.contacts?.length || 0) > 0
+        
+        // All 3 core steps must be complete (packaging is optional for now)
+        setIsSetupComplete(hasRegions && hasCrops && hasContacts)
+      } catch (error) {
+        console.error('Failed to check setup progress:', error)
+        setIsSetupComplete(false)
+      } finally {
+        setCheckingSetup(false)
+      }
+    }
+    
+    if (!loading) {
+      checkSetupProgress()
+    }
+  }, [loading])
   
   // Show loading state
   if (loading) {
@@ -83,8 +120,61 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
 
+          {/* Action Buttons */}
+          <div className="px-4 pt-4 pb-2 space-y-2">
+            {/* Send Price Sheet Button */}
+            {checkingSetup ? (
+              <div className="w-full flex items-center justify-center px-4 py-2.5 bg-gray-300 text-white text-sm font-medium rounded-md">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Loading...
+              </div>
+            ) : isSetupComplete ? (
+              <Link
+                href="/dashboard/price-sheets/send"
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm"
+              >
+                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                Send Price Sheet
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md opacity-50 cursor-not-allowed"
+                title="Complete setup steps on dashboard to enable"
+              >
+                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                Send Price Sheet
+              </button>
+            )}
+            
+            {/* New Price Sheet Button */}
+            {checkingSetup ? (
+              <div className="w-full flex items-center justify-center px-4 py-2.5 bg-gray-300 text-white text-sm font-medium rounded-md">
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Loading...
+              </div>
+            ) : isSetupComplete ? (
+              <Link
+                href="/dashboard/price-sheets/new"
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-lime-600 text-white text-sm font-medium rounded-md hover:bg-lime-700 transition-colors shadow-sm"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                New Price Sheet
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="w-full flex items-center justify-center px-4 py-2.5 bg-lime-600 text-white text-sm font-medium rounded-md opacity-50 cursor-not-allowed"
+                title="Complete setup steps on dashboard to enable"
+              >
+                <PlusIcon className="h-4 w-4 mr-2" />
+                New Price Sheet
+              </button>
+            )}
+          </div>
+
           {/* Navigation */}
-          <nav className="flex-1 p-4 pt-6">
+          <nav className="flex-1 p-4 pt-2">
             {/* Main Navigation */}
             <div className="space-y-1">
               {filteredNavigation.map((item, index) => {

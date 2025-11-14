@@ -331,24 +331,20 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           ? `$${item.subtotal.toFixed(2)}`
           : 'Price TBD (Pallet Configuration Required)'
         
-        let itemDetails = `${item.quantity} ${item.unit} - ${item.productName} (${item.packageType}`
-        if (item.size) itemDetails += ` • ${item.size}`
-        if (item.grade) itemDetails += ` • ${item.grade}`
-        itemDetails += `) - ${priceDisplay}`
+        // Format: quantity units - productName (packageType) - price
+        // Don't include size or grade to match preview
+        const itemDetails = `${item.quantity} ${item.unit} - ${item.productName} (${item.packageType}) - ${priceDisplay}`
         
         return itemDetails
       }).join('\n')
-
-      const totalSection = hasPalletItems 
-        ? `\n\nSubtotal (units only): $${orderTotal.toFixed(2)}\n*Final total pending pallet configuration*`
-        : `\n\nTotal: $${orderTotal.toFixed(2)}`
 
       const commentsSection = orderComments?.trim() 
         ? `\n\nAdditional Comments:\n${orderComments}\n` 
         : ''
 
       const subject = customSubject || `Order Request - ${priceSheet.title}`
-      const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${totalSection}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
+      // Simple email body - no totals, just the order items and comments
+      const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
 
       // Send email using SendGrid
       const sgMail = require('@sendgrid/mail')
@@ -421,15 +417,9 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           <div style="font-family: Arial, sans-serif; max-width: 600px;">
             <p>Hi,</p>
             
-            <p>You have received a new order request${buyerName ? ` from <strong>${buyerName}</strong>` : ''}:</p>
+            <p>I would like to place the following order:</p>
             
-            <div style="margin: 20px 0;">
-              <strong>Order Details:</strong>
-              <pre style="font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin: 10px 0;">${orderSummary}</pre>
-              
-              <p style="margin: 10px 0;"><strong>${hasPalletItems ? 'Subtotal (units only):' : 'Total:'}</strong> $${orderTotal.toFixed(2)}</p>
-              ${hasPalletItems ? `<p style="margin: 5px 0; font-style: italic; color: #666;">*Final total pending pallet configuration</p>` : ''}
-            </div>
+            <pre style="font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin: 20px 0;">${orderSummary}</pre>
             
             ${orderComments ? `
               <div style="margin: 20px 0;">
@@ -439,15 +429,6 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
             ` : ''}
             
             <p>Please confirm availability and delivery details.</p>
-            
-            ${contactInfo ? `
-              <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
-                <p style="margin: 5px 0;"><strong>${contactInfo.firstName} ${contactInfo.lastName}</strong></p>
-                <p style="margin: 5px 0;">${contactInfo.email}</p>
-                ${contactInfo.phone ? `<p style="margin: 5px 0;">${contactInfo.phone}</p>` : ''}
-                ${contactInfo.company ? `<p style="margin: 5px 0;">${contactInfo.company}</p>` : ''}
-              </div>
-            ` : ''}
             
             <p style="margin-top: 30px;">Thank you!</p>
           </div>

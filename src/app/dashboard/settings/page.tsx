@@ -1003,82 +1003,43 @@ export default function Settings() {
             </div>
 
             {/* Company Branding */}
-            <div className="border-t border-gray-200 pt-6 mt-6">
+            <div className="border-t border-gray-200 pt-6 mt-6 relative">
               <h4 className="text-base font-medium text-gray-900 mb-4">Company Branding</h4>
               
-              <div>
+              <div className="opacity-50 pointer-events-none">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Logo
                 </label>
-                <div
-                  onDrop={handleLogoDrop}
-                  onDragOver={handleLogoDragOver}
-                  onDragLeave={handleLogoDragLeave}
-                  className={`relative border-2 border-dashed rounded-lg p-6 transition-colors ${
-                    isDraggingLogo
-                      ? 'border-blue-400 bg-blue-50'
-                      : 'border-gray-300 bg-gray-50'
-                  }`}
-                >
-                  {userData.pricesheetSettings?.companyLogo ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={userData.pricesheetSettings.companyLogo}
-                          alt="Company logo"
-                          className="h-16 w-16 object-contain border border-gray-200 rounded bg-white p-2"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Logo uploaded</p>
-                          <p className="text-xs text-gray-500">Drag a new image to replace</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleRemoveLogo}
-                        className="text-sm text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
+                <div className="relative border-2 border-dashed rounded-lg p-6 border-gray-300 bg-gray-50">
+                  <div className="text-center">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      stroke="currentColor"
+                      fill="none"
+                      viewBox="0 0 48 48"
+                    >
+                      <path
+                        d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                    <div className="mt-4">
+                      <span className="text-sm font-medium text-gray-400">Upload a file</span>
+                      <span className="text-sm text-gray-400"> or drag and drop</span>
+                      <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 2MB</p>
                     </div>
-                  ) : (
-                    <div className="text-center">
-                      <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <div className="mt-4">
-                        <label htmlFor="logo-upload" className="cursor-pointer">
-                          <span className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                            Upload a file
-                          </span>
-                          <span className="text-sm text-gray-500"> or drag and drop</span>
-                          <input
-                            id="logo-upload"
-                            type="file"
-                            className="sr-only"
-                            accept="image/*"
-                            onChange={handleLogoFileSelect}
-                          />
-                        </label>
-                        <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 2MB</p>
-                      </div>
-                    </div>
-                  )}
-                  {isUploadingLogo && (
-                    <div className="absolute inset-0 bg-white bg-opacity-75 flex items-center justify-center rounded-lg">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                    </div>
-                  )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Coming Soon Overlay */}
+              <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-60 backdrop-blur-sm rounded-lg">
+                <div className="text-center">
+                  <SparklesIcon className="h-10 w-10 text-blue-500 mx-auto mb-2" />
+                  <p className="text-base font-semibold text-gray-900">Coming Soon</p>
+                  <p className="text-sm text-gray-600 mt-1">Logo branding will be available soon</p>
                 </div>
               </div>
             </div>

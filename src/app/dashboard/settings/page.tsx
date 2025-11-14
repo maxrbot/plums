@@ -643,26 +643,19 @@ export default function Settings() {
         )}
 
         {activeTab === 'notifications' && (
-          <div className="p-6">
+          <div className="p-6 relative">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Notification Preferences</h3>
             
-            <div className="space-y-6">
+            <div className="space-y-6 opacity-50 pointer-events-none">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-medium text-gray-900">Price Sheet Opens</h4>
                   <p className="text-sm text-gray-500">Get notified when contacts open your price sheets</p>
                 </div>
                 <button
-                  onClick={() => handleInputChange('priceSheetOpens', !userData.emailNotifications.priceSheetOpens, 'emailNotifications')}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    userData.emailNotifications.priceSheetOpens ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
+                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
                 >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      userData.emailNotifications.priceSheetOpens ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
                 </button>
               </div>
               
@@ -672,16 +665,9 @@ export default function Settings() {
                   <p className="text-sm text-gray-500">Get notified when new contacts are added</p>
                 </div>
                 <button
-                  onClick={() => handleInputChange('newContacts', !userData.emailNotifications.newContacts, 'emailNotifications')}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    userData.emailNotifications.newContacts ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
+                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
                 >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      userData.emailNotifications.newContacts ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
                 </button>
               </div>
               
@@ -691,16 +677,9 @@ export default function Settings() {
                   <p className="text-sm text-gray-500">Receive weekly analytics and engagement summaries</p>
                 </div>
                 <button
-                  onClick={() => handleInputChange('weeklyReports', !userData.emailNotifications.weeklyReports, 'emailNotifications')}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    userData.emailNotifications.weeklyReports ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
+                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
                 >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      userData.emailNotifications.weeklyReports ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
                 </button>
               </div>
               
@@ -710,17 +689,19 @@ export default function Settings() {
                   <p className="text-sm text-gray-500">Important updates about new features and maintenance</p>
                 </div>
                 <button
-                  onClick={() => handleInputChange('systemUpdates', !userData.emailNotifications.systemUpdates, 'emailNotifications')}
-                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                    userData.emailNotifications.systemUpdates ? 'bg-blue-600' : 'bg-gray-200'
-                  }`}
+                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
                 >
-                  <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      userData.emailNotifications.systemUpdates ? 'translate-x-5' : 'translate-x-0'
-                    }`}
-                  />
+                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
                 </button>
+              </div>
+            </div>
+            
+            {/* Coming Soon Overlay */}
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-60 backdrop-blur-sm">
+              <div className="text-center">
+                <SparklesIcon className="h-12 w-12 text-blue-500 mx-auto mb-3" />
+                <p className="text-lg font-semibold text-gray-900">Coming Soon</p>
+                <p className="text-sm text-gray-600 mt-1">Notification preferences will be available in a future update</p>
               </div>
             </div>
           </div>
@@ -742,7 +723,6 @@ export default function Settings() {
                     </span>
                   </div>
                   <p className="text-blue-700 mt-2">Full platform access at no cost</p>
-                  <p className="text-sm text-blue-600 mt-1">Thank you for being an early user! 🎉</p>
                 </div>
                 <div className="text-right">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">

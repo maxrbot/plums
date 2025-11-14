@@ -318,7 +318,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-gray-400">
-                {user.subscriptionTier.charAt(0).toUpperCase() + user.subscriptionTier.slice(1)} Plan
+                Free Trial
               </span>
               <button
                 onClick={logout}

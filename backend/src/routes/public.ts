@@ -150,13 +150,14 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           priceSheetId: priceSheet._id!,
           userId: priceSheet.userId,
           contactEmail: contact?.email,
+          contactHash: contactHash || undefined, // Save the hash for lookup later
           ipAddress: request.ip,
           userAgent: request.headers['user-agent'],
           viewedAt: new Date(),
           referrer: request.headers.referer
         }
         
-        console.log('📊 Tracking view for:', { priceSheetId: priceSheet._id, contactEmail: contact?.email })
+        console.log('📊 Tracking view for:', { priceSheetId: priceSheet._id, contactEmail: contact?.email, contactHash })
         db.collection<PriceSheetView>('priceSheetViews').insertOne(viewRecord).catch(err => {
           console.error('Failed to track price sheet view:', err)
         })

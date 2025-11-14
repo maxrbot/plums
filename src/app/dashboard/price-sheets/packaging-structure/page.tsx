@@ -1,11 +1,13 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { CropManagement } from '../../../../types'
 import { PlusIcon, ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline'
 import { cropsApi } from '../../../../lib/api'
 import AddPackagingItemModal from '../../../../components/modals/AddPackagingItemModal'
 import { useUser } from '@/contexts/UserContext'
+import { Breadcrumbs } from '../../../../components/ui'
 
 interface PackageType {
   id: string
@@ -28,6 +30,7 @@ interface PackagingConfig {
 }
 
 export default function PackagingStructurePage() {
+  const searchParams = useSearchParams()
   const { user, updateUser } = useUser()
   const [crops, setCrops] = useState<CropManagement[]>([])
   const [packagingConfigs, setPackagingConfigs] = useState<PackagingConfig[]>([])
@@ -42,6 +45,26 @@ export default function PackagingStructurePage() {
   useEffect(() => {
     loadCrops()
   }, [])
+
+  // Auto-expand commodity from URL parameter
+  useEffect(() => {
+    const commodityParam = searchParams?.get('commodity')
+    if (commodityParam && packagingConfigs.length > 0) {
+      // Find the config with matching commodity name
+      const matchingConfig = packagingConfigs.find(c => c.commodityName === commodityParam)
+      if (matchingConfig) {
+        setExpandedCommodities(prev => new Set([...prev, matchingConfig.commodityId]))
+        
+        // Scroll to the commodity section
+        setTimeout(() => {
+          const element = document.getElementById(`commodity-${matchingConfig.commodityName}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+          }
+        }, 100)
+      }
+    }
+  }, [searchParams, packagingConfigs])
 
   // Auto-save when packagingConfigs changes
   useEffect(() => {
@@ -257,9 +280,16 @@ export default function PackagingStructurePage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
       {/* Header */}
       <div className="mb-8">
+        <Breadcrumbs 
+          items={[
+            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Packaging', current: true }
+          ]} 
+          className="mb-4"
+        />
         <h1 className="text-3xl font-bold text-gray-900">Packaging Structure</h1>
         <p className="mt-2 text-sm text-gray-600">
           Define how you package and size each commodity. This will be used when creating price sheets.
@@ -295,7 +325,11 @@ export default function PackagingStructurePage() {
           const variationCount = crop?.variations.length || 0
 
           return (
-            <div key={config.commodityId} className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div 
+              key={config.commodityId} 
+              id={`commodity-${config.commodityName}`}
+              className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden"
+            >
               {/* Commodity Header */}
               <button
                 onClick={() => toggleCommodity(config.commodityId)}
@@ -402,7 +436,7 @@ export default function PackagingStructurePage() {
         type={modalType}
         commodityName={selectedCommodityName}
       />
-    </div>
+    </>
   )
 }
 

@@ -355,7 +355,7 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
   try {
     // Use a verified sending email (noreply@yourdomain.com)
     // But show the user's name, and set Reply-To to user's actual email
-    const verifiedSendingEmail = process.env.SENDGRID_VERIFIED_EMAIL || 'noreply@plums.app'
+    const verifiedSendingEmail = process.env.SENDGRID_VERIFIED_EMAIL || 'noreply@acrelist.ag'
     
     console.log('📧 Sending email FROM:', verifiedSendingEmail, '(verified)')
     console.log('📧 Reply-To will be:', params.from.email, '(user email)')
@@ -395,13 +395,13 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
       }
     }
     
-    // Add BCC if requested
+    // Always BCC noreply@acrelist.ag for oversight, plus user's BCC if requested
+    const bccEmails = ['noreply@acrelist.ag']
     if (params.bcc) {
-      msg.bcc = {
-        email: params.bcc,
-        name: params.from.name
-      }
+      bccEmails.push(params.bcc)
     }
+    
+    msg.bcc = bccEmails
 
     const [response] = await sgMail.send(msg)
     

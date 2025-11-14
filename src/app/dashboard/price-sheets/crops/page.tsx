@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { 
   SparklesIcon, 
   PlusIcon, 
@@ -18,6 +19,7 @@ import type { CropManagement, GrowingRegion } from '../../../../types'
 import { Breadcrumbs, AddVariationModal } from '../../../../components/ui'
 import CropImportModal from '../../../../components/modals/CropImportModal'
 import { cropsApi, regionsApi } from '../../../../lib/api'
+import { useUser } from '../../../../contexts/UserContext'
 
 // Mock crop data with new structure
 const mockCrops: CropManagement[] = [
@@ -196,6 +198,8 @@ const mockShippingPoints = [
 ]
 
 export default function CropManagement() {
+  const router = useRouter()
+  const { user } = useUser()
   const [crops, setCrops] = useState<CropManagement[]>([])
   const [regions, setRegions] = useState<GrowingRegion[]>([])
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -349,6 +353,8 @@ export default function CropManagement() {
     try {
       setError(null)
       
+      console.log('🆕 handleAddCrop called')
+      
       // Transform frontend data to backend format
       const cropData = {
         category: newCrop.category,
@@ -360,7 +366,7 @@ export default function CropManagement() {
       
       // Add the new crop to the list
       const transformedCrop: CropManagement = {
-        id: response.crop._id,
+        id: response.crop.id || response.crop._id, // Backend returns 'id', fallback to '_id'
         category: response.crop.category,
         commodity: response.crop.commodity,
         variations: response.crop.variations || [],
@@ -368,13 +374,20 @@ export default function CropManagement() {
         createdAt: new Date(response.crop.createdAt).toISOString().split('T')[0]
       }
       
-      setCrops([...crops, transformedCrop])
-      setIsModalOpen(false)
+      console.log('✅ Crop created successfully with ID:', transformedCrop.id)
       
-      console.log('✅ Crop created successfully:', response.crop)
+      // Update state in a single batch
+      setCrops(prev => [...prev, transformedCrop])
+      setEditingCrop(transformedCrop)
+      
+      // Don't close modal - allow user to add more variations
+      // setIsModalOpen(false)
+      
+      return transformedCrop
     } catch (err) {
       console.error('Failed to create crop:', err)
       setError(err instanceof Error ? err.message : 'Failed to create crop')
+      throw err
     }
   }
 
@@ -408,7 +421,7 @@ export default function CropManagement() {
       
       // Update the crop in the list
       const transformedCrop: CropManagement = {
-        id: response.crop._id,
+        id: response.crop.id || response.crop._id, // Backend returns 'id', fallback to '_id'
         category: response.crop.category,
         commodity: response.crop.commodity,
         variations: response.crop.variations || [],
@@ -420,16 +433,17 @@ export default function CropManagement() {
         crop.id === updatedCrop.id ? transformedCrop : crop
       ))
       
-      // Clear editing state BEFORE closing modal to prevent stale data
-      setEditingCrop(null)
-      setIsModalOpen(false)
+      // Update editingCrop with the latest data so modal stays in sync
+      setEditingCrop(transformedCrop)
+      
+      // Don't close modal - allow user to add more variations
+      // setIsModalOpen(false)
       
       console.log('✅ Crop updated successfully:', response.crop)
     } catch (err) {
       console.error('Failed to update crop:', err)
       setError(err instanceof Error ? err.message : 'Failed to update crop')
-      // On error, also clear the editing state to prevent stale data
-      setEditingCrop(null)
+      // On error, don't clear editing state - let user try again
     }
   }
 
@@ -547,7 +561,7 @@ export default function CropManagement() {
                     </div>
                     <button
                       onClick={() => {
-                        setIsImportModalOpen(true)
+                        alert('CSV import feature coming soon!')
                         setShowImportDropdown(false)
                       }}
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -653,7 +667,7 @@ export default function CropManagement() {
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-4 mb-8">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3 mb-8">
         {/* Total Products (Variations) */}
         <div className="bg-white overflow-hidden shadow rounded-lg">
           <div className="p-5">
@@ -709,39 +723,6 @@ export default function CropManagement() {
                   <dd className="text-lg font-medium text-gray-900">{metrics.activeRegionsCount}</dd>
                   <dd className="text-xs text-gray-500 mt-1">
                     Active locations
-                  </dd>
-                </dl>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Price Range Overview */}
-        <div className="bg-white overflow-hidden shadow rounded-lg">
-          <div className="p-5">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <CheckCircleIcon className="h-6 w-6 text-orange-600" />
-              </div>
-              <div className="ml-5 w-0 flex-1">
-                <dl>
-                  <dt className="text-sm font-medium text-gray-500 truncate">Price Range</dt>
-                  <dd className="text-lg font-medium text-gray-900">
-                    {metrics.totalProducts > 0 ? (
-                      (() => {
-                        const prices = crops.flatMap(c => c.variations
-                          .filter(v => v.targetPricing?.minPrice && v.targetPricing?.maxPrice)
-                          .map(v => ({ min: v.targetPricing.minPrice, max: v.targetPricing.maxPrice }))
-                        )
-                        if (prices.length === 0) return '$0'
-                        const minPrice = Math.min(...prices.map(p => p.min))
-                        const maxPrice = Math.max(...prices.map(p => p.max))
-                        return `$${minPrice.toFixed(2)} - $${maxPrice.toFixed(2)}`
-                      })()
-                    ) : '$0'}
-                  </dd>
-                  <dd className="text-xs text-gray-500 mt-1">
-                    Target pricing span
                   </dd>
                 </dl>
               </div>
@@ -865,10 +846,10 @@ export default function CropManagement() {
                                 Seasonality
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Target Price
+                                Pack Types
                               </th>
                               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                Min Order
+                                Size Grades
                               </th>
                             </tr>
                           </thead>
@@ -918,7 +899,14 @@ export default function CropManagement() {
                                         {availability?.isYearRound 
                                           ? 'Year-round' 
                                           : availability 
-                                            ? formatSeasonality(availability.startMonth, availability.endMonth)
+                                            ? (() => {
+                                                const firstSeason = formatSeasonality(availability.startMonth, availability.endMonth)
+                                                if (availability.isSplitSeason && availability.secondSeasonStart && availability.secondSeasonEnd) {
+                                                  const secondSeason = formatSeasonality(availability.secondSeasonStart, availability.secondSeasonEnd)
+                                                  return `${firstSeason}, ${secondSeason}`
+                                                }
+                                                return firstSeason
+                                              })()
                                             : 'Not specified'
                                         }
                                       </div>
@@ -926,20 +914,51 @@ export default function CropManagement() {
                                     })}
                                   </div>
                                 </td>
-                                <td className="px-3 py-3 text-sm text-gray-900">
-                                  <div className="font-medium">
-                                    {variation.targetPricing?.minPrice && variation.targetPricing?.maxPrice ? (
-                                      `$${variation.targetPricing.minPrice.toFixed(2)} - $${variation.targetPricing.maxPrice.toFixed(2)}`
-                                    ) : (
-                                      'Not specified'
-                                    )}
-                                  </div>
-                                  <div className="text-xs text-gray-500">
-                                    per {variation.targetPricing?.unit || 'unit'}
-                                  </div>
+                                <td className="px-3 py-3 text-sm text-gray-600">
+                                  {(() => {
+                                    const packagingStructure = user?.packagingStructure?.[crop.commodity]
+                                    const packTypesCount = packagingStructure?.packageTypes?.length || 0
+                                    
+                                    if (packTypesCount > 0) {
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircleIcon className="h-4 w-4 text-green-600" />
+                                          <span className="text-green-700 font-medium">{packTypesCount} type{packTypesCount > 1 ? 's' : ''}</span>
+                                        </div>
+                                      )
+                                    }
+                                    return (
+                                      <button
+                                        onClick={() => router.push(`/dashboard/price-sheets/packaging-structure?commodity=${encodeURIComponent(crop.commodity)}`)}
+                                        className="text-gray-500 hover:text-blue-600 text-xs underline"
+                                      >
+                                        Configure
+                                      </button>
+                                    )
+                                  })()}
                                 </td>
                                 <td className="px-3 py-3 text-sm text-gray-600">
-                                  {variation.minOrder || 0} {variation.orderUnit || 'units'}
+                                  {(() => {
+                                    const packagingStructure = user?.packagingStructure?.[crop.commodity]
+                                    const sizeGradesCount = packagingStructure?.sizeGrades?.length || 0
+                                    
+                                    if (sizeGradesCount > 0) {
+                                      return (
+                                        <div className="flex items-center gap-2">
+                                          <CheckCircleIcon className="h-4 w-4 text-green-600" />
+                                          <span className="text-green-700 font-medium">{sizeGradesCount} grade{sizeGradesCount > 1 ? 's' : ''}</span>
+                                        </div>
+                                      )
+                                    }
+                                    return (
+                                      <button
+                                        onClick={() => router.push(`/dashboard/price-sheets/packaging-structure?commodity=${encodeURIComponent(crop.commodity)}`)}
+                                        className="text-gray-500 hover:text-blue-600 text-xs underline"
+                                      >
+                                        Configure
+                                      </button>
+                                    )
+                                  })()}
                                 </td>
                               </tr>
                             ))}
@@ -965,32 +984,36 @@ export default function CropManagement() {
           setIsModalOpen(false)
           setEditingCrop(null)
         }}
-        onSave={(cropData) => {
+        onSave={async (cropData) => {
           console.log('💾 Modal onSave called with:', {
             category: cropData.category,
             commodity: cropData.commodity,
             variationsCount: cropData.variations?.length || 0,
+            cropDataId: cropData.id,
             editingCrop: editingCrop ? { id: editingCrop.id, category: editingCrop.category, commodity: editingCrop.commodity } : null
           })
           
-          // Always check for the latest version of the crop from the crops state
-          // This prevents using stale editingCrop data
-          const latestCrop = crops.find(crop => 
+          // Check if we already have this crop in state (use editingCrop if available, otherwise search)
+          const existingCropInState = editingCrop || crops.find(crop => 
             crop.category === cropData.category && crop.commodity === cropData.commodity
           )
           
-          if (latestCrop) {
-            // Update existing crop with the latest data
-            console.log('📝 Updating existing crop with latest data from state')
+          console.log('🔍 Found existing crop in state:', existingCropInState ? { id: existingCropInState.id, variationsCount: existingCropInState.variations?.length } : 'NOT FOUND')
+          
+          if (existingCropInState) {
+            // Update existing crop
+            console.log('📝 Updating existing crop with ID:', existingCropInState.id)
             const updatedCrop = {
-              ...latestCrop, // Use latest crop data, not stale editingCrop
-              ...cropData
+              ...cropData,
+              id: existingCropInState.id, // Use the ID from state
+              createdAt: existingCropInState.createdAt // Preserve creation date
             }
-            handleUpdateCrop(updatedCrop)
+            await handleUpdateCrop(updatedCrop)
           } else {
-            // Truly new crop
+            // Create new crop and get the result
             console.log('✨ Creating new crop')
-            handleAddCrop(cropData)
+            const newCrop = await handleAddCrop(cropData)
+            console.log('✅ New crop created, returned:', newCrop ? { id: newCrop.id } : 'NO RETURN VALUE')
           }
         }}
         onDelete={handleDeleteCrop}

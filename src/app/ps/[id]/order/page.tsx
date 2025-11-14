@@ -63,6 +63,7 @@ export default function OrderBuilder() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showEmailModal, setShowEmailModal] = useState(false)
+  const [emailSent, setEmailSent] = useState(false)
   const [emailContent, setEmailContent] = useState({ subject: '', body: '' })
 
   useEffect(() => {
@@ -224,12 +225,61 @@ export default function OrderBuilder() {
     const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${totalSection}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
     
     setEmailContent({ subject, body })
+    setEmailSent(false)
     setShowEmailModal(true)
   }
 
-  const handleSendEmail = () => {
-    window.location.href = `mailto:${user?.email}?subject=${encodeURIComponent(emailContent.subject)}&body=${encodeURIComponent(emailContent.body)}`
-    setShowEmailModal(false)
+  const handleSendEmail = async () => {
+    try {
+      const contactHash = searchParams?.get('c')
+      const buyerName = searchParams?.get('buyer')
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/order-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          priceSheetId: id,
+          contactHash,
+          buyerName,
+          customSubject: emailContent.subject,
+          orderItems: orderItems.map(item => ({
+            productName: item.productName || `${item.variety} ${item.commodity}`,
+            packageType: item.packageType,
+            size: item.size || item.countSize,
+            grade: item.grade,
+            quantity: item.quantity,
+            unit: item.unit,
+            subtotal: item.subtotal
+          })),
+          orderComments,
+          orderTotal: getOrderTotal(),
+          hasPalletItems: hasPalletItems()
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Server error response:', errorData)
+        throw new Error(errorData.details || errorData.message || 'Failed to send order request')
+      }
+
+      // Show success state in modal
+      setEmailSent(true)
+      
+      // Clear the order (but keep modal open for user to close)
+      setOrderItems([])
+      setOrderComments('')
+      
+    } catch (error: any) {
+      console.error('Error sending order request:', error)
+      console.error('Full error details:', {
+        message: error.message,
+        stack: error.stack
+      })
+      alert(`Failed to send order request: ${error.message}\n\nPlease try again or contact support.`)
+    }
   }
 
   const handleCopyToClipboard = async () => {
@@ -640,10 +690,15 @@ export default function OrderBuilder() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-xl font-semibold text-white">Review Order Request</h3>
+            <div className={`px-6 py-4 flex items-center justify-between ${emailSent ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-blue-600'}`}>
+              <h3 className="text-xl font-semibold text-white">
+                {emailSent ? '✓ Order Request Sent!' : 'Review Order Request'}
+              </h3>
               <button
-                onClick={() => setShowEmailModal(false)}
+                onClick={() => {
+                  setShowEmailModal(false)
+                  setEmailSent(false)
+                }}
                 className="text-white hover:text-gray-200"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -654,18 +709,39 @@ export default function OrderBuilder() {
 
             {/* Modal Body */}
             <div className="p-6 overflow-y-auto flex-1">
+              {emailSent ? (
+                <div className="text-center py-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
+                    <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </div>
+                  <h4 className="text-xl font-semibold text-gray-900 mb-2">Order Request Received!</h4>
+                  <p className="text-gray-600">
+                    Thanks for your interest. We'll contact you as soon as possible<br />
+                    to confirm availability and delivery details.
+                  </p>
+                </div>
+              ) : (
+                <>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">To:</label>
                 <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-200">
-                  {user?.email || 'No email available'}
+                  {user?.companyName && <div className="font-semibold">{user.companyName}</div>}
+                  {user?.name && <div>{user.name}</div>}
+                  {user?.email && <div className="text-gray-600">{user.email}</div>}
+                  {!user?.email && 'No email available'}
                 </div>
               </div>
 
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Subject:</label>
-                <div className="text-sm text-gray-900 bg-gray-50 px-3 py-2 rounded border border-gray-200">
-                  {emailContent.subject}
-                </div>
+                <input
+                  type="text"
+                  value={emailContent.subject}
+                  onChange={(e) => setEmailContent(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full text-sm text-gray-900 bg-white px-3 py-2 rounded border border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
               </div>
 
               <div>
@@ -674,37 +750,46 @@ export default function OrderBuilder() {
                   {emailContent.body}
                 </div>
               </div>
+              </>
+              )}
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
-              <button
-                onClick={handleCopyToClipboard}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
-              >
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-                Copy to Clipboard
-              </button>
-              <div className="flex items-center gap-3">
+            {!emailSent && (
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between mb-3">
                 <button
-                  onClick={() => setShowEmailModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSendEmail}
-                  className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+                  onClick={handleCopyToClipboard}
+                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                   </svg>
-                  Send Email
+                  Copy to Clipboard
                 </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setShowEmailModal(false)}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSendEmail}
+                    className="inline-flex items-center px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white font-medium rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    Send Email
+                  </button>
+                </div>
               </div>
+              <p className="text-xs text-gray-500 text-center">
+                You will receive a copy of this order request at your email address
+              </p>
             </div>
+            )}
           </div>
         </div>
       )}

@@ -248,7 +248,7 @@ export default function AddVariationModal({
     onClose()
   }
 
-  const addVariation = () => {
+  const addVariation = async () => {
     // Variety is optional - subtype alone (e.g., "Red") is sufficient
     if (currentVariation.shippingPoints.length === 0) {
       alert('Please select at least one shipping point')
@@ -263,17 +263,28 @@ export default function AddVariationModal({
 
     // Build the complete crop management object
     const updatedVariations = [...formData.variations, newVariation]
+    
+    // Check if this crop already exists in the full list (not just existingCrop prop)
+    // This handles the case where the first variation was just added and state hasn't propagated yet
+    const cropInList = findExistingCrop(formData.category, formData.commodity)
+    
     const cropManagement: CropManagement = {
-      id: existingCrop?.id || `crop_${Date.now()}`,
+      id: cropInList?.id || existingCrop?.id || `crop_${Date.now()}`,
       category: formData.category,
       commodity: formData.commodity,
       variations: updatedVariations,
       status: 'active',
-      createdAt: existingCrop?.createdAt || new Date().toISOString()
+      createdAt: cropInList?.createdAt || existingCrop?.createdAt || new Date().toISOString()
     }
 
-    // Save immediately
-    onSave(cropManagement)
+    console.log('🔧 addVariation building cropManagement:', {
+      id: cropManagement.id,
+      cropInList: cropInList ? { id: cropInList.id } : 'NOT FOUND',
+      existingCrop: existingCrop ? { id: existingCrop.id } : 'NOT FOUND'
+    })
+
+    // Save and wait for completion before updating local state
+    await onSave(cropManagement)
 
     // Update local state to show the new variation
     setFormData(prev => ({

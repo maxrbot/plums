@@ -213,6 +213,10 @@ export default function ScheduleSendPage() {
   })
   const [priceSheetProducts, setPriceSheetProducts] = useState<any[]>([])
   const [isLoadingProducts, setIsLoadingProducts] = useState(false)
+  
+  // Terms of Service state
+  const [termsAccepted, setTermsAccepted] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
 
   // Load data from URL parameters
   useEffect(() => {
@@ -380,6 +384,11 @@ export default function ScheduleSendPage() {
   }
 
   const handleSendEmails = async () => {
+    if (!termsAccepted) {
+      alert('Please accept the Terms of Service to send emails')
+      return
+    }
+    
     if (!sheetId) {
       alert('Missing price sheet ID')
       return
@@ -921,15 +930,41 @@ export default function ScheduleSendPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-end">
+              <div className="flex flex-col items-end space-y-3">
                 <button
                   type="button"
                   onClick={handleSendEmails}
-                  className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+                  disabled={!termsAccepted}
+                  className={`inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white ${
+                    termsAccepted
+                      ? 'bg-green-600 hover:bg-green-700 cursor-pointer'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
                 >
                   <PaperAirplaneIcon className="h-4 w-4 mr-2" />
                   {sendTiming === 'now' ? 'Send Now' : 'Schedule Send'}
                 </button>
+                
+                {/* Terms of Service */}
+                <div className="flex items-start space-x-2 max-w-xs">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={termsAccepted}
+                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                    className="h-4 w-4 mt-0.5 text-blue-600 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                  />
+                  <label htmlFor="terms" className="text-xs text-gray-600 leading-relaxed">
+                    I have existing relationships with these contacts and agree to the{' '}
+                    <button
+                      type="button"
+                      onClick={() => setShowTermsModal(true)}
+                      className="text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Terms of Service
+                    </button>
+                  </label>
+                </div>
               </div>
             </>
           )}
@@ -1082,6 +1117,91 @@ export default function ScheduleSendPage() {
             }
           }}
         />
+      )}
+
+      {/* Terms of Service Modal */}
+      {showTermsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-4 flex items-center justify-between">
+              <h3 className="text-xl font-semibold text-white">Email Sending Terms of Service</h3>
+              <button
+                onClick={() => setShowTermsModal(false)}
+                className="text-white hover:text-gray-200"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="space-y-4 text-gray-700">
+                <p className="font-semibold text-lg text-gray-900">Acceptable Use Policy</p>
+                
+                <p>By using Acrelist's email sending feature, you agree to the following:</p>
+                
+                <div className="space-y-3">
+                  <div className="flex items-start space-x-3">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p><strong>Existing Relationships:</strong> You confirm that you have an existing business relationship with all contacts you're sending to.</p>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p><strong>No Spam:</strong> You will not use this platform for unsolicited commercial emails, cold outreach, or any form of spam.</p>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p><strong>Accurate Contact Lists:</strong> All contacts in your list have been added with proper authorization and knowledge.</p>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p><strong>Respect Opt-Outs:</strong> If a contact requests to stop receiving communications, you will honor that request immediately.</p>
+                  </div>
+                  
+                  <div className="flex items-start space-x-3">
+                    <CheckCircleIcon className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <p><strong>Your Responsibility:</strong> You are solely responsible for the content of emails sent and compliance with all applicable laws.</p>
+                  </div>
+                </div>
+
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mt-6">
+                  <div className="flex items-start space-x-3">
+                    <ExclamationTriangleIcon className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-semibold text-yellow-900">Important Notice</p>
+                      <p className="text-sm text-yellow-800 mt-1">
+                        Acrelist reserves the right to suspend or terminate accounts that violate these terms or engage in abusive sending practices. High bounce rates or spam complaints may result in immediate account suspension.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-600 mt-6">
+                  By checking the box and sending emails, you acknowledge that you have read, understood, and agree to these terms.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="bg-gray-50 px-6 py-4 flex items-center justify-end border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setTermsAccepted(true)
+                  setShowTermsModal(false)
+                }}
+                className="inline-flex items-center px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                I Understand & Agree
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   )

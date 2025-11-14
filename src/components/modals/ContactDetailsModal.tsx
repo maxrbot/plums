@@ -25,6 +25,7 @@ interface CropAdjustment {
   variationId: string
   cropName: string
   adjustment: number // percentage adjustment (-100 to +100)
+  isNegative?: boolean // track sign independently
 }
 
 interface PricesheetSettings {
@@ -56,6 +57,7 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
   })
   const [isLoadingCrops, setIsLoadingCrops] = useState(false)
   const [globalAdjustmentEnabled, setGlobalAdjustmentEnabled] = useState(false)
+  const [globalAdjustmentIsNegative, setGlobalAdjustmentIsNegative] = useState(false)
   const [deliveredPricingEnabled, setDeliveredPricingEnabled] = useState(false)
   const [showCropDropdown, setShowCropDropdown] = useState(false)
   const [selectedCommodity, setSelectedCommodity] = useState<string | null>(null)
@@ -87,6 +89,7 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
       
       setPricesheetSettings(existingSettings)
       setGlobalAdjustmentEnabled((existingSettings.globalAdjustment || 0) !== 0)
+      setGlobalAdjustmentIsNegative((existingSettings.globalAdjustment || 0) < 0)
       setDeliveredPricingEnabled(existingSettings.deliveredPricing || false)
     }
   }, [isOpen, contact])
@@ -213,7 +216,8 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
       cropId: crop.cropId,
       variationId: crop.variationId,
       cropName: crop.cropName,
-      adjustment: 0
+      adjustment: 0,
+      isNegative: false
     }
     
     setPricesheetSettings(prev => ({
@@ -753,13 +757,41 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                           <>
                             <p className="text-xs text-gray-500 mb-3">Apply a percentage adjustment to all items on price sheets for this contact</p>
                             <div className="flex items-center space-x-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setGlobalAdjustmentIsNegative(!globalAdjustmentIsNegative)
+                                  const currentValue = Math.abs(pricesheetSettings.globalAdjustment) || 0
+                                  updateGlobalAdjustment(globalAdjustmentIsNegative ? Math.abs(currentValue) : -Math.abs(currentValue))
+                                }}
+                                className="relative inline-flex items-center h-7 w-14 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 hover:shadow-md"
+                                style={{
+                                  backgroundColor: globalAdjustmentIsNegative ? '#FCA5A5' : '#BBF7D0'
+                                }}
+                              >
+                                <span
+                                  className="inline-block h-5 w-5 transform rounded-full transition-all duration-200 shadow-sm flex items-center justify-center font-semibold"
+                                  style={{
+                                    backgroundColor: 'white',
+                                    color: globalAdjustmentIsNegative ? '#DC2626' : '#15803D',
+                                    transform: globalAdjustmentIsNegative ? 'translateX(2px)' : 'translateX(calc(56px - 1.25rem - 2px))',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  {globalAdjustmentIsNegative ? '−' : '+'}
+                                </span>
+                              </button>
                               <input
                                 type="number"
-                                min="-50"
+                                min="0"
                                 max="50"
                                 step="0.1"
-                                value={pricesheetSettings.globalAdjustment}
-                                onChange={(e) => updateGlobalAdjustment(parseFloat(e.target.value) || 0)}
+                                placeholder="0"
+                                value={Math.abs(pricesheetSettings.globalAdjustment) || ''}
+                                onChange={(e) => {
+                                  const value = parseFloat(e.target.value) || 0
+                                  updateGlobalAdjustment(globalAdjustmentIsNegative ? -Math.abs(value) : Math.abs(value))
+                                }}
                                 className="block w-20 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                               />
                               <span className="text-sm text-gray-900">%</span>
@@ -909,31 +941,70 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                           </div>
                         ) : (
                           <div className="space-y-3">
-                            {pricesheetSettings.cropAdjustments.map((adjustment) => (
-                              <div key={`${adjustment.cropId}-${adjustment.variationId}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                <div className="flex-1">
-                                  <span className="text-sm font-medium text-gray-900">{adjustment.cropName}</span>
+                            {pricesheetSettings.cropAdjustments.map((adjustment) => {
+                              const isNegative = adjustment.isNegative ?? (adjustment.adjustment < 0)
+                              return (
+                                <div key={`${adjustment.cropId}-${adjustment.variationId}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                  <div className="flex-1">
+                                    <span className="text-sm font-medium text-gray-900">{adjustment.cropName}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const currentValue = Math.abs(adjustment.adjustment) || 0
+                                        const newValue = isNegative ? Math.abs(currentValue) : -Math.abs(currentValue)
+                                        setPricesheetSettings(prev => ({
+                                          ...prev,
+                                          cropAdjustments: prev.cropAdjustments.map(adj =>
+                                            adj.cropId === adjustment.cropId && adj.variationId === adjustment.variationId
+                                              ? { ...adj, adjustment: newValue, isNegative: !isNegative }
+                                              : adj
+                                          )
+                                        }))
+                                        setHasUnsavedChanges(true)
+                                      }}
+                                      className="relative inline-flex items-center h-6 w-12 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-400 hover:shadow-md"
+                                      style={{
+                                        backgroundColor: isNegative ? '#FCA5A5' : '#BBF7D0'
+                                      }}
+                                    >
+                                      <span
+                                        className="inline-block h-4 w-4 transform rounded-full transition-all duration-200 shadow-sm flex items-center justify-center font-semibold"
+                                        style={{
+                                          backgroundColor: 'white',
+                                          color: isNegative ? '#DC2626' : '#15803D',
+                                          transform: isNegative ? 'translateX(2px)' : 'translateX(calc(48px - 1rem - 2px))',
+                                          fontSize: '12px'
+                                        }}
+                                      >
+                                        {isNegative ? '−' : '+'}
+                                      </span>
+                                    </button>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="50"
+                                      step="0.1"
+                                      placeholder="0"
+                                      value={Math.abs(adjustment.adjustment) || ''}
+                                      onChange={(e) => {
+                                        const value = parseFloat(e.target.value) || 0
+                                        updateCropAdjustment(adjustment.cropId, adjustment.variationId, isNegative ? -Math.abs(value) : Math.abs(value))
+                                      }}
+                                      className="block w-16 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                                    />
+                                    <span className="text-xs text-gray-900">%</span>
+                                    <button
+                                      onClick={() => removeCropAdjustment(adjustment.cropId, adjustment.variationId)}
+                                      className="text-red-600 hover:text-red-800"
+                                    >
+                                      <MinusIcon className="h-4 w-4" />
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                  <input
-                                    type="number"
-                                    min="-50"
-                                    max="50"
-                                    step="0.1"
-                                    value={adjustment.adjustment}
-                                    onChange={(e) => updateCropAdjustment(adjustment.cropId, adjustment.variationId, parseFloat(e.target.value) || 0)}
-                                    className="block w-16 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                                  />
-                                  <span className="text-xs text-gray-900">%</span>
-                                  <button
-                                    onClick={() => removeCropAdjustment(adjustment.cropId, adjustment.variationId)}
-                                    className="text-red-600 hover:text-red-800"
-                                  >
-                                    <MinusIcon className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                              )
+                            })}
                           </div>
                         )}
                       </div>

@@ -2,7 +2,7 @@ import { FastifyPluginAsync } from 'fastify'
 import { ObjectId } from 'mongodb'
 import database from '../config/database'
 import { PriceSheet, PriceSheetProduct } from '../models/types'
-import { findContactByHash } from '../utils/contactHash'
+import { findContactByHashFromDb } from '../utils/contactHash'
 
 // Interface for price sheet views tracking
 interface PriceSheetView {
@@ -226,6 +226,233 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.status(500).send({
         error: 'Internal Server Error',
         message: 'Failed to track email open'
+      })
+    }
+  })
+
+  // Public route - Send order request email
+  fastify.post('/order-request', async (request, reply) => {
+    const { 
+      priceSheetId, 
+      contactHash, 
+      buyerName,
+      customSubject,
+      orderItems, 
+      orderComments, 
+      orderTotal,
+      hasPalletItems 
+    } = request.body as {
+      priceSheetId: string
+      contactHash?: string
+      buyerName?: string
+      customSubject?: string
+      orderItems: Array<{
+        productName: string
+        packageType: string
+        size?: string
+        grade?: string
+        quantity: number
+        unit: string
+        subtotal: number | null
+      }>
+      orderComments?: string
+      orderTotal: number
+      hasPalletItems: boolean
+    }
+
+    if (!ObjectId.isValid(priceSheetId)) {
+      return reply.status(400).send({
+        error: 'Bad Request',
+        message: 'Invalid price sheet ID'
+      })
+    }
+
+    try {
+      const db = database.getDb()
+      
+      // Get price sheet
+      const priceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
+        _id: new ObjectId(priceSheetId)
+      })
+      
+      if (!priceSheet) {
+        return reply.status(404).send({
+          error: 'Price Sheet Not Found',
+          message: 'Price sheet not found'
+        })
+      }
+
+      // Get user info
+      const user = await db.collection('users').findOne({
+        _id: priceSheet.userId
+      })
+
+      if (!user) {
+        return reply.status(404).send({
+          error: 'User Not Found',
+          message: 'User not found'
+        })
+      }
+
+      // Get contact email from price sheet views (where we track who viewed the sheet)
+      let contactEmail = null
+      if (contactHash) {
+        console.log('🔍 Looking up contact email from views with hash:', contactHash)
+        
+        // Look up the email from priceSheetViews collection
+        const view = await db.collection('priceSheetViews').findOne({
+          priceSheetId: priceSheet._id,
+          contactHash: contactHash
+        })
+        
+        if (view) {
+          contactEmail = view.contactEmail
+          console.log('📇 Contact email found from views:', contactEmail)
+        } else {
+          console.log('❌ No view found with this hash')
+        }
+      } else {
+        console.log('⚠️ No contact hash provided in request')
+      }
+      
+      // Try to get full contact info from contacts collection
+      let contactInfo = null
+      if (contactEmail) {
+        contactInfo = await db.collection('contacts').findOne({
+          userId: priceSheet.userId,
+          email: contactEmail
+        })
+        console.log('📇 Full contact info:', contactInfo ? { email: contactInfo.email, firstName: contactInfo.firstName } : 'Not in contacts')
+      }
+
+      // Build email content
+      const orderSummary = orderItems.map(item => {
+        const priceDisplay = item.subtotal !== null 
+          ? `$${item.subtotal.toFixed(2)}`
+          : 'Price TBD (Pallet Configuration Required)'
+        
+        let itemDetails = `${item.quantity} ${item.unit} - ${item.productName} (${item.packageType}`
+        if (item.size) itemDetails += ` • ${item.size}`
+        if (item.grade) itemDetails += ` • ${item.grade}`
+        itemDetails += `) - ${priceDisplay}`
+        
+        return itemDetails
+      }).join('\n')
+
+      const totalSection = hasPalletItems 
+        ? `\n\nSubtotal (units only): $${orderTotal.toFixed(2)}\n*Final total pending pallet configuration*`
+        : `\n\nTotal: $${orderTotal.toFixed(2)}`
+
+      const commentsSection = orderComments?.trim() 
+        ? `\n\nAdditional Comments:\n${orderComments}\n` 
+        : ''
+
+      const subject = customSubject || `Order Request - ${priceSheet.title}`
+      const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${totalSection}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
+
+      // Send email using SendGrid
+      const sgMail = require('@sendgrid/mail')
+      
+      // Initialize SendGrid API key
+      if (!process.env.SENDGRID_API_KEY) {
+        console.error('❌ SENDGRID_API_KEY not configured')
+        return reply.status(500).send({
+          error: 'Configuration Error',
+          message: 'Email service not configured'
+        })
+      }
+      
+      sgMail.setApiKey(process.env.SENDGRID_API_KEY)
+      const verifiedSendingEmail = process.env.SENDGRID_VERIFIED_EMAIL || 'noreply@acrelist.ag'
+
+      // Determine reply-to email and BCC
+      let replyToEmail = verifiedSendingEmail
+      let bccEmail = undefined
+      
+      // Use contactEmail (from views) or contactInfo.email (from contacts) or buyerName if it's an email
+      if (contactEmail) {
+        replyToEmail = contactEmail
+        bccEmail = contactEmail
+      } else if (contactInfo?.email) {
+        replyToEmail = contactInfo.email
+        bccEmail = contactInfo.email
+      } else if (buyerName && buyerName.includes('@')) {
+        replyToEmail = buyerName
+        bccEmail = buyerName
+      }
+
+      console.log('📧 Email configuration:', {
+        to: user.email,
+        from: verifiedSendingEmail,
+        replyTo: replyToEmail,
+        bcc: bccEmail,
+        contactEmail,
+        contactInfo: contactInfo ? { email: contactInfo.email, firstName: contactInfo.firstName } : null,
+        buyerName
+      })
+
+      const msg = {
+        to: user.email,
+        from: verifiedSendingEmail,
+        replyTo: replyToEmail,
+        bcc: bccEmail, // BCC the buyer so they get a copy
+        subject: subject,
+        text: body,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px;">
+            <p>Hi,</p>
+            
+            <p>You have received a new order request${buyerName ? ` from <strong>${buyerName}</strong>` : ''}:</p>
+            
+            <div style="margin: 20px 0;">
+              <strong>Order Details:</strong>
+              <pre style="font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin: 10px 0;">${orderSummary}</pre>
+              
+              <p style="margin: 10px 0;"><strong>${hasPalletItems ? 'Subtotal (units only):' : 'Total:'}</strong> $${orderTotal.toFixed(2)}</p>
+              ${hasPalletItems ? `<p style="margin: 5px 0; font-style: italic; color: #666;">*Final total pending pallet configuration</p>` : ''}
+            </div>
+            
+            ${orderComments ? `
+              <div style="margin: 20px 0;">
+                <strong>Additional Comments:</strong>
+                <p style="white-space: pre-wrap; margin: 10px 0;">${orderComments}</p>
+              </div>
+            ` : ''}
+            
+            <p>Please confirm availability and delivery details.</p>
+            
+            ${contactInfo ? `
+              <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                <p style="margin: 5px 0;"><strong>${contactInfo.firstName} ${contactInfo.lastName}</strong></p>
+                <p style="margin: 5px 0;">${contactInfo.email}</p>
+                ${contactInfo.phone ? `<p style="margin: 5px 0;">${contactInfo.phone}</p>` : ''}
+                ${contactInfo.company ? `<p style="margin: 5px 0;">${contactInfo.company}</p>` : ''}
+              </div>
+            ` : ''}
+            
+            <p style="margin-top: 30px;">Thank you!</p>
+          </div>
+        `
+      }
+
+      await sgMail.send(msg)
+
+      return reply.status(200).send({
+        success: true,
+        message: 'Order request sent successfully'
+      })
+
+    } catch (error: any) {
+      console.error('❌ Error sending order request:', error)
+      console.error('Error details:', {
+        message: error.message,
+        code: error.code,
+        response: error.response?.body
+      })
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to send order request',
+        details: error.message
       })
     }
   })

@@ -1,4 +1,6 @@
 import crypto from 'crypto'
+import database from '../config/database'
+import { ObjectId } from 'mongodb'
 
 /**
  * Generate a secure hash for a contact ID
@@ -74,6 +76,44 @@ export function findContactByHash(
       return contactId
     }
   }
+  return null
+}
+
+/**
+ * Find which contact a hash belongs to by querying the database
+ * This is used when we receive a hash and need to find the matching contact
+ * 
+ * @param hash - The hash to look up
+ * @param priceSheetId - The price sheet ID
+ * @param userId - The user ID who owns the contacts
+ * @returns The matching contact object, or null if not found
+ */
+export async function findContactByHashFromDb(
+  hash: string, 
+  priceSheetId: string,
+  userId: ObjectId
+): Promise<any | null> {
+  const db = database.getDb()
+  
+  // Get all contacts for this user
+  const contacts = await db.collection('contacts').find({ userId }).toArray()
+  
+  console.log(`🔎 Checking ${contacts.length} contacts for hash match`)
+  console.log('Hash to match:', hash)
+  console.log('Price sheet ID:', priceSheetId)
+  
+  // Try to find a matching contact
+  for (const contact of contacts) {
+    const contactId = contact._id.toString()
+    const expectedHash = generateContactHash(contactId, priceSheetId)
+    console.log(`  Checking contact ${contact.email}: generated hash = ${expectedHash}, matches = ${hash === expectedHash}`)
+    if (verifyContactHash(hash, contactId, priceSheetId)) {
+      console.log(`✅ Found matching contact: ${contact.email}`)
+      return contact
+    }
+  }
+  
+  console.log('❌ No matching contact found')
   return null
 }
 

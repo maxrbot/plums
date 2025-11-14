@@ -219,10 +219,8 @@ export default function OrderBuilder() {
     const hasPallets = hasPalletItems()
     const subject = `Order Request - ${priceSheet?.title}`
     const commentsSection = orderComments.trim() ? `\n\nAdditional Comments:\n${orderComments}\n` : ''
-    const totalSection = hasPallets 
-      ? `\n\nSubtotal (units only): $${total.toFixed(2)}\n*Final total pending pallet configuration*`
-      : `\n\nTotal: $${total.toFixed(2)}`
-    const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${totalSection}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
+    // No totals in preview - matches backend email format
+    const body = `Hi,\n\nI'm interested in the following items from your price sheet:\n\n${orderSummary}${commentsSection}\nPlease confirm availability.\n\nThank you!`
     
     setEmailContent({ subject, body })
     setEmailSent(false)

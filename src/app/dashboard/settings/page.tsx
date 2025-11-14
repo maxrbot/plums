@@ -73,6 +73,7 @@ export default function Settings() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [isDraggingLogo, setIsDraggingLogo] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   // Update form data when user data loads
   useEffect(() => {
@@ -782,7 +783,10 @@ export default function Settings() {
                       This action cannot be undone.
                     </p>
                   </div>
-                  <button className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 ml-4">
+                  <button 
+                    onClick={() => setShowDeleteModal(true)}
+                    className="inline-flex items-center px-4 py-2 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 ml-4"
+                  >
                     Delete Account
                   </button>
                 </div>
@@ -1081,6 +1085,40 @@ export default function Settings() {
           </div>
         )}
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <ExclamationTriangleIcon className="h-6 w-6 text-red-500 mr-3" />
+              <h3 className="text-lg font-semibold text-gray-900">Delete Account</h3>
+            </div>
+            
+            <p className="text-gray-600 mb-4">
+              To delete your account, please contact our support team:
+            </p>
+            
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <a 
+                href="mailto:support@acrelist.ag"
+                className="text-blue-600 hover:text-blue-700 font-medium"
+              >
+                support@acrelist.ag
+              </a>
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   )
 }

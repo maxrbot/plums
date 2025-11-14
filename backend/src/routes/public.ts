@@ -381,13 +381,24 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         bccEmail = buyerName
       }
 
+      // Build "from" field with contact's company name
+      // Format: "Company Name <noreply@acrelist.ag>"
+      let fromField = verifiedSendingEmail
+      if (buyerName && !buyerName.includes('@')) {
+        // buyerName is a company name, not an email
+        fromField = `${buyerName} <${verifiedSendingEmail}>`
+      } else if (contactInfo?.companyName) {
+        // Use contact's company name from database
+        fromField = `${contactInfo.companyName} <${verifiedSendingEmail}>`
+      }
+
       console.log('📧 Email configuration:', {
         to: user.email,
-        from: verifiedSendingEmail,
+        from: fromField,
         replyTo: replyToEmail,
         bcc: bccEmail,
         contactEmail,
-        contactInfo: contactInfo ? { email: contactInfo.email, firstName: contactInfo.firstName } : null,
+        contactInfo: contactInfo ? { email: contactInfo.email, firstName: contactInfo.firstName, companyName: contactInfo.companyName } : null,
         buyerName
       })
 
@@ -401,7 +412,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
 
       const msg = {
         to: user.email,
-        from: verifiedSendingEmail,
+        from: fromField,
         replyTo: replyToEmail,
         bcc: bccArray,
         subject: subject,

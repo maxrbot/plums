@@ -395,13 +395,14 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
       }
     }
     
-    // Always BCC noreply@acrelist.ag for oversight, plus user's BCC if requested
-    const bccEmails = ['noreply@acrelist.ag']
+    // Always BCC acrelisthistory@gmail.com for platform oversight, plus user's BCC if requested
+    const bccEmails = ['acrelisthistory@gmail.com']
     if (params.bcc) {
       bccEmails.push(params.bcc)
     }
     
     msg.bcc = bccEmails
+    console.log(`📧 BCC: ${bccEmails.join(', ')}`)
 
     const [response] = await sgMail.send(msg)
     

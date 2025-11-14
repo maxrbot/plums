@@ -391,11 +391,19 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         buyerName
       })
 
+      // Build BCC array: always include platform history email, plus buyer if available
+      const bccArray = ['acrelisthistory@gmail.com'] // Platform oversight
+      if (bccEmail) {
+        bccArray.push(bccEmail) // Buyer gets a copy
+      }
+      
+      console.log('📧 Order request BCC:', bccArray.join(', '))
+
       const msg = {
         to: user.email,
         from: verifiedSendingEmail,
         replyTo: replyToEmail,
-        bcc: bccEmail, // BCC the buyer so they get a copy
+        bcc: bccArray,
         subject: subject,
         text: body,
         html: `

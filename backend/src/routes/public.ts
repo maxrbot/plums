@@ -344,7 +344,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
 
       const subject = customSubject || `Order Request - ${priceSheet.title}`
       // Simple email body - no totals, just the order items and comments
-      const body = `Hi,\n\nI would like to place the following order:\n\n${orderSummary}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
+      const body = `Hi,\n\nI'm interested in the following items from your price sheet:\n\n${orderSummary}${commentsSection}\nPlease confirm availability and delivery details.\n\nThank you!`
 
       // Send email using SendGrid
       const sgMail = require('@sendgrid/mail')
@@ -417,7 +417,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           <div style="font-family: Arial, sans-serif; max-width: 600px;">
             <p>Hi,</p>
             
-            <p>I would like to place the following order:</p>
+            <p>I'm interested in the following items from your price sheet:</p>
             
             <pre style="font-family: monospace; font-size: 13px; line-height: 1.6; white-space: pre-wrap; margin: 20px 0;">${orderSummary}</pre>
             

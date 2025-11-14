@@ -1004,9 +1004,9 @@ export default function Settings() {
 
             {/* Company Branding */}
             <div className="border-t border-gray-200 pt-6 mt-6">
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2 mb-4">
                 <h4 className="text-base font-medium text-gray-900">Company Branding</h4>
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                   Coming Soon
                 </span>
               </div>
@@ -1015,31 +1015,17 @@ export default function Settings() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Company Logo
                 </label>
-                <div className="relative border-2 border-dashed rounded-lg p-6 border-gray-300 bg-gray-50">
+                <div className="relative border-2 border-dashed rounded-lg p-6 border-gray-300 bg-gray-50 w-48 h-48 flex items-center justify-center">
                   {userData.pricesheetSettings?.companyLogo ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <img
-                          src={userData.pricesheetSettings.companyLogo}
-                          alt="Company logo"
-                          className="h-16 w-16 object-contain border border-gray-200 rounded bg-white p-2"
-                        />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900">Logo uploaded</p>
-                          <p className="text-xs text-gray-500">Drag a new image to replace</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        className="text-sm text-red-600 hover:text-red-800"
-                      >
-                        Remove
-                      </button>
-                    </div>
+                    <img
+                      src={userData.pricesheetSettings.companyLogo}
+                      alt="Company logo"
+                      className="max-h-full max-w-full object-contain"
+                    />
                   ) : (
                     <div className="text-center">
                       <svg
-                        className="mx-auto h-12 w-12 text-gray-400"
+                        className="mx-auto h-10 w-10 text-gray-400"
                         stroke="currentColor"
                         fill="none"
                         viewBox="0 0 48 48"
@@ -1051,11 +1037,8 @@ export default function Settings() {
                           strokeLinejoin="round"
                         />
                       </svg>
-                      <div className="mt-4">
-                        <span className="text-sm font-medium text-gray-400">Upload a file</span>
-                        <span className="text-sm text-gray-400"> or drag and drop</span>
-                        <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 2MB</p>
-                      </div>
+                      <p className="text-xs text-gray-400 mt-2">Upload logo</p>
+                      <p className="text-xs text-gray-400">PNG, JPG</p>
                     </div>
                   )}
                 </div>

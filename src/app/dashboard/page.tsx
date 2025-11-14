@@ -349,7 +349,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-bold text-gray-900">🎉 You&apos;re all set!</h3>
-                <p className="text-sm text-gray-600 mt-1">Ready to create and send your first price sheet</p>
+                <p className="text-sm text-gray-600 mt-1">Ready to create and send price sheets</p>
               </div>
               <Link 
                 href="/dashboard/price-sheets"

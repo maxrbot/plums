@@ -434,9 +434,9 @@ export default function ScheduleSendPage() {
       setSentEmails(contactIds)
       setSendProgress(100)
       
-      // Redirect back to send page after a delay
+      // Redirect to analytics page after sending
       setTimeout(() => {
-        router.push('/dashboard/price-sheets/send')
+        router.push('/dashboard/analytics')
       }, 2000)
 
     } catch (error: any) {

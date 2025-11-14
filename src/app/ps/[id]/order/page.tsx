@@ -696,6 +696,11 @@ export default function OrderBuilder() {
                 onClick={() => {
                   setShowEmailModal(false)
                   setEmailSent(false)
+                  // If email was sent, navigate back to price sheet
+                  if (emailSent) {
+                    const queryString = searchParams ? `?${searchParams.toString()}` : ''
+                    router.push(`/ps/${id}${queryString}`)
+                  }
                 }}
                 className="text-white hover:text-gray-200"
               >

@@ -30,8 +30,12 @@ const fastify = Fastify({
 // Register plugins
 async function registerPlugins() {
   // CORS - Register BEFORE helmet!
+  const allowedOrigins = process.env.NODE_ENV === 'production'
+    ? [process.env.FRONTEND_URL || 'https://acrelist.ag']
+    : true // Allow all origins in development
+  
   await fastify.register(cors, {
-    origin: true, // Allow all origins in development
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS']
   })

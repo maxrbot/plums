@@ -1,297 +1,513 @@
-# Plums Deployment Guide 🚀
+# Acrelist Deployment Guide
 
-This guide will help you deploy Plums to production and set up email sending with SendGrid.
-
----
-
-## 📋 Prerequisites
-
-Before deploying, you'll need:
-
-1. **SendGrid Account** (free tier: 100 emails/day)
-   - Sign up at [sendgrid.com](https://sendgrid.com)
-   - Verify your email address
-   - Create an API key
-
-2. **MongoDB Atlas** (free tier: 512MB)
-   - Already set up ✅
-
-3. **Vercel Account** (free for hobby projects)
-   - Sign up at [vercel.com](https://vercel.com)
+This guide walks through deploying the Acrelist platform to production on Vercel.
 
 ---
 
-## 🔐 Step 1: Set Up SendGrid
+## 📋 Pre-Deployment Checklist
 
-### Create SendGrid Account
-1. Go to [sendgrid.com/signup](https://signup.sendgrid.com/)
-2. Sign up with your email
-3. Verify your email address
-4. Complete the setup wizard
+### 1. **MongoDB Atlas Setup**
 
-### Create API Key
-1. Log in to SendGrid
-2. Go to **Settings** → **API Keys**
-3. Click **Create API Key**
-4. Name it: `Plums Production`
-5. Select **Full Access** (or at minimum: **Mail Send** permission)
-6. Click **Create & View**
-7. **Copy the API key** (you won't see it again!)
+#### Current State
+- You're likely using a local MongoDB instance (`mongodb://localhost:27017/markethunt`)
 
-### Verify Sender Identity
-SendGrid requires you to verify your sending email address:
+#### Production Setup
+1. **Create MongoDB Atlas Account** (if not already done)
+   - Go to https://www.mongodb.com/cloud/atlas
+   - Sign up or log in
 
-1. Go to **Settings** → **Sender Authentication**
-2. Click **Verify a Single Sender**
-3. Fill in your details:
-   - From Name: Your name or company name
-   - From Email: Your business email (e.g., max@yourcompany.com)
-   - Reply To: Same as from email
-   - Company Address: Your address
-4. Check your email and verify
+2. **Create a New Cluster**
+   - Choose a cloud provider (AWS recommended for Vercel compatibility)
+   - Select a region close to your users (e.g., `us-east-1` for US)
+   - Choose the **FREE tier** (M0) to start
 
----
+3. **Configure Database Access**
+   - Go to "Database Access" in Atlas
+   - Create a new database user with username/password
+   - **Save these credentials securely** - you'll need them for `MONGODB_URI`
 
-## ⚙️ Step 2: Configure Environment Variables
+4. **Configure Network Access**
+   - Go to "Network Access" in Atlas
+   - Click "Add IP Address"
+   - Select **"Allow Access from Anywhere"** (`0.0.0.0/0`)
+   - This is required for Vercel's dynamic IPs
 
-### Local Development (.env.local)
+5. **Get Connection String**
+   - Go to "Database" → "Connect" → "Connect your application"
+   - Copy the connection string (looks like):
+     ```
+     mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/acrelist?retryWrites=true&w=majority
+     ```
+   - Replace `<username>` and `<password>` with your credentials
+   - Replace the database name with `acrelist` (or your preferred name)
 
-Update `/Users/max/Documents/GitHub/plums/backend/.env`:
-
-```bash
-# SendGrid
-SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-
-# Frontend URL (for generating price sheet links)
-FRONTEND_URL=http://localhost:3000
-
-# Existing variables...
-MONGODB_URI=mongodb+srv://...
-JWT_SECRET=...
-PORT=3001
-```
-
-### Update Frontend Environment
-
-Create `/Users/max/Documents/GitHub/plums/.env.local`:
-
-```bash
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
+6. **Migrate Local Data to Atlas** (Optional)
+   - Export from local MongoDB:
+     ```bash
+     mongodump --db markethunt --out ./backup
+     ```
+   - Import to Atlas:
+     ```bash
+     mongorestore --uri "mongodb+srv://<username>:<password>@cluster0.xxxxx.mongodb.net/acrelist" ./backup/markethunt
+     ```
 
 ---
 
-## 🌐 Step 3: Deploy to Vercel
+### 2. **SendGrid Configuration**
 
-### Deploy Frontend
+#### Already Completed ✅
+- Domain authentication configured for `acrelist.ag`
+- DNS records added to Vercel
+- Verified sender: `noreply@acrelist.ag`
+- API key generated
 
-1. **Install Vercel CLI** (optional, or use web interface):
+#### Verify Production Settings
+1. **Confirm API Key**
+   - Log in to SendGrid
+   - Go to Settings → API Keys
+   - Ensure you have an API key with "Mail Send" permissions
+   - **Save this key** - you'll need it for `SENDGRID_API_KEY`
+
+2. **Verify Domain Authentication**
+   - Go to Settings → Sender Authentication → Domain Authentication
+   - Ensure `acrelist.ag` shows "Verified"
+
+3. **Confirm BCC Settings**
+   - Platform oversight emails go to: `acrelisthistory@gmail.com`
+   - This is hardcoded in the backend (no env var needed)
+
+---
+
+### 3. **Google Places API**
+
+#### Current Usage
+- Used for shipping point location autocomplete
+- API key needed: `NEXT_PUBLIC_GOOGLE_PLACES_API_KEY`
+
+#### Production Setup
+1. **Go to Google Cloud Console**
+   - https://console.cloud.google.com/
+
+2. **Create/Select Project**
+   - Create a new project or select existing
+
+3. **Enable Places API**
+   - Go to "APIs & Services" → "Library"
+   - Search for "Places API"
+   - Click "Enable"
+
+4. **Create API Key**
+   - Go to "APIs & Services" → "Credentials"
+   - Click "Create Credentials" → "API Key"
+   - **Restrict the key**:
+     - Application restrictions: HTTP referrers
+     - Add your domains:
+       - `https://yourdomain.com/*`
+       - `https://*.vercel.app/*` (for preview deployments)
+     - API restrictions: Limit to "Places API"
+
+5. **Set Up Billing** (Required)
+   - Google Places API requires a billing account
+   - You get $200/month free credit
+   - Typical usage for this app: ~$5-20/month
+
+---
+
+### 4. **Authentication & Security**
+
+#### JWT Secret
+- Used for signing authentication tokens
+- Generate a strong secret:
+  ```bash
+  openssl rand -base64 32
+  ```
+- Save this for `JWT_SECRET`
+
+#### Session Secret
+- Used for session management
+- Generate another strong secret:
+  ```bash
+  openssl rand -base64 32
+  ```
+- Save this for `SESSION_SECRET`
+
+---
+
+## 🚀 Vercel Deployment
+
+### Step 1: Prepare the Repository
+
+1. **Commit all changes**
    ```bash
-   npm install -g vercel
-   ```
-
-2. **Push to GitHub** (if not already):
-   ```bash
-   git add .
-   git commit -m "Add email sending functionality"
+   git add -A
+   git commit -m "Prepare for production deployment"
    git push origin main
    ```
 
-3. **Deploy via Vercel Web Interface**:
-   - Go to [vercel.com/new](https://vercel.com/new)
-   - Import your GitHub repository
-   - Configure project:
-     - **Framework Preset**: Next.js
-     - **Root Directory**: `./` (leave default)
-     - **Build Command**: `npm run build`
-     - **Output Directory**: `.next`
+2. **Create `.gitignore` entries** (verify these exist)
+   ```
+   .env
+   .env.local
+   .env*.local
+   node_modules/
+   .next/
+   dist/
+   ```
+
+### Step 2: Deploy Frontend to Vercel
+
+1. **Go to Vercel Dashboard**
+   - https://vercel.com/
+   - Sign in with GitHub
+
+2. **Import Project**
+   - Click "Add New..." → "Project"
+   - Select your GitHub repository (`plums`)
+   - Vercel will auto-detect Next.js
+
+3. **Configure Project**
+   - **Framework Preset**: Next.js
+   - **Root Directory**: `./` (leave as root)
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `.next` (auto-detected)
+   - **Install Command**: `npm install`
+
+4. **Add Environment Variables**
+   Click "Environment Variables" and add:
+
+   ```env
+   # API Backend URL (we'll update this after deploying backend)
+   NEXT_PUBLIC_API_URL=https://your-backend-url.vercel.app/api
    
-4. **Add Environment Variables** in Vercel:
-   - Go to Project Settings → Environment Variables
-   - Add:
+   # Google Places API
+   NEXT_PUBLIC_GOOGLE_PLACES_API_KEY=your_google_places_api_key
+   
+   # Auth Redirect (update with your domain)
+   NEXT_PUBLIC_AUTH_REDIRECT_URL=https://yourdomain.com/dashboard
+   ```
+
+5. **Deploy**
+   - Click "Deploy"
+   - Wait for build to complete (~2-3 minutes)
+   - You'll get a URL like: `https://plums-xxxxx.vercel.app`
+
+### Step 3: Deploy Backend to Vercel
+
+The backend needs a separate deployment since it's a Fastify server.
+
+1. **Create `vercel.json` in backend directory**
+
+   Create `/backend/vercel.json`:
+   ```json
+   {
+     "version": 2,
+     "builds": [
+       {
+         "src": "dist/app.js",
+         "use": "@vercel/node"
+       }
+     ],
+     "routes": [
+       {
+         "src": "/(.*)",
+         "dest": "dist/app.js"
+       }
+     ]
+   }
+   ```
+
+2. **Update backend `package.json`**
+   
+   Ensure these scripts exist:
+   ```json
+   {
+     "scripts": {
+       "build": "tsc",
+       "start": "node dist/app.js",
+       "vercel-build": "npm run build"
+     }
+   }
+   ```
+
+3. **Deploy Backend to Vercel**
+   - In Vercel Dashboard, click "Add New..." → "Project"
+   - Select the same repository
+   - **Root Directory**: `backend`
+   - **Framework Preset**: Other
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+
+4. **Add Backend Environment Variables**
+   ```env
+   # MongoDB
+   MONGODB_URI=mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/acrelist?retryWrites=true&w=majority
+   
+   # SendGrid
+   SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   SENDGRID_VERIFIED_EMAIL=noreply@acrelist.ag
+   
+   # JWT & Auth
+   JWT_SECRET=your_generated_jwt_secret_here
+   SESSION_SECRET=your_generated_session_secret_here
+   
+   # Environment
+   NODE_ENV=production
+   
+   # CORS (your frontend URL)
+   FRONTEND_URL=https://yourdomain.com
+   ```
+
+5. **Deploy Backend**
+   - Click "Deploy"
+   - You'll get a URL like: `https://plums-backend-xxxxx.vercel.app`
+
+### Step 4: Connect Frontend to Backend
+
+1. **Update Frontend Environment Variables**
+   - Go to your frontend project in Vercel
+   - Settings → Environment Variables
+   - Update `NEXT_PUBLIC_API_URL`:
      ```
-     NEXT_PUBLIC_API_URL = https://your-backend-url.com
+     NEXT_PUBLIC_API_URL=https://your-backend-url.vercel.app/api
      ```
 
-5. Click **Deploy**
+2. **Update Backend CORS**
+   - Go to your backend project in Vercel
+   - Settings → Environment Variables
+   - Update `FRONTEND_URL`:
+     ```
+     FRONTEND_URL=https://your-frontend-url.vercel.app
+     ```
 
-### Deploy Backend
+3. **Redeploy Both**
+   - Go to "Deployments" tab for each project
+   - Click "..." on latest deployment → "Redeploy"
 
-You have several options:
+### Step 5: Custom Domain (Optional but Recommended)
 
-#### Option A: Railway (Recommended - Easy)
-1. Go to [railway.app](https://railway.app)
-2. Sign up with GitHub
-3. Click **New Project** → **Deploy from GitHub repo**
-4. Select your repository
-5. Configure:
-   - **Root Directory**: `/backend`
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm start`
-6. Add Environment Variables:
-   ```
-   SENDGRID_API_KEY = SG.xxxxxxxxx
-   MONGODB_URI = mongodb+srv://...
-   JWT_SECRET = your-secret-key
-   FRONTEND_URL = https://your-vercel-app.vercel.app
-   PORT = 3001
-   ```
-7. Deploy!
+1. **Add Domain to Frontend**
+   - In Vercel frontend project: Settings → Domains
+   - Add your domain (e.g., `app.acrelist.ag` or `acrelist.ag`)
+   - Follow DNS instructions
 
-#### Option B: Render
-Similar to Railway, very straightforward.
+2. **Add Domain to Backend**
+   - In Vercel backend project: Settings → Domains
+   - Add subdomain (e.g., `api.acrelist.ag`)
+   - Follow DNS instructions
 
-#### Option C: DigitalOcean App Platform
-Good for scaling, slightly more complex.
+3. **Update Environment Variables**
+   - Update `NEXT_PUBLIC_API_URL` to `https://api.acrelist.ag/api`
+   - Update `FRONTEND_URL` to `https://app.acrelist.ag`
+   - Update `NEXT_PUBLIC_AUTH_REDIRECT_URL` to `https://app.acrelist.ag/dashboard`
 
 ---
 
-## 🧪 Step 4: Test Email Sending
+## 🔐 User Authentication Strategy
 
-### Test Locally First
+### Option 1: Pre-loaded Demo Accounts (Recommended for Beta)
 
-1. **Start backend** (with SENDGRID_API_KEY set):
-   ```bash
-   cd backend
-   npm run dev
-   ```
+**For initial launch with pre-vetted users:**
 
-2. **Start frontend**:
-   ```bash
-   cd ..
-   npm run dev
-   ```
+1. **Create user accounts directly in MongoDB Atlas**
+   - Use MongoDB Compass or Atlas UI
+   - Insert into `users` collection:
+     ```json
+     {
+       "email": "user@example.com",
+       "password": "$2b$12$hashedpassword",
+       "subscriptionTier": "enterprise",
+       "profile": {
+         "companyName": "Company Name",
+         "contactName": "User Name",
+         "email": "user@example.com",
+         "phone": "",
+         "address": {}
+       },
+       "createdAt": "2025-01-01T00:00:00.000Z",
+       "updatedAt": "2025-01-01T00:00:00.000Z"
+     }
+     ```
 
-3. **Create a test contact**:
-   - Go to `http://localhost:3000/dashboard/contacts`
-   - Add a contact with YOUR email address
+2. **Generate hashed passwords**
+   - Use bcrypt to hash passwords
+   - Run this Node.js script locally:
+     ```javascript
+     const bcrypt = require('bcryptjs');
+     const password = 'YourSecurePassword123!';
+     const hash = bcrypt.hashSync(password, 12);
+     console.log(hash);
+     ```
 
-4. **Create a test price sheet**:
-   - Go to `http://localhost:3000/dashboard/price-sheets/new`
-   - Add a few products
-   - Save the price sheet
+3. **Share credentials securely**
+   - Email users their login credentials
+   - Recommend they change password on first login
+   - (Note: Password change feature needs to be built)
 
-5. **Send test email**:
-   - Go to `http://localhost:3000/dashboard/price-sheets/send`
-   - Select your price sheet
-   - Select your test contact
-   - Click "Generate Emails"
-   - Click "Send Now"
+### Option 2: Open Registration (Future)
 
-6. **Check your inbox!** 📧
-   - You should receive an email with a link to view the price sheet
-   - Click the link to test the public viewer
+**For public launch:**
 
-### Test in Production
-
-Repeat the same steps on your deployed Vercel URL.
+1. **Enable signup endpoint** (already exists in `/backend/src/routes/auth.ts`)
+2. **Add signup page** to frontend (needs to be built)
+3. **Add email verification** (optional, requires additional setup)
+4. **Add password reset flow** (needs to be built)
 
 ---
 
-## 📊 How It Works
+## 🧪 Testing Production Deployment
 
-### Email Flow
+### 1. **Test Backend API**
+```bash
+# Health check
+curl https://your-backend-url.vercel.app/health
 
+# Test auth (should return 401 or error)
+curl https://your-backend-url.vercel.app/api/users/me
 ```
-1. User creates price sheet → Saved to MongoDB
-2. User selects contacts → Loads from MongoDB
-3. User clicks "Send Now" → Frontend calls API
-4. Backend generates unique URL → /ps/[priceSheetId]
-5. Backend sends via SendGrid → Beautiful HTML email
-6. Recipient clicks link → Public viewer page (no login)
-7. View is tracked → Logged to MongoDB
-```
 
-### What's Sent
+### 2. **Test Frontend**
+- Visit your Vercel URL
+- Try logging in with test credentials
+- Test all major flows:
+  - [ ] Login/logout
+  - [ ] Add shipping points
+  - [ ] Add commodities
+  - [ ] Setup packaging
+  - [ ] Add contacts
+  - [ ] Create price sheet
+  - [ ] Send price sheet email
+  - [ ] View public price sheet
+  - [ ] Submit order request
 
-Each recipient receives:
-- ✅ Personalized email with their name
-- ✅ Custom message (if you added one)
-- ✅ Link to view full price sheet
-- ✅ Contact information for replies
-
-### What's Tracked
-
-- ✅ Email sent timestamp
-- ✅ Price sheet views (IP, timestamp, user agent)
-- ✅ Which contacts received which sheets
-- ❌ Email opens (not yet - see TODO #5)
-- ❌ Link clicks (not yet - see TODO #5)
-
----
-
-## 🎯 Next Steps (TODOs)
-
-### Completed ✅
-1. ✅ Public price sheet viewer (`/ps/[id]`)
-2. ✅ SendGrid integration
-3. ✅ Email sending API
-4. ✅ Wire up frontend to real API
-
-### Pending 🚧
-5. **Add email open/click tracking** (SendGrid webhooks)
-6. **Create analytics dashboard** (show engagement metrics)
+### 3. **Test Email Sending**
+- Send a test price sheet
+- Verify:
+  - [ ] Email arrives in recipient inbox
+  - [ ] BCC to `acrelisthistory@gmail.com` works
+  - [ ] Links in email work correctly
+  - [ ] Public price sheet loads
+  - [ ] Order request email sends correctly
 
 ---
 
-## 🐛 Troubleshooting
+## 📊 Monitoring & Maintenance
 
-### "Email service not configured"
-- Make sure `SENDGRID_API_KEY` is set in backend `.env`
-- Restart backend after adding environment variable
+### Vercel Analytics
+- Enable in Vercel dashboard (free tier available)
+- Monitor page views, performance, errors
 
-### "Failed to send email"
-- Check SendGrid API key is valid
-- Verify sender email address in SendGrid
-- Check backend logs for detailed error
+### MongoDB Atlas Monitoring
+- Set up alerts for:
+  - High connection count
+  - Storage usage
+  - Query performance
 
-### Emails not arriving
-- Check spam folder
-- Verify recipient email is correct
-- Check SendGrid Activity dashboard for delivery status
+### SendGrid Monitoring
+- Check email delivery rates
+- Monitor bounce/spam rates
+- Review activity feed
 
-### Public viewer shows "Not Found"
-- Price sheet ID must be valid MongoDB ObjectId
-- Price sheet must exist in database
-- Check browser console for errors
-
----
-
-## 💰 Costs (Free Tier Limits)
-
-| Service | Free Tier | Cost After |
-|---------|-----------|------------|
-| SendGrid | 100 emails/day | $15/month for 40k emails |
-| MongoDB Atlas | 512MB storage | $9/month for 2GB |
-| Vercel | Unlimited hobby projects | $20/month per team member |
-| Railway/Render | $5 credit | ~$5-10/month |
-
-**Total for MVP: $0/month** (within free tiers)
-**Total for production (100 users): ~$5-15/month**
+### Error Tracking (Optional)
+- Consider adding Sentry or LogRocket
+- Helps catch production errors
 
 ---
 
-## 🔒 Security Checklist
+## 🚨 Common Issues & Solutions
 
-- ✅ Environment variables secured
-- ✅ JWT authentication for all protected routes
-- ✅ MongoDB user isolation (each user sees only their data)
-- ✅ Public routes don't expose sensitive data
-- ✅ Rate limiting enabled (100 requests/minute)
-- ⚠️ **TODO**: Add HTTPS redirect in production
-- ⚠️ **TODO**: Set up proper CORS for production domain
+### Issue: CORS Errors
+**Solution**: Ensure `FRONTEND_URL` is set correctly in backend env vars
+
+### Issue: Database Connection Timeout
+**Solution**: 
+- Check MongoDB Atlas network access (0.0.0.0/0)
+- Verify connection string is correct
+- Check if cluster is paused (Atlas pauses after inactivity)
+
+### Issue: SendGrid Emails Not Sending
+**Solution**:
+- Verify API key is correct
+- Check domain authentication status
+- Review SendGrid activity logs
+
+### Issue: Environment Variables Not Updating
+**Solution**:
+- After changing env vars, you MUST redeploy
+- Vercel doesn't auto-redeploy on env var changes
+
+### Issue: Build Failures
+**Solution**:
+- Check build logs in Vercel
+- Ensure all dependencies are in `package.json`
+- Verify TypeScript compiles locally: `npm run build`
 
 ---
 
-## 📞 Support
+## 📝 Post-Deployment Checklist
 
-If you run into issues:
-1. Check the troubleshooting section above
-2. Check backend logs (Railway/Render dashboard)
-3. Check SendGrid Activity feed
-4. Review browser console errors
+- [ ] Frontend deployed and accessible
+- [ ] Backend deployed and accessible
+- [ ] Environment variables configured
+- [ ] MongoDB Atlas connected
+- [ ] SendGrid emails working
+- [ ] Custom domains configured (if applicable)
+- [ ] Test user accounts created
+- [ ] All major features tested in production
+- [ ] Error monitoring set up
+- [ ] Database backups configured (Atlas does this automatically)
+- [ ] SSL certificates active (Vercel handles this)
 
 ---
 
-**Ready to go live? Let's ship it! 🚀**
+## 🔄 Continuous Deployment
 
+Vercel automatically deploys on every push to `main`:
+- **Production**: Deploys from `main` branch
+- **Preview**: Deploys from feature branches
+
+To disable auto-deploy:
+- Go to Project Settings → Git
+- Configure deployment branches
+
+---
+
+## 💰 Cost Estimates
+
+### Free Tier (Good for Beta/Testing)
+- **Vercel**: Free (Hobby plan)
+  - 100 GB bandwidth/month
+  - Unlimited deployments
+- **MongoDB Atlas**: Free (M0 cluster)
+  - 512 MB storage
+  - Shared CPU
+- **SendGrid**: Free
+  - 100 emails/day
+- **Google Places API**: Free
+  - $200/month credit (covers ~40,000 requests)
+
+### Paid Tier (When Scaling)
+- **Vercel Pro**: $20/month
+  - 1 TB bandwidth
+  - Better performance
+- **MongoDB Atlas M10**: ~$57/month
+  - 10 GB storage
+  - Dedicated CPU
+- **SendGrid Essentials**: $19.95/month
+  - 50,000 emails/month
+- **Google Places API**: ~$5-50/month
+  - Depends on usage
+
+---
+
+## 📞 Support Resources
+
+- **Vercel Docs**: https://vercel.com/docs
+- **MongoDB Atlas Docs**: https://docs.atlas.mongodb.com/
+- **SendGrid Docs**: https://docs.sendgrid.com/
+- **Next.js Docs**: https://nextjs.org/docs
+
+---
+
+## 🎉 You're Ready to Deploy!
+
+Follow the steps above in order, and you'll have a production-ready deployment. Good luck! 🚀

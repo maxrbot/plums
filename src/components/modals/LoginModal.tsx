@@ -48,7 +48,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
       setIsInviteVerified(false)
       setInviteError('')
       setShowCelebration(false)
-      setShowWaitlist(initialMode === 'signup') // Show waitlist by default for signup
+      setShowWaitlist(true) // Always show waitlist by default (Early Access modal)
       setShowInviteForm(false)
       setWaitlistEmail('')
       setWaitlistSubmitted(false)
@@ -128,15 +128,20 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     setInviteError('')
     
     if (inviteCode.toLowerCase() === 'early2025') {
-      setShowCelebration(true)
+      // Directly go to signup form with celebration message
+      setShowInviteForm(false)
+      setIsInviteVerified(true)
+      setIsRegisterMode(true)
     } else {
       setInviteError('Invalid invite code. Please check your code and try again.')
     }
   }
 
-  const handleContinueFromCelebration = () => {
-    setShowCelebration(false)
-    setIsInviteVerified(true)
+  const handleShowLoginForm = () => {
+    setShowWaitlist(false)
+    setShowInviteForm(false)
+    setIsRegisterMode(false)
+    setIsInviteVerified(false)
   }
 
   const handleWaitlistSubmit = async (e: React.FormEvent) => {
@@ -247,12 +252,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                 <div className="sm:flex sm:items-start">
                   <div className="w-full mt-3 text-center sm:ml-0 sm:mt-0 sm:text-left">
                     <Dialog.Title as="h3" className="text-2xl font-semibold leading-6 text-gray-900 mb-6">
-                      {isRegisterMode ? (
-                        isInviteVerified ? 'Create Account' : 
-                        showWaitlist ? 'Join AcreList' : 
-                        showInviteForm ? 'Verify Access' : 
-                        'Join AcreList'
-                      ) : 'Welcome Back'}
+                      {showWaitlist ? 'Join AcreList' : 
+                       showInviteForm ? 'Verify Access' : 
+                       isRegisterMode && isInviteVerified ? 'Create Account' : 
+                       'Welcome Back'}
                     </Dialog.Title>
 
                     {error && (
@@ -261,79 +264,8 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                       </div>
                     )}
 
-                    {isRegisterMode && !isInviteVerified ? (
-                      showCelebration ? (
-                        /* Celebration Screen */
-                        <div className="text-center py-8">
-                          <div className="mx-auto h-20 w-20 rounded-full bg-gradient-to-r from-lime-400 to-green-500 flex items-center justify-center mb-6 animate-pulse">
-                            <span className="text-3xl">🎉</span>
-                          </div>
-                          <h4 className="text-2xl font-bold text-gray-900 mb-2">You're In!</h4>
-                          <p className="text-lg text-lime-600 font-medium mb-2">Welcome to AcreList Early Access</p>
-                          <p className="text-sm text-gray-600 mb-8">
-                            You're joining an exclusive group of forward-thinking farmers transforming their sales process.
-                          </p>
-                          <button
-                            onClick={handleContinueFromCelebration}
-                            className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-lime-500 to-green-600 hover:from-lime-600 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500 shadow-lg transform transition-all duration-200 hover:scale-105"
-                          >
-                            Continue to Sign Up
-                            <span className="ml-2">→</span>
-                          </button>
-                        </div>
-                      ) : showInviteForm ? (
-                        /* Invite Code Form */
-                        <form onSubmit={handleInviteSubmit} className="space-y-4">
-                          <div className="text-center mb-6">
-                            <div className="mx-auto h-12 w-12 rounded-full bg-lime-100 flex items-center justify-center mb-4">
-                              <span className="text-lime-600 font-semibold text-lg">🔑</span>
-                            </div>
-                            <h4 className="text-lg font-medium text-gray-900 mb-2">Enter Invite Code</h4>
-                            <p className="text-sm text-gray-600">
-                              Please enter your invite code to continue with account creation.
-                            </p>
-                          </div>
-
-                          {inviteError && (
-                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                              <p className="text-sm text-red-600">{inviteError}</p>
-                            </div>
-                          )}
-
-                          <div>
-                            <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
-                              Invite Code
-                            </label>
-                            <input
-                              type="text"
-                              id="inviteCode"
-                              value={inviteCode}
-                              onChange={(e) => setInviteCode(e.target.value)}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
-                              placeholder="Enter your invite code"
-                              required
-                            />
-                          </div>
-
-                          <button
-                            type="submit"
-                            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500"
-                          >
-                            Verify Invite Code
-                          </button>
-
-                          <div className="text-center">
-                            <button
-                              type="button"
-                              onClick={handleBackToWaitlist}
-                              className="text-sm text-gray-600 hover:text-gray-500"
-                            >
-                              ← Back to waitlist
-                            </button>
-                          </div>
-                        </form>
-                      ) : showWaitlist ? (
-                        waitlistSubmitted ? (
+                    {showWaitlist ? (
+                      waitlistSubmitted ? (
                           /* Waitlist Success */
                           <div className="text-center py-8">
                             <div className="mx-auto h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mb-6">
@@ -393,21 +325,92 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                               )}
                             </button>
 
-                            <div className="text-center">
+                            <div className="flex items-center justify-center gap-4 text-sm">
+                              <button
+                                type="button"
+                                onClick={handleShowLoginForm}
+                                className="text-gray-700 hover:text-gray-900 font-semibold hover:underline"
+                              >
+                                Sign in
+                              </button>
+                              <span className="text-gray-400">•</span>
                               <button
                                 type="button"
                                 onClick={handleShowInviteForm}
-                                className="text-sm text-lime-600 hover:text-lime-500 font-medium"
+                                className="text-lime-600 hover:text-lime-700 font-semibold hover:underline"
                               >
                                 Have an invite code?
                               </button>
                             </div>
                           </form>
                         )
-                      ) : null
+                    ) : showInviteForm ? (
+                      /* Invite Code Form */
+                      <form onSubmit={handleInviteSubmit} className="space-y-4">
+                        <div className="text-center mb-6">
+                          <div className="mx-auto h-12 w-12 rounded-full bg-lime-100 flex items-center justify-center mb-4">
+                            <span className="text-lime-600 font-semibold text-lg">🔑</span>
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">Enter Invite Code</h4>
+                          <p className="text-sm text-gray-600">
+                            Please enter your invite code to continue with account creation.
+                          </p>
+                        </div>
+
+                        {inviteError && (
+                          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                            <p className="text-sm text-red-600">{inviteError}</p>
+                          </div>
+                        )}
+
+                        <div>
+                          <label htmlFor="inviteCode" className="block text-sm font-medium text-gray-700 mb-1">
+                            Invite Code
+                          </label>
+                          <input
+                            type="text"
+                            id="inviteCode"
+                            value={inviteCode}
+                            onChange={(e) => setInviteCode(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                            placeholder="Enter your invite code"
+                            required
+                          />
+                        </div>
+
+                        <button
+                          type="submit"
+                          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-lime-600 hover:bg-lime-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-lime-500"
+                        >
+                          Verify Invite Code
+                        </button>
+
+                        <div className="text-center">
+                          <button
+                            type="button"
+                            onClick={handleBackToWaitlist}
+                            className="text-sm text-gray-600 hover:text-gray-500"
+                          >
+                            ← Back to waitlist
+                          </button>
+                        </div>
+                      </form>
                     ) : (
                       /* Main Form */
                       <form onSubmit={handleSubmit} className="space-y-4">
+                        {isRegisterMode && isInviteVerified && (
+                          <div className="mb-4 p-4 bg-gradient-to-r from-lime-50 to-green-50 border-2 border-lime-300 rounded-lg">
+                            <div className="flex items-center justify-center mb-2">
+                              <div className="h-10 w-10 rounded-full bg-gradient-to-r from-lime-400 to-green-500 flex items-center justify-center mr-3">
+                                <span className="text-xl">🎉</span>
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-bold text-gray-900">You're In!</h4>
+                                <p className="text-sm text-lime-700">Welcome to AcreList Early Access</p>
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         {isRegisterMode && (
                           <>
                             <div>
@@ -485,22 +488,19 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                           isRegisterMode ? 'Create Account' : 'Sign In'
                         )}
                       </button>
-                      </form>
-                    )}
 
-                    {!hideToggle && !(isRegisterMode && !isInviteVerified) && (
-                      <div className="mt-6 text-center">
-                        <p className="text-sm text-gray-600">
-                          {isRegisterMode ? 'Already have an account?' : "Don't have an account?"}{' '}
+                      {!isRegisterMode && (
+                        <div className="text-center">
                           <button
                             type="button"
-                            onClick={toggleMode}
-                            className="font-medium text-lime-600 hover:text-lime-500"
+                            onClick={handleBackToWaitlist}
+                            className="text-sm text-gray-600 hover:text-gray-500"
                           >
-                            {isRegisterMode ? 'Sign in' : 'Create one'}
+                            ← Back to waitlist
                           </button>
-                        </p>
-                      </div>
+                        </div>
+                      )}
+                      </form>
                     )}
 
                     {isRegisterMode && isInviteVerified && (

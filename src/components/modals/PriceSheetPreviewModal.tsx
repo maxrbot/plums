@@ -83,12 +83,14 @@ export default function PriceSheetPreviewModal({
   // Update local state when prop changes OR when modal opens
   useEffect(() => {
     if (isOpen) {
+      console.log('🔄 Modal opened - syncing priceType:', initialPriceType)
       setPriceType(initialPriceType)
     }
   }, [initialPriceType, isOpen])
   
   // Notify parent when price type changes
   const handlePriceTypeChange = (newPriceType: 'FOB' | 'DELIVERED') => {
+    console.log('💰 Price type changed to:', newPriceType)
     setPriceType(newPriceType)
     onPriceTypeChange?.(newPriceType)
   }

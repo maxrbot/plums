@@ -1000,6 +1000,9 @@ export default function CleanPriceSheetPage() {
         notes: undefined,
         priceType: priceType
       }
+      
+      console.log('💾 Saving price sheet with priceType:', priceType)
+      console.log('💾 Full priceSheetData:', priceSheetData)
 
       // Prepare products data
       const productsData: any[] = []
@@ -1036,6 +1039,7 @@ export default function CleanPriceSheetPage() {
       })
 
       console.log('✅ Price sheet saved successfully:', response)
+      console.log('📋 Saved priceType:', response.priceSheet?.priceType)
       setHasSaved(true)
       
       // Auto-close modal after successful save
@@ -2187,7 +2191,10 @@ export default function CleanPriceSheetPage() {
         {/* Preview Modal */}
         <PriceSheetPreviewModal
           isOpen={isPreviewModalOpen}
-          onClose={() => setIsPreviewModalOpen(false)}
+          onClose={() => {
+            console.log('🚪 Closing modal - current priceType:', priceType)
+            setIsPreviewModalOpen(false)
+          }}
           title={priceSheetTitle}
           onTitleChange={setPriceSheetTitle}
           products={generatePreviewData()}
@@ -2198,7 +2205,10 @@ export default function CleanPriceSheetPage() {
           isSaving={isSaving}
           hasSaved={hasSaved}
           priceType={priceType}
-          onPriceTypeChange={setPriceType}
+          onPriceTypeChange={(newType) => {
+            console.log('📝 Parent receiving priceType change:', newType)
+            setPriceType(newType)
+          }}
         />
     </>
   )

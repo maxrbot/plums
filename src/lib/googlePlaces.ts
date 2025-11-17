@@ -75,11 +75,38 @@ export const createPlacesAutocomplete = async (
 
   container.appendChild(autocompleteElement)
 
-  // Listen for place selection
+  console.log('🗺️ PlaceAutocompleteElement created:', autocompleteElement)
+
+  // Try multiple event listeners to see which one works
   autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
-    console.log('🗺️ Place selected event fired:', event)
-    const place = event.place
-    console.log('🗺️ Place object:', place)
+    console.log('🗺️ gmp-placeselect event fired:', event)
+    await handlePlaceSelection(event.place)
+  })
+
+  // Also try the 'place_changed' event
+  autocompleteElement.addEventListener('place_changed', async (event: any) => {
+    console.log('🗺️ place_changed event fired:', event)
+    await handlePlaceSelection(event.place)
+  })
+
+  // Try listening on the input element directly
+  if (autocompleteInput) {
+    autocompleteInput.addEventListener('change', (event: any) => {
+      console.log('🗺️ input change event fired:', event)
+    })
+  }
+
+  // Add a property observer for the place property
+  Object.defineProperty(autocompleteElement, 'place', {
+    set: async function(place) {
+      console.log('🗺️ place property set:', place)
+      await handlePlaceSelection(place)
+    }
+  })
+
+  // Helper function to process place selection
+  async function handlePlaceSelection(place: any) {
+    console.log('🗺️ handlePlaceSelection called with place:', place)
     
     if (!place || !place.id) {
       console.warn('No place or place_id found for selected place')
@@ -130,7 +157,7 @@ export const createPlacesAutocomplete = async (
     } catch (error) {
       console.error('🗺️ Error processing place selection:', error)
     }
-  })
+  }
 
   return autocompleteElement
 }

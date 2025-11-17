@@ -68,8 +68,17 @@ export default function Dashboard() {
         
         // Check if user has packaging structure defined (stored in user profile)
         const packagingStructure = user?.packagingStructure || {}
-        const hasPackaging = Object.keys(packagingStructure).length > 0
-        const packagingSetupCount = Object.keys(packagingStructure).length
+        const commoditiesWithPackaging = Object.keys(packagingStructure)
+        const hasPackaging = commoditiesWithPackaging.length > 0
+        const packagingSetupCount = commoditiesWithPackaging.length
+        
+        // Calculate packaging structure metrics
+        const totalPackageTypes = commoditiesWithPackaging.reduce((sum, commodity) => {
+          return sum + (packagingStructure[commodity]?.packageTypes?.length || 0)
+        }, 0)
+        const totalSizeGrades = commoditiesWithPackaging.reduce((sum, commodity) => {
+          return sum + (packagingStructure[commodity]?.sizeGrades?.length || 0)
+        }, 0)
         
         const contactCount = contacts.length
         const hasContacts = contactCount > 0
@@ -92,16 +101,6 @@ export default function Dashboard() {
           packaging: hasPackaging,
           contacts: hasContacts
         })
-        
-        // Calculate packaging structure metrics
-        const packagingStructure = user?.packagingStructure || {}
-        const commoditiesWithPackaging = Object.keys(packagingStructure)
-        const totalPackageTypes = commoditiesWithPackaging.reduce((sum, commodity) => {
-          return sum + (packagingStructure[commodity]?.packageTypes?.length || 0)
-        }, 0)
-        const totalSizeGrades = commoditiesWithPackaging.reduce((sum, commodity) => {
-          return sum + (packagingStructure[commodity]?.sizeGrades?.length || 0)
-        }, 0)
         
         // Set metrics for "Manage Your Data" section
         setMetrics({

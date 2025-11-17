@@ -91,8 +91,14 @@ export default function PriceSheetPreviewModal({
   // Notify parent when price type changes
   const handlePriceTypeChange = (newPriceType: 'FOB' | 'DELIVERED') => {
     console.log('💰 Price type changed to:', newPriceType)
+    console.log('💰 onPriceTypeChange callback exists?', !!onPriceTypeChange)
     setPriceType(newPriceType)
-    onPriceTypeChange?.(newPriceType)
+    if (onPriceTypeChange) {
+      console.log('💰 Calling parent callback with:', newPriceType)
+      onPriceTypeChange(newPriceType)
+    } else {
+      console.warn('⚠️ No onPriceTypeChange callback provided!')
+    }
   }
   
   // Handle price/comment change - flexible input
@@ -374,6 +380,37 @@ export default function PriceSheetPreviewModal({
                     </div>
                   </div>
                 )}
+
+                {/* Price Type Toggle - Always visible */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-y border-blue-200 px-6 py-3">
+                  <div className="flex items-center justify-center space-x-3">
+                    <span className="text-sm font-medium text-gray-700">Price Type:</span>
+                    <div className="flex rounded-lg border border-gray-300 bg-white overflow-hidden">
+                      <button
+                        type="button"
+                        onClick={() => handlePriceTypeChange('FOB')}
+                        className={`px-4 py-1.5 text-sm font-medium transition-colors ${
+                          priceType === 'FOB'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        FOB
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handlePriceTypeChange('DELIVERED')}
+                        className={`px-4 py-1.5 text-sm font-medium transition-colors border-l border-gray-300 ${
+                          priceType === 'DELIVERED'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-white text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        DELIVERED
+                      </button>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Framed Document Preview */}
                 <div className="bg-gray-50 px-6 py-6">

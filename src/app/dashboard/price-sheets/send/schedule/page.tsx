@@ -372,6 +372,25 @@ export default function ScheduleSendPage() {
       }
     }))
   }
+  
+  // Handle price type change - update the price sheet
+  const handlePriceTypeChange = async (newPriceType: 'FOB' | 'DELIVERED') => {
+    if (!priceSheet) return
+    
+    try {
+      // Update the price sheet in the database
+      await priceSheetsApi.update(priceSheet._id.toString(), {
+        priceType: newPriceType
+      })
+      
+      // Update local state
+      setPriceSheet(prev => prev ? { ...prev, priceType: newPriceType } : null)
+      
+      console.log('✅ Price type updated to:', newPriceType)
+    } catch (error) {
+      console.error('❌ Failed to update price type:', error)
+    }
+  }
 
   const handleGenerateEmails = async () => {
     setIsGeneratingEmails(true)
@@ -1097,6 +1116,7 @@ export default function ScheduleSendPage() {
           mode="send"
           allowPriceEditing={true}
           priceType={priceSheet?.priceType || 'FOB'}
+          onPriceTypeChange={handlePriceTypeChange}
           onSaveCustomPricing={(productId, customValue) => {
             const contactId = priceSheetPreviewModal.contact?.id || (priceSheetPreviewModal.contact as any)?._id
             if (contactId) {

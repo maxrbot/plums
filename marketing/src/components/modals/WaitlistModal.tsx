@@ -73,14 +73,14 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
           throw new Error(data.message || 'Registration failed')
         }
 
-        // Store tokens
-        localStorage.setItem('accessToken', data.tokens.accessToken)
-        localStorage.setItem('refreshToken', data.tokens.refreshToken)
-        localStorage.setItem('user', JSON.stringify(data.user))
-
-        // Redirect to platform dashboard
+        // Redirect to platform with tokens in URL (will be saved there)
         const platformUrl = process.env.NEXT_PUBLIC_PLATFORM_URL || 'http://localhost:3000'
-        window.location.href = `${platformUrl}/dashboard`
+        const params = new URLSearchParams({
+          accessToken: data.tokens.accessToken,
+          refreshToken: data.tokens.refreshToken,
+          user: JSON.stringify(data.user)
+        })
+        window.location.href = `${platformUrl}/dashboard?${params.toString()}`
       } else {
         // Call login API
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
@@ -101,14 +101,14 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
           throw new Error(data.message || 'Login failed')
         }
 
-        // Store tokens
-        localStorage.setItem('accessToken', data.tokens.accessToken)
-        localStorage.setItem('refreshToken', data.tokens.refreshToken)
-        localStorage.setItem('user', JSON.stringify(data.user))
-
-        // Redirect to platform dashboard
+        // Redirect to platform with tokens in URL (will be saved there)
         const platformUrl = process.env.NEXT_PUBLIC_PLATFORM_URL || 'http://localhost:3000'
-        window.location.href = `${platformUrl}/dashboard`
+        const params = new URLSearchParams({
+          accessToken: data.tokens.accessToken,
+          refreshToken: data.tokens.refreshToken,
+          user: JSON.stringify(data.user)
+        })
+        window.location.href = `${platformUrl}/dashboard?${params.toString()}`
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

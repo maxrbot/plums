@@ -18,6 +18,27 @@ export default function Dashboard() {
   const userName = useUserName()
   const { user } = useUser()
   
+  // Check for tokens in URL (from marketing site login)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const accessToken = params.get('accessToken')
+    const refreshToken = params.get('refreshToken')
+    const userParam = params.get('user')
+    
+    if (accessToken && refreshToken && userParam) {
+      // Save tokens to localStorage
+      localStorage.setItem('accessToken', accessToken)
+      localStorage.setItem('refreshToken', refreshToken)
+      localStorage.setItem('user', userParam)
+      
+      // Clean up URL (remove tokens from address bar)
+      window.history.replaceState({}, document.title, '/dashboard')
+      
+      // Reload to trigger UserContext to pick up the new tokens
+      window.location.reload()
+    }
+  }, [])
+  
   // Real setup progress based on actual user data
   const [setupProgress, setSetupProgress] = useState({
     shippingPoints: false,

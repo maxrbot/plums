@@ -61,11 +61,8 @@ export const createPlacesAutocomplete = async (
   // Hide the original input
   inputElement.style.display = 'none'
 
-  // Create the new PlaceAutocompleteElement
-  const autocompleteElement = new google.maps.places.PlaceAutocompleteElement({
-    componentRestrictions: { country: [] }, // No country restriction
-    fields: ['place_id', 'formatted_address', 'name', 'address_components', 'geometry']
-  })
+  // Create the new PlaceAutocompleteElement (no config needed for unrestricted version)
+  const autocompleteElement = new google.maps.places.PlaceAutocompleteElement()
 
   // Style the autocomplete element to match the input
   const autocompleteInput = autocompleteElement.querySelector('input')
@@ -85,9 +82,9 @@ export const createPlacesAutocomplete = async (
       return
     }
 
-    // Fetch full place details
+    // Fetch full place details with the fields we need
     await place.fetchFields({
-      fields: ['place_id', 'formatted_address', 'name', 'address_components', 'geometry']
+      fields: ['id', 'formattedAddress', 'displayName', 'addressComponents', 'location']
     })
 
     // Extract address components

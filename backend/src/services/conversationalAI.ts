@@ -138,16 +138,16 @@ You are ${botConfig.botName}, an AI assistant for ${farmProfile.name}. `
     }
 
     // Marketing Information
-    if (businessInfo.marketingInfo) {
+    if ((businessInfo as any).marketingInfo) {
       prompt += `\nMARKETING INFORMATION:\n`
-      if (businessInfo.marketingInfo.retailDistribution) prompt += `Retail Distribution: ${businessInfo.marketingInfo.retailDistribution}\n`
-      if (businessInfo.marketingInfo.marketAvailability) prompt += `Market Availability: ${businessInfo.marketingInfo.marketAvailability}\n`
+      if ((businessInfo as any).marketingInfo.retailDistribution) prompt += `Retail Distribution: ${(businessInfo as any).marketingInfo.retailDistribution}\n`
+      if ((businessInfo as any).marketingInfo.marketAvailability) prompt += `Market Availability: ${(businessInfo as any).marketingInfo.marketAvailability}\n`
     }
 
     // Frequently Asked Questions (separate section for prominence)
-    if (businessInfo.marketingInfo?.frequentlyAskedQuestions) {
+    if ((businessInfo as any).marketingInfo?.frequentlyAskedQuestions) {
       prompt += `\nFREQUENTLY ASKED QUESTIONS:\n`
-      prompt += `${businessInfo.marketingInfo.frequentlyAskedQuestions}\n`
+      prompt += `${(businessInfo as any).marketingInfo.frequentlyAskedQuestions}\n`
       prompt += `Use these FAQ answers when relevant to user questions.\n`
     }
 

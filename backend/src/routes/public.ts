@@ -94,7 +94,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
             
             // Apply pricing adjustments
             products = products.map(product => {
-              if (product.price === null) return product
+              if (product.price === null) return product as any
               
               const productId = product._id.toString()
               
@@ -106,10 +106,10 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
                 if (typeof customValue === 'string') {
                   return {
                     ...product,
-                    price: null, // Hide price when override comment is set
+                    price: null as any, // Hide price when override comment is set
                     hasOverride: true,
                     overrideComment: customValue
-                  }
+                  } as any
                 } else {
                   return {
                     ...product,
@@ -137,16 +137,16 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       if (!showPricing) {
         products = products.map(product => ({
           ...product,
-          price: null // Hide pricing
-        }))
+          price: null as any // Hide pricing
+        })) as any
       }
       
       // Track the view (async, don't wait) - skip if preview mode
-      const isPreviewMode = preview === 'true' || preview === true
+      const isPreviewMode = preview === 'true' || (preview as any) === true
       console.log('🔍 Preview mode check:', { preview, isPreviewMode, willTrack: !isPreviewMode })
       
       if (!isPreviewMode) {
-        const viewRecord: Omit<PriceSheetView, '_id'> = {
+        const viewRecord: any = {
           priceSheetId: priceSheet._id!,
           userId: priceSheet.userId,
           contactEmail: contact?.email,

@@ -167,8 +167,8 @@ const shippingPointsRoutes: FastifyPluginAsync = async (fastify) => {
           zones: pointData.shipping?.zones || [],
           methods: pointData.shipping?.methods || ['Truck'],
           leadTime: pointData.shipping?.leadTime || 2,
-          minimumOrder: pointData.shipping?.minimumOrder
-        },
+          minimumOrder: pointData.shipping?.minimumOrder || undefined
+        } as any,
         createdAt: new Date(),
         updatedAt: new Date()
       }

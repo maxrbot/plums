@@ -80,7 +80,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
           refreshToken: data.tokens.refreshToken,
           user: JSON.stringify(data.user)
         })
-        window.location.href = `${platformUrl}/dashboard?${params.toString()}`
+        window.location.href = `${platformUrl}/?${params.toString()}`
       } else {
         // Call login API
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
@@ -108,7 +108,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
           refreshToken: data.tokens.refreshToken,
           user: JSON.stringify(data.user)
         })
-        window.location.href = `${platformUrl}/dashboard?${params.toString()}`
+        window.location.href = `${platformUrl}/?${params.toString()}`
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')

@@ -18,7 +18,24 @@ export default function Home() {
   const [isChecking, setIsChecking] = useState(true)
 
   useEffect(() => {
-    // Check if user is authenticated
+    // First, check if tokens are in URL (from marketing site login)
+    const params = new URLSearchParams(window.location.search)
+    const urlAccessToken = params.get('accessToken')
+    const urlRefreshToken = params.get('refreshToken')
+    const urlUser = params.get('user')
+    
+    if (urlAccessToken && urlRefreshToken && urlUser) {
+      // Save tokens to localStorage
+      localStorage.setItem('accessToken', urlAccessToken)
+      localStorage.setItem('refreshToken', urlRefreshToken)
+      localStorage.setItem('user', urlUser)
+      
+      // Redirect to dashboard (tokens are now saved)
+      router.push('/dashboard')
+      return
+    }
+    
+    // Check if user is already authenticated
     const accessToken = localStorage.getItem('accessToken')
     
     if (accessToken) {

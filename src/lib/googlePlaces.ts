@@ -58,8 +58,9 @@ export const createPlacesAutocomplete = async (
   // Insert the container before the input element
   inputElement.parentNode?.insertBefore(container, inputElement)
   
-  // Hide the original input
+  // Hide the original input and remove required attribute to prevent form validation issues
   inputElement.style.display = 'none'
+  inputElement.removeAttribute('required')
 
   // Create the new PlaceAutocompleteElement (no config needed for unrestricted version)
   const autocompleteElement = new google.maps.places.PlaceAutocompleteElement()
@@ -69,6 +70,7 @@ export const createPlacesAutocomplete = async (
   if (autocompleteInput) {
     autocompleteInput.className = inputElement.className
     autocompleteInput.placeholder = inputElement.placeholder
+    autocompleteInput.required = true // Make the new input required instead
   }
 
   container.appendChild(autocompleteElement)

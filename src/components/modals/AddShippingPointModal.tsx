@@ -94,10 +94,18 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
           locationInputRef.current!,
           (place: PlaceResult) => {
             setSelectedPlace(place)
+            // Auto-generate facility name based on location and facility type
+            const facilityTypeLabel = formData.facilityType === 'cooler' ? 'Cooler' 
+              : formData.facilityType === 'warehouse' ? 'Warehouse' 
+              : formData.facilityType === 'packing_house' ? 'Packing House' 
+              : formData.facilityType === 'distribution_center' ? 'Distribution Center' 
+              : 'Facility'
+            const autoName = place.city ? `${place.city} ${facilityTypeLabel}` : place.name
+            
             setFormData(prev => ({
               ...prev,
               location: place.formattedAddress,
-              name: prev.name || `${place.city} ${prev.facilityType === 'cooler' ? 'Cooler' : prev.facilityType === 'warehouse' ? 'Warehouse' : prev.facilityType === 'packing_house' ? 'Packing House' : prev.facilityType === 'distribution_center' ? 'Distribution Center' : 'Facility'}`
+              name: autoName // Always set the auto-generated name
             }))
           }
         )

@@ -4,6 +4,9 @@ import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 
+// Get API URL from environment variable
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+
 interface LoginModalProps {
   isOpen: boolean
   onClose: () => void
@@ -63,7 +66,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     try {
       if (isRegisterMode) {
         // Call register API
-        const response = await fetch('http://localhost:3001/api/auth/register', {
+        const response = await fetch(`${API_BASE_URL}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -91,7 +94,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
         window.location.href = '/dashboard'
       } else {
         // Call login API
-        const response = await fetch('http://localhost:3001/api/auth/login', {
+        const response = await fetch(`${API_BASE_URL}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

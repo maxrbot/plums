@@ -32,6 +32,7 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
   const [selectedPlace, setSelectedPlace] = useState<PlaceResult | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
   const locationInputRef = useRef<HTMLInputElement>(null)
+  const autocompleteElementRef = useRef<any>(null)
 
   // Populate form when editing
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
       }
       
       try {
-        await createPlacesAutocomplete(
+        const element = await createPlacesAutocomplete(
           locationInputRef.current!,
           (place: PlaceResult) => {
             setSelectedPlace(place)
@@ -109,6 +110,8 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
             }))
           }
         )
+        // Store reference to the autocomplete element
+        autocompleteElementRef.current = element
       } catch (error) {
         console.error('Failed to initialize Google Places:', error)
       }
@@ -170,8 +173,14 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
   }
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Try to get the place from the autocomplete element if selectedPlace is null
+    if (!selectedPlace && autocompleteElementRef.current?.getSelectedPlace) {
+      console.log('🔍 Attempting to get place from autocomplete element')
+      await autocompleteElementRef.current.getSelectedPlace()
+    }
     
     console.log('🔍 Debug - selectedPlace:', selectedPlace)
     console.log('🔍 Debug - formData.location:', formData.location)

@@ -63,7 +63,7 @@ export const createPlacesAutocomplete = async (
   inputElement.removeAttribute('required')
 
   // Create the new PlaceAutocompleteElement (no config needed for unrestricted version)
-  const autocompleteElement = new google.maps.places.PlaceAutocompleteElement()
+  const autocompleteElement = new google.maps.places.PlaceAutocompleteElement() as any
 
   // Style the autocomplete element to match the input
   const autocompleteInput = autocompleteElement.querySelector('input')
@@ -76,6 +76,16 @@ export const createPlacesAutocomplete = async (
   container.appendChild(autocompleteElement)
 
   console.log('🗺️ PlaceAutocompleteElement created:', autocompleteElement)
+  
+  // Store a reference to get the place later
+  ;(autocompleteElement as any).getSelectedPlace = async () => {
+    const place = autocompleteElement.value
+    console.log('🗺️ Getting selected place from element.value:', place)
+    if (place) {
+      await handlePlaceSelection(place)
+    }
+    return place
+  }
 
   // Try multiple event listeners to see which one works
   autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {

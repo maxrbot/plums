@@ -31,11 +31,9 @@ export default function Dashboard() {
       localStorage.setItem('refreshToken', refreshToken)
       localStorage.setItem('user', userParam)
       
-      // Clean up URL (remove tokens from address bar)
-      window.history.replaceState({}, document.title, '/dashboard')
-      
-      // Reload to trigger UserContext to pick up the new tokens
-      window.location.reload()
+      // Clean up URL (remove tokens from address bar) and force full page reload
+      // Use replace to ensure we reload with the tokens in localStorage
+      window.location.replace('/dashboard')
     }
   }, [])
   

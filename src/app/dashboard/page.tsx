@@ -18,25 +18,6 @@ export default function Dashboard() {
   const userName = useUserName()
   const { user } = useUser()
   
-  // Check for tokens in URL (from marketing site login)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const accessToken = params.get('accessToken')
-    const refreshToken = params.get('refreshToken')
-    const userParam = params.get('user')
-    
-    if (accessToken && refreshToken && userParam) {
-      // Save tokens to localStorage
-      localStorage.setItem('accessToken', accessToken)
-      localStorage.setItem('refreshToken', refreshToken)
-      localStorage.setItem('user', userParam)
-      
-      // Clean up URL (remove tokens from address bar) and force full page reload
-      // Use replace to ensure we reload with the tokens in localStorage
-      window.location.replace('/dashboard')
-    }
-  }, [])
-  
   // Real setup progress based on actual user data
   const [setupProgress, setSetupProgress] = useState({
     shippingPoints: false,
@@ -55,7 +36,7 @@ export default function Dashboard() {
     regions: { count: 0, data: [] as any[], lastUpdated: undefined as string | undefined },
     crops: { count: 0, commodities: 0, variations: 0, organicCount: 0, conventionalCount: 0, data: [] as any[], lastUpdated: undefined as string | undefined },
     certifications: { count: 0, data: [] as any[], lastUpdated: undefined as string | undefined },
-    packaging: { count: 0, data: [] as any[], lastUpdated: undefined as string | undefined }
+    packaging: { count: 0, packageTypes: 0, sizeGrades: 0, data: {} as any, lastUpdated: undefined as string | undefined }
   })
 
   // Load actual setup progress from APIs
@@ -112,6 +93,16 @@ export default function Dashboard() {
           contacts: hasContacts
         })
         
+        // Calculate packaging structure metrics
+        const packagingStructure = user?.packagingStructure || {}
+        const commoditiesWithPackaging = Object.keys(packagingStructure)
+        const totalPackageTypes = commoditiesWithPackaging.reduce((sum, commodity) => {
+          return sum + (packagingStructure[commodity]?.packageTypes?.length || 0)
+        }, 0)
+        const totalSizeGrades = commoditiesWithPackaging.reduce((sum, commodity) => {
+          return sum + (packagingStructure[commodity]?.sizeGrades?.length || 0)
+        }, 0)
+        
         // Set metrics for "Manage Your Data" section
         setMetrics({
           regions: {
@@ -134,9 +125,11 @@ export default function Dashboard() {
             lastUpdated: certifications[0]?.updatedAt || certifications[0]?.createdAt
           },
           packaging: {
-            count: packaging.length,
-            data: packaging,
-            lastUpdated: packaging[0]?.updatedAt || packaging[0]?.createdAt
+            count: commoditiesWithPackaging.length,
+            packageTypes: totalPackageTypes,
+            sizeGrades: totalSizeGrades,
+            data: packagingStructure,
+            lastUpdated: user?.updatedAt
           }
         })
         
@@ -519,10 +512,20 @@ export default function Dashboard() {
                   
                   <div className="space-y-1 mb-3">
                     {metrics.packaging.count > 0 ? (
-                      <div className="flex items-center text-xs text-gray-600">
-                        <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
-                        <span className="truncate">{metrics.packaging.count} packaging setup{metrics.packaging.count !== 1 ? 's' : ''}</span>
-                      </div>
+                      <>
+                        <div className="flex items-center text-xs text-gray-600">
+                          <div className="w-1.5 h-1.5 bg-green-400 rounded-full mr-2 flex-shrink-0"></div>
+                          <span className="truncate">{metrics.packaging.count} commodit{metrics.packaging.count !== 1 ? 'ies' : 'y'} configured</span>
+                        </div>
+                        <div className="flex items-center text-xs text-gray-600">
+                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full mr-2 flex-shrink-0"></div>
+                          <span className="truncate">{metrics.packaging.packageTypes} package type{metrics.packaging.packageTypes !== 1 ? 's' : ''}</span>
+                        </div>
+                        <div className="flex items-center text-xs text-gray-600">
+                          <div className="w-1.5 h-1.5 bg-purple-400 rounded-full mr-2 flex-shrink-0"></div>
+                          <span className="truncate">{metrics.packaging.sizeGrades} size grade{metrics.packaging.sizeGrades !== 1 ? 's' : ''}</span>
+                        </div>
+                      </>
                     ) : (
                       <div className="text-xs text-gray-400 italic">No packaging structure defined</div>
                     )}

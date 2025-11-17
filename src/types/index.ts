@@ -92,6 +92,7 @@ export interface PriceSheet {
   sentTo?: ObjectId[];
   sentAt?: Date;
   notes?: string;
+  priceType?: 'FOB' | 'DELIVERED'; // Price type for the entire sheet
   createdAt: Date;
   updatedAt: Date;
   last_updated?: Date; // Keep for backward compatibility

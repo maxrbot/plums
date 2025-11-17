@@ -355,7 +355,7 @@ export default function PublicPriceSheetViewer() {
                               </th>
                               {showPricing && (
                                 <th scope="col" className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                  FOB Price
+                                  {priceSheet?.priceType || 'FOB'} Price
                                 </th>
                               )}
                             </tr>

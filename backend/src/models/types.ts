@@ -194,6 +194,7 @@ export interface PriceSheet extends BaseDocument {
   sentTo?: ObjectId[] // References to Contact
   sentAt?: Date
   notes?: string
+  priceType?: 'FOB' | 'DELIVERED' // Price type for the entire sheet
 }
 
 // Price Sheet Products (individual entries)

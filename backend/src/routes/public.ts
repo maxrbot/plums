@@ -172,6 +172,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           status: priceSheet.status,
           productsCount: priceSheet.productsCount,
           notes: priceSheet.notes,
+          priceType: priceSheet.priceType || 'FOB', // Default to FOB if not set
           createdAt: priceSheet.createdAt,
           updatedAt: priceSheet.updatedAt
         },

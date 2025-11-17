@@ -49,6 +49,7 @@ export default function CleanPriceSheetPage() {
   // Preview and Save state
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [priceSheetTitle, setPriceSheetTitle] = useState('')
+  const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>('FOB')
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
   
@@ -996,7 +997,8 @@ export default function CleanPriceSheetPage() {
       const priceSheetData = {
         title: priceSheetTitle,
         status: 'draft' as const,
-        notes: undefined
+        notes: undefined,
+        priceType: priceType
       }
 
       // Prepare products data
@@ -2195,6 +2197,8 @@ export default function CleanPriceSheetPage() {
           onSendPriceSheet={handleSendPriceSheet}
           isSaving={isSaving}
           hasSaved={hasSaved}
+          priceType={priceType}
+          onPriceTypeChange={setPriceType}
         />
     </>
   )

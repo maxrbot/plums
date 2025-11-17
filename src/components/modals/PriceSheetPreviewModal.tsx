@@ -1,6 +1,6 @@
 "use client"
 
-import { Fragment, useState } from 'react'
+import { Fragment, useState, useEffect } from 'react'
 import { Dialog, Transition } from '@headlessui/react'
 import { XMarkIcon, BookmarkIcon, RocketLaunchIcon, PencilIcon, CheckIcon } from '@heroicons/react/24/outline'
 
@@ -48,6 +48,8 @@ interface PriceSheetPreviewModalProps {
   mode?: 'save' | 'send' // 'save' shows save button, 'send' is for preview only
   onSaveCustomPricing?: (productId: string, customValue: number | string) => void // Callback for saving custom pricing or comment
   allowPriceEditing?: boolean // Whether to allow price editing (for send mode)
+  priceType?: 'FOB' | 'DELIVERED' // Initial price type
+  onPriceTypeChange?: (priceType: 'FOB' | 'DELIVERED') => void // Callback when price type changes
 }
 
 export default function PriceSheetPreviewModal({
@@ -65,7 +67,9 @@ export default function PriceSheetPreviewModal({
   hasSaved = false,
   mode = 'save',
   onSaveCustomPricing,
-  allowPriceEditing = false
+  allowPriceEditing = false,
+  priceType: initialPriceType = 'FOB',
+  onPriceTypeChange
 }: PriceSheetPreviewModalProps) {
   // Edit mode state
   const [isEditingPrices, setIsEditingPrices] = useState(false)
@@ -73,8 +77,19 @@ export default function PriceSheetPreviewModal({
   const [isSavingPrices, setIsSavingPrices] = useState(false)
   
   // Pricing tools state
-  const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>('FOB')
+  const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>(initialPriceType)
   const [bulkAdjustment, setBulkAdjustment] = useState<string>('')
+  
+  // Update local state when prop changes
+  useEffect(() => {
+    setPriceType(initialPriceType)
+  }, [initialPriceType])
+  
+  // Notify parent when price type changes
+  const handlePriceTypeChange = (newPriceType: 'FOB' | 'DELIVERED') => {
+    setPriceType(newPriceType)
+    onPriceTypeChange?.(newPriceType)
+  }
   
   // Handle price/comment change - flexible input
   const handlePriceChange = (productId: string, newValue: string) => {
@@ -303,7 +318,7 @@ export default function PriceSheetPreviewModal({
                         <div className="flex rounded-lg border border-gray-300 bg-white overflow-hidden">
                           <button
                             type="button"
-                            onClick={() => setPriceType('FOB')}
+                            onClick={() => handlePriceTypeChange('FOB')}
                             className={`px-4 py-2 text-sm font-medium transition-colors ${
                               priceType === 'FOB'
                                 ? 'bg-lime-500 text-white'
@@ -314,7 +329,7 @@ export default function PriceSheetPreviewModal({
                           </button>
                           <button
                             type="button"
-                            onClick={() => setPriceType('DELIVERED')}
+                            onClick={() => handlePriceTypeChange('DELIVERED')}
                             className={`px-4 py-2 text-sm font-medium transition-colors border-l border-gray-300 ${
                               priceType === 'DELIVERED'
                                 ? 'bg-lime-500 text-white'

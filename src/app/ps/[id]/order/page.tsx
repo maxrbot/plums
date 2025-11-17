@@ -79,9 +79,10 @@ export default function OrderBuilder() {
         if (contactHash) queryParams.append('c', contactHash)
         if (preview) queryParams.append('preview', preview)
         
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
         const url = queryParams.toString()
-          ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}?${queryParams.toString()}`
-          : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}`
+          ? `${apiBase}/public/price-sheets/${id}?${queryParams.toString()}`
+          : `${apiBase}/public/price-sheets/${id}`
         
         console.log('Fetching price sheet from:', url)
         
@@ -232,7 +233,8 @@ export default function OrderBuilder() {
       const contactHash = searchParams?.get('c')
       const buyerName = searchParams?.get('buyer')
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/order-request`, {
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const response = await fetch(`${apiBase}/public/order-request`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

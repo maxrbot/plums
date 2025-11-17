@@ -70,9 +70,10 @@ export default function PublicPriceSheetViewer() {
         if (contactHash) queryParams.set('c', contactHash)
         if (preview) queryParams.set('preview', preview)
         
+        const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
         const url = queryParams.toString()
-          ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}?${queryParams.toString()}`
-          : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/price-sheets/${id}`
+          ? `${apiBase}/public/price-sheets/${id}?${queryParams.toString()}`
+          : `${apiBase}/public/price-sheets/${id}`
         
         const response = await fetch(url)
         

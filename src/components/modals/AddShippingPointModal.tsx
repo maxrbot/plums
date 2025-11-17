@@ -173,6 +173,9 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
+    console.log('🔍 Debug - selectedPlace:', selectedPlace)
+    console.log('🔍 Debug - formData.location:', formData.location)
+    
     const shippingPointData = {
       name: formData.name,
       city: selectedPlace?.city || '',

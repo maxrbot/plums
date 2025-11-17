@@ -53,8 +53,8 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     try {
       if (isRegisterMode) {
         // Call register API - use environment variable for API URL
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-        const response = await fetch(`${apiUrl}/api/auth/register`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+        const response = await fetch(`${apiUrl}/auth/register`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -83,8 +83,8 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
         window.location.href = `${platformUrl}/dashboard`
       } else {
         // Call login API
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
-        const response = await fetch(`${apiUrl}/api/auth/login`, {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+        const response = await fetch(`${apiUrl}/auth/login`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

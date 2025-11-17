@@ -339,7 +339,7 @@ export default function CropManagement() {
           notes: region.notes || '',
           location: region.location
         }
-      }))
+      })
       
       setRegions(transformedRegions)
     } catch (err) {

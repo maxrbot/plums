@@ -17,7 +17,7 @@ export interface PlaceResult {
   }
 }
 
-// Initialize Google Maps API
+// Initialize Google Maps API with the new Places library
 export const initializeGoogleMaps = async (): Promise<void> => {
   if (isLoaded) return
   
@@ -29,12 +29,14 @@ export const initializeGoogleMaps = async (): Promise<void> => {
     googleMapsLoader = new Loader({
       apiKey: config.googlePlaces.apiKey,
       version: 'weekly',
-      libraries: ['places']
+      libraries: ['places', 'marker']
     })
   }
 
   try {
     await googleMapsLoader.load()
+    // Import the new Places library
+    await google.maps.importLibrary('places')
     isLoaded = true
   } catch (error) {
     console.error('Failed to load Google Maps API:', error)
@@ -42,62 +44,88 @@ export const initializeGoogleMaps = async (): Promise<void> => {
   }
 }
 
-// Create autocomplete service
+// Create autocomplete service using the new PlaceAutocompleteElement
 export const createPlacesAutocomplete = async (
   inputElement: HTMLInputElement,
   onPlaceSelect: (place: PlaceResult) => void
-): Promise<google.maps.places.Autocomplete> => {
+): Promise<any> => {
   await initializeGoogleMaps()
 
-  const autocomplete = new google.maps.places.Autocomplete(inputElement, {
-    types: ['(cities)'],
+  // Create a container for the autocomplete element
+  const container = document.createElement('div')
+  container.style.width = '100%'
+  
+  // Insert the container before the input element
+  inputElement.parentNode?.insertBefore(container, inputElement)
+  
+  // Hide the original input
+  inputElement.style.display = 'none'
+
+  // Create the new PlaceAutocompleteElement
+  const autocompleteElement = new google.maps.places.PlaceAutocompleteElement({
+    componentRestrictions: { country: [] }, // No country restriction
     fields: ['place_id', 'formatted_address', 'name', 'address_components', 'geometry']
   })
 
-  autocomplete.addListener('place_changed', () => {
-    const place = autocomplete.getPlace()
+  // Style the autocomplete element to match the input
+  const autocompleteInput = autocompleteElement.querySelector('input')
+  if (autocompleteInput) {
+    autocompleteInput.className = inputElement.className
+    autocompleteInput.placeholder = inputElement.placeholder
+  }
+
+  container.appendChild(autocompleteElement)
+
+  // Listen for place selection
+  autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
+    const place = event.place
     
-    if (!place.place_id) {
+    if (!place.id) {
       console.warn('No place_id found for selected place')
       return
     }
+
+    // Fetch full place details
+    await place.fetchFields({
+      fields: ['place_id', 'formatted_address', 'name', 'address_components', 'geometry']
+    })
 
     // Extract address components
     let city = ''
     let state = ''
     let country = ''
 
-    if (place.address_components) {
-      for (const component of place.address_components) {
+    if (place.addressComponents) {
+      for (const component of place.addressComponents) {
         const types = component.types
         
         if (types.includes('locality')) {
-          city = component.long_name
+          city = component.longText
         } else if (types.includes('administrative_area_level_1')) {
-          state = component.short_name
+          state = component.shortText
         } else if (types.includes('country')) {
-          country = component.short_name
+          country = component.shortText
         }
       }
     }
 
     const result: PlaceResult = {
-      placeId: place.place_id,
-      formattedAddress: place.formatted_address || '',
-      name: place.name || '',
+      placeId: place.id,
+      formattedAddress: place.formattedAddress || '',
+      name: place.displayName || '',
       city,
       state,
       country,
-      coordinates: place.geometry?.location ? {
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng()
+      coordinates: place.location ? {
+        lat: place.location.lat(),
+        lng: place.location.lng()
       } : undefined
     }
 
     onPlaceSelect(result)
   })
 
-  return autocomplete
+  return autocompleteElement
 }
 
 // Search places by text

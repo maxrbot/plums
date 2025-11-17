@@ -992,6 +992,7 @@ export default function SendPriceSheets() {
           userEmail={user?.profile?.email || user?.email}
           userPhone={user?.profile?.phone}
           mode="send"
+          priceType={previewPriceSheet.priceType || 'FOB'}
         />
       )}
 

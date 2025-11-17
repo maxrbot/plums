@@ -1096,6 +1096,7 @@ export default function ScheduleSendPage() {
           userPhone={user?.profile?.phone}
           mode="send"
           allowPriceEditing={true}
+          priceType={priceSheet?.priceType || 'FOB'}
           onSaveCustomPricing={(productId, customValue) => {
             const contactId = priceSheetPreviewModal.contact?.id || (priceSheetPreviewModal.contact as any)?._id
             if (contactId) {

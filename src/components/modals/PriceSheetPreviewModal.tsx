@@ -80,10 +80,12 @@ export default function PriceSheetPreviewModal({
   const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>(initialPriceType)
   const [bulkAdjustment, setBulkAdjustment] = useState<string>('')
   
-  // Update local state when prop changes
+  // Update local state when prop changes OR when modal opens
   useEffect(() => {
-    setPriceType(initialPriceType)
-  }, [initialPriceType])
+    if (isOpen) {
+      setPriceType(initialPriceType)
+    }
+  }, [initialPriceType, isOpen])
   
   // Notify parent when price type changes
   const handlePriceTypeChange = (newPriceType: 'FOB' | 'DELIVERED') => {

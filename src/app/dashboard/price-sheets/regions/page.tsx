@@ -135,9 +135,7 @@ export default function ShippingPoints() {
         acreage: ''
       }
 
-      console.log('📤 Sending shipping point data:', shippingPointData)
       const response = await shippingPointsApi.create(shippingPointData)
-      console.log('📥 Received response:', response.region)
       
       // Add the new region to the list - use the MongoDB ID from response
       const regionId = response.region.id || response.region._id?.toString() || `temp_${Date.now()}_${Math.random()}`
@@ -168,8 +166,6 @@ export default function ShippingPoints() {
       setRegions([...regions, transformedRegion])
       setIsModalOpen(false)
       setEditingRegion(null)
-      
-      console.log('✅ Region created successfully:', response.region)
     } catch (err) {
       console.error('Failed to create region:', err)
       setError(err instanceof Error ? err.message : 'Failed to create region')
@@ -228,8 +224,6 @@ export default function ShippingPoints() {
       
       setIsModalOpen(false)
       setEditingRegion(null)
-      
-      console.log('✅ Region updated successfully:', response.region)
     } catch (err) {
       console.error('Failed to update region:', err)
       setError(err instanceof Error ? err.message : 'Failed to update region')
@@ -241,7 +235,6 @@ export default function ShippingPoints() {
       setError(null)
       await shippingPointsApi.delete(regionId.toString())
       setRegions(prev => prev.filter(region => region.id !== regionId))
-      console.log('✅ Region deleted successfully')
     } catch (err) {
       console.error('Failed to delete region:', err)
       setError(err instanceof Error ? err.message : 'Failed to delete region')

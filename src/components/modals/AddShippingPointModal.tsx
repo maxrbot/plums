@@ -198,7 +198,6 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
       }
     }
     
-    console.log('🔧 Modal submitting data:', shippingPointData)
     onSave(shippingPointData)
     handleClose()
   }

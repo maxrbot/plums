@@ -76,16 +76,32 @@ export const createPlacesAutocomplete = async (
   container.appendChild(autocompleteElement)
 
   console.log('🗺️ PlaceAutocompleteElement created:', autocompleteElement)
-  console.log('🗺️ Element properties:', Object.keys(autocompleteElement))
+  console.log('🗺️ Element properties:', Object.keys(autocompleteElement).join(', '))
   console.log('🗺️ Element.value:', autocompleteElement.value)
   console.log('🗺️ Element.place:', (autocompleteElement as any).place)
+  
+  // Check for common property names
+  const possibleProps = ['value', 'place', 'selectedPlace', 'selection', 'data', 'result']
+  possibleProps.forEach(prop => {
+    if ((autocompleteElement as any)[prop] !== undefined) {
+      console.log(`🗺️ Found property "${prop}":`, (autocompleteElement as any)[prop])
+    }
+  })
   
   // Store a reference to get the place later
   ;(autocompleteElement as any).getSelectedPlace = async () => {
     console.log('🗺️ getSelectedPlace called')
+    console.log('🗺️ Element at submit - all props:', Object.keys(autocompleteElement).join(', '))
     console.log('🗺️ Element at submit - value:', autocompleteElement.value)
     console.log('🗺️ Element at submit - place:', (autocompleteElement as any).place)
-    console.log('🗺️ Element at submit - all props:', Object.keys(autocompleteElement))
+    
+    // Check all possible property names at submit time
+    const possibleProps = ['value', 'place', 'selectedPlace', 'selection', 'data', 'result']
+    possibleProps.forEach(prop => {
+      if ((autocompleteElement as any)[prop] !== undefined) {
+        console.log(`🗺️ At submit - Found property "${prop}":`, (autocompleteElement as any)[prop])
+      }
+    })
     
     // Try different ways to access the place
     const place = autocompleteElement.value || (autocompleteElement as any).place

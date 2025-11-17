@@ -77,51 +77,59 @@ export const createPlacesAutocomplete = async (
 
   // Listen for place selection
   autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
+    console.log('🗺️ Place selected event fired:', event)
     const place = event.place
+    console.log('🗺️ Place object:', place)
     
-    if (!place.id) {
-      console.warn('No place_id found for selected place')
+    if (!place || !place.id) {
+      console.warn('No place or place_id found for selected place')
       return
     }
 
-    // Fetch full place details with the fields we need
-    await place.fetchFields({
-      fields: ['id', 'formattedAddress', 'displayName', 'addressComponents', 'location']
-    })
+    try {
+      // Fetch full place details with the fields we need
+      await place.fetchFields({
+        fields: ['id', 'formattedAddress', 'displayName', 'addressComponents', 'location']
+      })
+      console.log('🗺️ Place after fetchFields:', place)
 
-    // Extract address components
-    let city = ''
-    let state = ''
-    let country = ''
+      // Extract address components
+      let city = ''
+      let state = ''
+      let country = ''
 
-    if (place.addressComponents) {
-      for (const component of place.addressComponents) {
-        const types = component.types
-        
-        if (types.includes('locality')) {
-          city = component.longText
-        } else if (types.includes('administrative_area_level_1')) {
-          state = component.shortText
-        } else if (types.includes('country')) {
-          country = component.shortText
+      if (place.addressComponents) {
+        for (const component of place.addressComponents) {
+          const types = component.types
+          
+          if (types.includes('locality')) {
+            city = component.longText
+          } else if (types.includes('administrative_area_level_1')) {
+            state = component.shortText
+          } else if (types.includes('country')) {
+            country = component.shortText
+          }
         }
       }
-    }
 
-    const result: PlaceResult = {
-      placeId: place.id,
-      formattedAddress: place.formattedAddress || '',
-      name: place.displayName || '',
-      city,
-      state,
-      country,
-      coordinates: place.location ? {
-        lat: place.location.lat(),
-        lng: place.location.lng()
-      } : undefined
-    }
+      const result: PlaceResult = {
+        placeId: place.id,
+        formattedAddress: place.formattedAddress || '',
+        name: place.displayName || '',
+        city,
+        state,
+        country,
+        coordinates: place.location ? {
+          lat: place.location.lat(),
+          lng: place.location.lng()
+        } : undefined
+      }
 
-    onPlaceSelect(result)
+      console.log('🗺️ Calling onPlaceSelect with result:', result)
+      onPlaceSelect(result)
+    } catch (error) {
+      console.error('🗺️ Error processing place selection:', error)
+    }
   })
 
   return autocompleteElement

@@ -44,158 +44,63 @@ export const initializeGoogleMaps = async (): Promise<void> => {
   }
 }
 
-// Create autocomplete service using the new PlaceAutocompleteElement
+// Create autocomplete service using the classic Autocomplete API (still supported)
 export const createPlacesAutocomplete = async (
   inputElement: HTMLInputElement,
   onPlaceSelect: (place: PlaceResult) => void
-): Promise<any> => {
+): Promise<google.maps.places.Autocomplete> => {
   await initializeGoogleMaps()
 
-  // Create a container for the autocomplete element
-  const container = document.createElement('div')
-  container.style.width = '100%'
-  
-  // Insert the container before the input element
-  inputElement.parentNode?.insertBefore(container, inputElement)
-  
-  // Hide the original input and remove required attribute to prevent form validation issues
-  inputElement.style.display = 'none'
-  inputElement.removeAttribute('required')
-
-  // Create the new PlaceAutocompleteElement (no config needed for unrestricted version)
-  const autocompleteElement = new google.maps.places.PlaceAutocompleteElement() as any
-
-  // Style the autocomplete element to match the input
-  const autocompleteInput = autocompleteElement.querySelector('input')
-  if (autocompleteInput) {
-    autocompleteInput.className = inputElement.className
-    autocompleteInput.placeholder = inputElement.placeholder
-    autocompleteInput.required = true // Make the new input required instead
-  }
-
-  container.appendChild(autocompleteElement)
-
-  console.log('🗺️ PlaceAutocompleteElement created:', autocompleteElement)
-  console.log('🗺️ Element properties:', Object.keys(autocompleteElement).join(', '))
-  console.log('🗺️ Element.value:', autocompleteElement.value)
-  console.log('🗺️ Element.place:', (autocompleteElement as any).place)
-  
-  // Check for common property names
-  const possibleProps = ['value', 'place', 'selectedPlace', 'selection', 'data', 'result']
-  possibleProps.forEach(prop => {
-    if ((autocompleteElement as any)[prop] !== undefined) {
-      console.log(`🗺️ Found property "${prop}":`, (autocompleteElement as any)[prop])
-    }
-  })
-  
-  // Store a reference to get the place later
-  ;(autocompleteElement as any).getSelectedPlace = async () => {
-    console.log('🗺️ getSelectedPlace called')
-    console.log('🗺️ Element at submit - all props:', Object.keys(autocompleteElement).join(', '))
-    console.log('🗺️ Element at submit - value:', autocompleteElement.value)
-    console.log('🗺️ Element at submit - place:', (autocompleteElement as any).place)
-    
-    // Check all possible property names at submit time
-    const possibleProps = ['value', 'place', 'selectedPlace', 'selection', 'data', 'result']
-    possibleProps.forEach(prop => {
-      if ((autocompleteElement as any)[prop] !== undefined) {
-        console.log(`🗺️ At submit - Found property "${prop}":`, (autocompleteElement as any)[prop])
-      }
-    })
-    
-    // Try different ways to access the place
-    const place = autocompleteElement.value || (autocompleteElement as any).place
-    console.log('🗺️ Getting selected place:', place)
-    
-    if (place) {
-      await handlePlaceSelection(place)
-    }
-    return place
-  }
-
-  // Try multiple event listeners to see which one works
-  autocompleteElement.addEventListener('gmp-placeselect', async (event: any) => {
-    console.log('🗺️ gmp-placeselect event fired:', event)
-    await handlePlaceSelection(event.place)
+  // Use the classic Autocomplete API which still works reliably
+  const autocomplete = new google.maps.places.Autocomplete(inputElement, {
+    types: ['(cities)'],
+    fields: ['place_id', 'formatted_address', 'name', 'address_components', 'geometry']
   })
 
-  // Also try the 'place_changed' event
-  autocompleteElement.addEventListener('place_changed', async (event: any) => {
-    console.log('🗺️ place_changed event fired:', event)
-    await handlePlaceSelection(event.place)
-  })
-
-  // Try listening on the input element directly
-  if (autocompleteInput) {
-    autocompleteInput.addEventListener('change', (event: any) => {
-      console.log('🗺️ input change event fired:', event)
-    })
-  }
-
-  // Add a property observer for the place property
-  Object.defineProperty(autocompleteElement, 'place', {
-    set: async function(place) {
-      console.log('🗺️ place property set:', place)
-      await handlePlaceSelection(place)
-    }
-  })
-
-  // Helper function to process place selection
-  async function handlePlaceSelection(place: any) {
-    console.log('🗺️ handlePlaceSelection called with place:', place)
+  autocomplete.addListener('place_changed', () => {
+    const place = autocomplete.getPlace()
     
-    if (!place || !place.id) {
-      console.warn('No place or place_id found for selected place')
+    if (!place.place_id) {
+      console.warn('No place_id found for selected place')
       return
     }
 
-    try {
-      // Fetch full place details with the fields we need
-      await place.fetchFields({
-        fields: ['id', 'formattedAddress', 'displayName', 'addressComponents', 'location']
-      })
-      console.log('🗺️ Place after fetchFields:', place)
+    // Extract address components
+    let city = ''
+    let state = ''
+    let country = ''
 
-      // Extract address components
-      let city = ''
-      let state = ''
-      let country = ''
-
-      if (place.addressComponents) {
-        for (const component of place.addressComponents) {
-          const types = component.types
-          
-          if (types.includes('locality')) {
-            city = component.longText
-          } else if (types.includes('administrative_area_level_1')) {
-            state = component.shortText
-          } else if (types.includes('country')) {
-            country = component.shortText
-          }
+    if (place.address_components) {
+      for (const component of place.address_components) {
+        const types = component.types
+        
+        if (types.includes('locality')) {
+          city = component.long_name
+        } else if (types.includes('administrative_area_level_1')) {
+          state = component.short_name
+        } else if (types.includes('country')) {
+          country = component.short_name
         }
       }
-
-      const result: PlaceResult = {
-        placeId: place.id,
-        formattedAddress: place.formattedAddress || '',
-        name: place.displayName || '',
-        city,
-        state,
-        country,
-        coordinates: place.location ? {
-          lat: place.location.lat(),
-          lng: place.location.lng()
-        } : undefined
-      }
-
-      console.log('🗺️ Calling onPlaceSelect with result:', result)
-      onPlaceSelect(result)
-    } catch (error) {
-      console.error('🗺️ Error processing place selection:', error)
     }
-  }
 
-  return autocompleteElement
+    const result: PlaceResult = {
+      placeId: place.place_id,
+      formattedAddress: place.formatted_address || '',
+      name: place.name || '',
+      city,
+      state,
+      country,
+      coordinates: place.geometry?.location ? {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+      } : undefined
+    }
+
+    onPlaceSelect(result)
+  })
+
+  return autocomplete
 }
 
 // Search places by text

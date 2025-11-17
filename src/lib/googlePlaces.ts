@@ -76,11 +76,21 @@ export const createPlacesAutocomplete = async (
   container.appendChild(autocompleteElement)
 
   console.log('🗺️ PlaceAutocompleteElement created:', autocompleteElement)
+  console.log('🗺️ Element properties:', Object.keys(autocompleteElement))
+  console.log('🗺️ Element.value:', autocompleteElement.value)
+  console.log('🗺️ Element.place:', (autocompleteElement as any).place)
   
   // Store a reference to get the place later
   ;(autocompleteElement as any).getSelectedPlace = async () => {
-    const place = autocompleteElement.value
-    console.log('🗺️ Getting selected place from element.value:', place)
+    console.log('🗺️ getSelectedPlace called')
+    console.log('🗺️ Element at submit - value:', autocompleteElement.value)
+    console.log('🗺️ Element at submit - place:', (autocompleteElement as any).place)
+    console.log('🗺️ Element at submit - all props:', Object.keys(autocompleteElement))
+    
+    // Try different ways to access the place
+    const place = autocompleteElement.value || (autocompleteElement as any).place
+    console.log('🗺️ Getting selected place:', place)
+    
     if (place) {
       await handlePlaceSelection(place)
     }

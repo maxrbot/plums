@@ -221,6 +221,7 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
       // Create price sheet with product IDs
       const newPriceSheet: Omit<PriceSheet, '_id'> = {
         ...priceSheet,
+        priceType: priceSheet.priceType || 'FOB', // Default to FOB if not specified
         userId: userDoc._id!,
         productIds: productIds,
         productsCount: products.length,

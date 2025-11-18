@@ -373,23 +373,14 @@ export default function ScheduleSendPage() {
     }))
   }
   
-  // Handle price type change - update the price sheet
-  const handlePriceTypeChange = async (newPriceType: 'FOB' | 'DELIVERED') => {
+  // Handle price type change - local preview only (not saved to database)
+  const handlePriceTypeChange = (newPriceType: 'FOB' | 'DELIVERED') => {
     if (!priceSheet) return
     
-    try {
-      // Update the price sheet in the database
-      await priceSheetsApi.update(priceSheet._id.toString(), {
-        priceType: newPriceType
-      })
-      
-      // Update local state
-      setPriceSheet(prev => prev ? { ...prev, priceType: newPriceType } : null)
-      
-      console.log('✅ Price type updated to:', newPriceType)
-    } catch (error) {
-      console.error('❌ Failed to update price type:', error)
-    }
+    // Update local state only for preview
+    setPriceSheet(prev => prev ? { ...prev, priceType: newPriceType } : null)
+    
+    console.log('🔄 Price type changed for preview:', newPriceType, '(not saved to database)')
   }
 
   const handleGenerateEmails = async () => {

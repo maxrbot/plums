@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { 
   HomeIcon, 
   DocumentTextIcon, 
@@ -43,6 +43,7 @@ const navigation = [
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { user, loading, logout } = useUser()
   
   // Track setup completion for action buttons
@@ -87,10 +88,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     )
   }
   
-  // Redirect to login if no user
+  // Redirect to login if no user (after loading is complete)
   if (!user) {
-    window.location.href = '/'
-    return null
+    // Use router.push instead of window.location.href to avoid full page reload
+    if (typeof window !== 'undefined') {
+      router.push('/')
+    }
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      </div>
+    )
   }
   
   const userFeatures = featureAccess[user.subscriptionTier]

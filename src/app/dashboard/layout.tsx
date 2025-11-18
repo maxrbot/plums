@@ -49,6 +49,29 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   // Track setup completion for action buttons
   const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [checkingSetup, setCheckingSetup] = useState(true)
+  const [hasRedirected, setHasRedirected] = useState(false)
+  const [waitingForAuth, setWaitingForAuth] = useState(false)
+  
+  // Check if we just logged in (give UserContext time to load)
+  useEffect(() => {
+    const justLoggedIn = sessionStorage.getItem('justLoggedIn')
+    if (justLoggedIn) {
+      console.log('🏠 Just logged in, waiting for UserContext to load...')
+      setWaitingForAuth(true)
+      sessionStorage.removeItem('justLoggedIn')
+      
+      // Give UserContext 3 seconds to load before allowing redirect
+      setTimeout(() => {
+        console.log('🏠 Auth wait period complete')
+        setWaitingForAuth(false)
+      }, 3000)
+    }
+  }, [])
+  
+  // Debug logging
+  useEffect(() => {
+    console.log('🏠 Dashboard Layout State:', { loading, hasUser: !!user, hasRedirected, waitingForAuth })
+  }, [loading, user, hasRedirected, waitingForAuth])
   
   // Check if user has completed all setup steps
   useEffect(() => {
@@ -79,20 +102,36 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
   }, [loading])
   
-  // Show loading state
-  if (loading) {
+  // Show loading state (or waiting for auth after login)
+  if (loading || waitingForAuth) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          {waitingForAuth && (
+            <p className="mt-4 text-sm text-gray-600">Logging you in...</p>
+          )}
+        </div>
       </div>
     )
   }
   
-  // Redirect to login if no user (after loading is complete)
-  if (!user) {
-    // Use router.push instead of window.location.href to avoid full page reload
-    if (typeof window !== 'undefined') {
-      router.push('/')
+  // Redirect to login if no user (after loading is complete AND not waiting for auth)
+  if (!user && !waitingForAuth) {
+    // Redirect to marketing site or platform root
+    // Only redirect once to prevent loops
+    if (typeof window !== 'undefined' && !hasRedirected) {
+      console.log('🏠 No user found, redirecting to login...')
+      setHasRedirected(true)
+      
+      // In production, redirect to marketing site to avoid loop
+      // In development, redirect to platform root (which shows login modal)
+      const marketingUrl = process.env.NEXT_PUBLIC_MARKETING_URL
+      if (marketingUrl && typeof window !== 'undefined') {
+        window.location.href = marketingUrl
+      } else {
+        router.push('/')
+      }
     }
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">

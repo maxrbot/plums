@@ -73,31 +73,37 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Check if user is logged in and load their data
   useEffect(() => {
     const token = localStorage.getItem('accessToken')
+    console.log('👤 UserContext: Checking for token...', { hasToken: !!token })
     if (token) {
       loadUser()
     } else {
+      console.log('👤 UserContext: No token found, setting loading to false')
       setLoading(false)
     }
   }, [])
 
   const loadUser = async () => {
     try {
+      console.log('👤 UserContext: Loading user profile...')
       setLoading(true)
       setError(null)
       const response = await usersApi.getProfile()
+      console.log('👤 UserContext: User profile loaded successfully')
       setUser(response as User)
     } catch (err) {
-      console.error('Failed to load user:', err)
+      console.error('👤 UserContext: Failed to load user:', err)
       setError(err instanceof Error ? err.message : 'Failed to load user')
       
       // If token is invalid, clear it and redirect to login
       if (err instanceof Error && err.message.includes('Unauthorized')) {
+        console.log('👤 UserContext: Token invalid, clearing and redirecting...')
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')
         window.location.href = '/'
       }
     } finally {
+      console.log('👤 UserContext: Setting loading to false')
       setLoading(false)
     }
   }

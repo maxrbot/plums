@@ -16,8 +16,12 @@ export default function Home() {
   const router = useRouter()
   const [showLogin, setShowLogin] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
+  const [isRedirecting, setIsRedirecting] = useState(false)
 
   useEffect(() => {
+    // Prevent multiple redirects
+    if (isRedirecting) return
+    
     // First, check if tokens are in URL (from marketing site login)
     const params = new URLSearchParams(window.location.search)
     const urlAccessToken = params.get('accessToken')
@@ -25,13 +29,24 @@ export default function Home() {
     const urlUser = params.get('user')
     
     if (urlAccessToken && urlRefreshToken && urlUser) {
+      console.log('🔐 Tokens found in URL, saving to localStorage...')
       // Save tokens to localStorage
       localStorage.setItem('accessToken', urlAccessToken)
       localStorage.setItem('refreshToken', urlRefreshToken)
       localStorage.setItem('user', urlUser)
       
-      // Redirect to dashboard (tokens are now saved)
-      router.push('/dashboard')
+      // Mark that we just saved tokens (used by dashboard to wait for UserContext)
+      sessionStorage.setItem('justLoggedIn', 'true')
+      
+      // Clean up URL (remove tokens from URL for security)
+      window.history.replaceState({}, '', '/')
+      
+      // Set redirecting flag and redirect to dashboard
+      setIsRedirecting(true)
+      console.log('🔐 Redirecting to dashboard...')
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 100)
       return
     }
     
@@ -39,14 +54,17 @@ export default function Home() {
     const accessToken = localStorage.getItem('accessToken')
     
     if (accessToken) {
+      console.log('🔐 User already authenticated, redirecting to dashboard...')
       // User is logged in, redirect to dashboard
+      setIsRedirecting(true)
       router.push('/dashboard')
     } else {
+      console.log('🔐 No authentication found, showing login modal...')
       // User is not logged in, show login modal
       setIsChecking(false)
       setShowLogin(true)
     }
-  }, [router])
+  }, [router, isRedirecting])
 
   const handleLoginSuccess = () => {
     router.push('/dashboard')

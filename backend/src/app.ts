@@ -34,6 +34,7 @@ async function registerPlugins() {
     ? [
         'https://acrelist.ag',
         'https://www.acrelist.ag',
+        'https://app.acrelist.ag',
         'https://acrelist-platform.vercel.app',
         'https://acrelist-marketing.vercel.app'
       ]

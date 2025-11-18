@@ -123,7 +123,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
     setUser(null)
-    window.location.href = '/'
+    // Redirect to marketing site homepage
+    window.location.href = process.env.NEXT_PUBLIC_MARKETING_URL || 'https://www.acrelist.ag'
   }
 
   // Helper function to get first name from contact name

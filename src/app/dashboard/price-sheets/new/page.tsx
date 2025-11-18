@@ -49,7 +49,6 @@ export default function CleanPriceSheetPage() {
   // Preview and Save state
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
   const [priceSheetTitle, setPriceSheetTitle] = useState('')
-  const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>('FOB')
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
   
@@ -993,16 +992,13 @@ export default function CleanPriceSheetPage() {
         return
       }
 
-      // Prepare price sheet data
+      // Prepare price sheet data (always FOB - DELIVERED is per-contact only)
       const priceSheetData = {
         title: priceSheetTitle,
         status: 'draft' as const,
         notes: undefined,
-        priceType: priceType
+        priceType: 'FOB' as const // Always FOB for new price sheets
       }
-      
-      console.log('💾 Saving price sheet with priceType:', priceType)
-      console.log('💾 Full priceSheetData:', priceSheetData)
 
       // Prepare products data
       const productsData: any[] = []
@@ -1039,7 +1035,6 @@ export default function CleanPriceSheetPage() {
       })
 
       console.log('✅ Price sheet saved successfully:', response)
-      console.log('📋 Saved priceType:', response.priceSheet?.priceType)
       setHasSaved(true)
       
       // Auto-close modal after successful save
@@ -2191,10 +2186,7 @@ export default function CleanPriceSheetPage() {
         {/* Preview Modal */}
         <PriceSheetPreviewModal
           isOpen={isPreviewModalOpen}
-          onClose={() => {
-            console.log('🚪 Closing modal - current priceType:', priceType)
-            setIsPreviewModalOpen(false)
-          }}
+          onClose={() => setIsPreviewModalOpen(false)}
           title={priceSheetTitle}
           onTitleChange={setPriceSheetTitle}
           products={generatePreviewData()}
@@ -2204,11 +2196,7 @@ export default function CleanPriceSheetPage() {
           onSendPriceSheet={handleSendPriceSheet}
           isSaving={isSaving}
           hasSaved={hasSaved}
-          priceType={priceType}
-          onPriceTypeChange={(newType) => {
-            console.log('📝 Parent receiving priceType change:', newType)
-            setPriceType(newType)
-          }}
+          priceType="FOB"
         />
     </>
   )

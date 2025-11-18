@@ -395,12 +395,19 @@ export default function ScheduleSendPage() {
   const handleGenerateEmails = async () => {
     setIsGeneratingEmails(true)
     
-    // Simulate AI processing time
-    await new Promise(resolve => setTimeout(resolve, 2500))
+    // Simulate AI processing time (3 seconds for realistic feel)
+    await new Promise(resolve => setTimeout(resolve, 3000))
     
     setIsGeneratingEmails(false)
     setEmailsGenerated(true)
   }
+  
+  // Auto-generate emails on page load
+  useEffect(() => {
+    if (selectedContacts.length > 0 && !emailsGenerated && !isGeneratingEmails) {
+      handleGenerateEmails()
+    }
+  }, [selectedContacts.length]) // Only run when contacts are loaded
 
   const handleSendEmails = async () => {
     if (!termsAccepted) {
@@ -562,41 +569,46 @@ export default function ScheduleSendPage() {
                 </div>
               </div>
 
-              {/* Email Generation Section */}
-              {!emailsGenerated && !isGeneratingEmails && (
-                <div className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8 text-center">
-                  <div className="flex items-center justify-center mb-4">
-                    <SparklesIcon className="h-12 w-12 text-blue-600" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                    Generate Personalized Emails
-                  </h3>
-                  <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
-                    AI will create unique emails for each of your {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''} with custom pricing and personalized messaging.
-                    {customMessage && <span className="block mt-2 text-sm">Your custom message will be included.</span>}
-                  </p>
-                  <button
-                    onClick={handleGenerateEmails}
-                    className="inline-flex items-center px-8 py-3 border border-transparent text-base font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 shadow-lg transform hover:scale-105 transition-all duration-200"
-                  >
-                    <SparklesIcon className="h-5 w-5 mr-2" />
-                    Generate {selectedContacts.length} Personalized Email{selectedContacts.length !== 1 ? 's' : ''}
-                  </button>
-                </div>
-              )}
 
-              {/* Generating State */}
+              {/* Generating State - Auto-triggered */}
               {isGeneratingEmails && (
-                <div className="mb-8 text-center py-8">
-                  <div className="mb-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                <div className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8">
+                  <div className="flex items-center justify-center mb-6">
+                    <SparklesIcon className="h-12 w-12 text-blue-600 animate-pulse" />
                   </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">
-                    Generating Personalized Emails...
+                  <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
+                    ✨ Generating personalized emails...
                   </h3>
-                  <p className="text-sm text-gray-600">
-                    AI is crafting custom messages for each of your {selectedContacts.length} contacts
-                  </p>
+                  
+                  {/* Progress Bar */}
+                  <div className="max-w-md mx-auto mb-6">
+                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"
+                        style={{ width: '100%' }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  {/* Status Steps */}
+                  <div className="space-y-3 max-w-md mx-auto text-sm">
+                    <div className="flex items-center text-gray-700">
+                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                      <span>Analyzing contact preferences</span>
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                      <span>Customizing pricing for {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''}</span>
+                    </div>
+                    <div className="flex items-center text-gray-700">
+                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                      <span>Personalizing messages</span>
+                    </div>
+                    <div className="flex items-center text-green-600 font-medium">
+                      <CheckCircleIcon className="h-5 w-5 mr-3 flex-shrink-0" />
+                      <span>Ready to send!</span>
+                    </div>
+                  </div>
                 </div>
               )}
 

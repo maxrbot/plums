@@ -590,7 +590,7 @@ export default function SendPriceSheets() {
               {priceSheets.length > 4 && (
                 <div className="mt-4 text-center">
                   <Link
-                    href="/dashboard/price-sheets/library"
+                    href="/dashboard/price-sheets"
                     className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     View All {priceSheets.length} Price Sheets

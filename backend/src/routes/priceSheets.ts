@@ -492,12 +492,13 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/:id/send', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
     const { id } = request.params as { id: string }
-    const { contactIds, subject, customMessage, customEmailContent, customPricing, bccSender } = request.body as {
+    const { contactIds, subject, customMessage, customEmailContent, customPricing, customPriceType, bccSender } = request.body as {
       contactIds: string[]
       subject?: string
       customMessage?: string
       customEmailContent?: Record<string, { subject?: string; content?: string }>
       customPricing?: Record<string, Record<string, number>> // contactId -> productId -> price
+      customPriceType?: Record<string, 'FOB' | 'DELIVERED'> // contactId -> price type
       bccSender?: boolean
     }
     
@@ -591,6 +592,7 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         const contactId = contact._id.toString()
         const customContent = customEmailContent?.[contactId]
         const contactCustomPricing = customPricing?.[contactId]
+        const contactPriceType = customPriceType?.[contactId]
         
         // Generate unique hash for this specific send (includes timestamp for uniqueness)
         const contactHash = generateUniqueSendHash(contactId, priceSheet._id.toString())
@@ -689,6 +691,8 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             success: true,
             // Store custom pricing overrides (productId -> price)
             ...(contactCustomPricing && { customPricing: contactCustomPricing }),
+            // Store custom price type (FOB or DELIVERED)
+            ...(contactPriceType && { priceType: contactPriceType }),
             // Store custom email content (subject and message)
             ...(customContent && { 
               customEmailContent: {

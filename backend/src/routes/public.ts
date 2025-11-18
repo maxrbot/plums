@@ -59,10 +59,11 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       // Check if we have a valid contact hash
       let contact = null
       let showPricing = false
+      let sentEmail: any = null
       
       if (contactHash) {
         // Look up the sent email by hash (unique per send)
-        const sentEmail = await db.collection('sentEmails').findOne({
+        sentEmail = await db.collection('sentEmails').findOne({
           priceSheetId: priceSheet._id,
           contactHash: contactHash
         })
@@ -165,6 +166,9 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         console.log('👁️ Preview mode - NOT tracking view')
       }
       
+      // Determine price type: use contact-specific if available, otherwise use price sheet default
+      const finalPriceType = sentEmail?.priceType || priceSheet.priceType || 'FOB'
+      
       return { 
         priceSheet: {
           _id: priceSheet._id,
@@ -172,7 +176,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           status: priceSheet.status,
           productsCount: priceSheet.productsCount,
           notes: priceSheet.notes,
-          priceType: priceSheet.priceType || 'FOB', // Default to FOB if not set
+          priceType: finalPriceType, // Use contact-specific or default
           createdAt: priceSheet.createdAt,
           updatedAt: priceSheet.updatedAt
         },

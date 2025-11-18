@@ -198,6 +198,9 @@ export default function ScheduleSendPage() {
   // Custom pricing (per contact per product) - can be number (price) or string (comment)
   const [customPricing, setCustomPricing] = useState<Record<string, Record<string, number | string>>>({})
   
+  // Custom price type (per contact) - FOB or DELIVERED
+  const [customPriceType, setCustomPriceType] = useState<Record<string, 'FOB' | 'DELIVERED'>>({})
+  
   // Preview modal state
   const [emailPreviewModal, setEmailPreviewModal] = useState<{ isOpen: boolean; contact: Contact | null }>({
     isOpen: false,
@@ -373,14 +376,20 @@ export default function ScheduleSendPage() {
     }))
   }
   
-  // Handle price type change - local preview only (not saved to database)
+  // Handle price type change - store per contact (like custom pricing)
   const handlePriceTypeChange = (newPriceType: 'FOB' | 'DELIVERED') => {
-    if (!priceSheet) return
+    const contact = priceSheetPreviewModal.contact
+    if (!contact) return
     
-    // Update local state only for preview
-    setPriceSheet(prev => prev ? { ...prev, priceType: newPriceType } : null)
+    const contactId = contact.id || (contact as any)._id
     
-    console.log('🔄 Price type changed for preview:', newPriceType, '(not saved to database)')
+    // Store the price type for this specific contact
+    setCustomPriceType(prev => ({
+      ...prev,
+      [contactId]: newPriceType
+    }))
+    
+    console.log('💰 Price type set for contact:', contactId, '→', newPriceType)
   }
 
   const handleGenerateEmails = async () => {
@@ -427,13 +436,22 @@ export default function ScheduleSendPage() {
         }
       })
       
-      // Call real API to send emails with custom content and pricing
+      // Build custom price type map for contacts with modified price types
+      const customPriceTypeMap: Record<string, 'FOB' | 'DELIVERED'> = {}
+      Object.keys(customPriceType).forEach(contactId => {
+        if (contactIds.includes(contactId)) {
+          customPriceTypeMap[contactId] = customPriceType[contactId]
+        }
+      })
+      
+      // Call real API to send emails with custom content, pricing, and price types
       const result = await priceSheetsApi.send(sheetId, {
         contactIds,
         subject: priceSheet?.title,
         customMessage: customMessage || undefined,
         customEmailContent: Object.keys(customContentMap).length > 0 ? customContentMap : undefined,
         customPricing: Object.keys(customPricingMap).length > 0 ? customPricingMap : undefined,
+        customPriceType: Object.keys(customPriceTypeMap).length > 0 ? customPriceTypeMap : undefined,
         bccSender: bccSelf
       })
 
@@ -1106,7 +1124,11 @@ export default function ScheduleSendPage() {
           userPhone={user?.profile?.phone}
           mode="send"
           allowPriceEditing={true}
-          priceType={priceSheet?.priceType || 'FOB'}
+          priceType={(() => {
+            const contactId = priceSheetPreviewModal.contact?.id || (priceSheetPreviewModal.contact as any)?._id
+            // Use contact-specific price type if set, otherwise use price sheet default
+            return customPriceType[contactId] || priceSheet?.priceType || 'FOB'
+          })()}
           onPriceTypeChange={handlePriceTypeChange}
           onSaveCustomPricing={(productId, customValue) => {
             const contactId = priceSheetPreviewModal.contact?.id || (priceSheetPreviewModal.contact as any)?._id

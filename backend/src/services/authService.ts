@@ -89,7 +89,7 @@ export class AuthService {
       id: '', // Will be set to MongoDB _id after insertion
       email: data.email,
       password: hashedPassword,
-      subscriptionTier: 'enterprise',
+      subscriptionTier: 'basic', // Free Trial tier
       profile: {
         companyName: data.companyName || '',
         contactName: data.contactName || '',

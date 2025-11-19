@@ -307,70 +307,80 @@ export default function Contacts() {
             </div>
           ) : (
             filteredContacts.map((contact) => (
-            <div key={getContactId(contact) || `contact-${contact.firstName}-${contact.lastName}`} className="px-6 py-4 hover:bg-gray-50">
-              <div className="flex items-center justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-3 mb-2">
-                    <h4 className="text-sm font-medium text-gray-900">
-                      {contact.firstName} {contact.lastName}
-                    </h4>
-                    {contact.title && (
-                      <>
-                        <span className="text-sm text-gray-400">•</span>
-                        <span className="text-sm text-gray-600">{contact.title}</span>
-                      </>
-                    )}
-                    
-                    {/* Contact Status Tags */}
-                    {contact.tags && contact.tags.length > 0 ? (
-                      contact.tags.map((tag) => (
-                        <span key={tag} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                          tag === 'active' ? 'bg-green-100 text-green-800' :
-                          tag === 'prospect' ? 'bg-blue-100 text-blue-800' :
-                          tag === 'inactive' ? 'bg-gray-100 text-gray-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
-                          {tag === 'active' ? 'Active' : 
-                           tag === 'prospect' ? 'Prospect' : 
-                           tag === 'inactive' ? 'Inactive' : 
-                           tag}
+            <div key={getContactId(contact) || `contact-${contact.firstName}-${contact.lastName}`} className="px-4 sm:px-6 py-4 hover:bg-gray-50">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                {/* Left side - Contact Info (stacked on mobile, inline on desktop) */}
+                <div className="flex-1 min-w-0 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
+                  {/* Column 1: Name & Company */}
+                  <div className="min-w-0">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <h4 className="text-sm font-medium text-gray-900 truncate">
+                        {contact.firstName} {contact.lastName}
+                      </h4>
+                      {/* Contact Status Tags */}
+                      {contact.tags && contact.tags.length > 0 ? (
+                        contact.tags.map((tag) => (
+                          <span key={tag} className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                            tag === 'active' ? 'bg-green-100 text-green-800' :
+                            tag === 'prospect' ? 'bg-blue-100 text-blue-800' :
+                            tag === 'inactive' ? 'bg-gray-100 text-gray-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {tag === 'active' ? 'Active' : 
+                             tag === 'prospect' ? 'Prospect' : 
+                             tag === 'inactive' ? 'Inactive' : 
+                             tag}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                          No status
                         </span>
-                      ))
-                    ) : (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        No status
-                      </span>
+                      )}
+                    </div>
+                    <div className="flex items-center text-xs text-gray-500">
+                      <BuildingOfficeIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
+                      <span className="truncate">{contact.company}</span>
+                    </div>
+                    {contact.title && (
+                      <div className="text-xs text-gray-500 truncate mt-0.5">{contact.title}</div>
                     )}
                   </div>
-                  
-                  <div className="flex items-center space-x-6 text-sm text-gray-500">
-                    <div className="flex items-center">
-                      <BuildingOfficeIcon className="h-4 w-4 mr-1" />
-                      {contact.company}
+
+                  {/* Column 2: Email */}
+                  <div className="min-w-0">
+                    <div className="text-xs text-gray-500 mb-1">Email</div>
+                    <div className="flex items-center text-sm text-gray-900">
+                      <EnvelopeIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0 text-gray-400" />
+                      <span className="truncate">{contact.email}</span>
                     </div>
-                    <div className="flex items-center">
-                      <EnvelopeIcon className="h-4 w-4 mr-1" />
-                      {contact.email}
-                    </div>
+                  </div>
+
+                  {/* Column 3: Phone & Crops */}
+                  <div className="min-w-0">
                     {contact.phone && (
-                      <div className="flex items-center">
-                        <PhoneIcon className="h-4 w-4 mr-1" />
-                        {contact.phone}
-                      </div>
+                      <>
+                        <div className="text-xs text-gray-500 mb-1">Phone</div>
+                        <div className="flex items-center text-sm text-gray-900 mb-2">
+                          <PhoneIcon className="h-3.5 w-3.5 mr-1 flex-shrink-0 text-gray-400" />
+                          <span className="truncate">{contact.phone}</span>
+                        </div>
+                      </>
                     )}
                     {contact.primaryCrops.length > 0 && (
-                      <div className="flex items-center">
+                      <div className="flex items-center text-xs text-gray-500">
                         <span className="text-gray-400 mr-1">Crops:</span>
-                        <span>{contact.primaryCrops.slice(0, 2).join(', ')}{contact.primaryCrops.length > 2 ? ` +${contact.primaryCrops.length - 2}` : ''}</span>
+                        <span className="truncate">{contact.primaryCrops.slice(0, 2).join(', ')}{contact.primaryCrops.length > 2 ? ` +${contact.primaryCrops.length - 2}` : ''}</span>
                       </div>
                     )}
                   </div>
                 </div>
                 
-                <div className="flex items-center space-x-2">
+                {/* Right side - Action Button */}
+                <div className="flex items-center sm:flex-shrink-0">
                   <button
                     onClick={() => handleViewContact(contact)}
-                    className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    className="w-full sm:w-auto inline-flex items-center justify-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
                   >
                     View Details
                   </button>

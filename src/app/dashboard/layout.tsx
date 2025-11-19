@@ -17,7 +17,9 @@ import {
   ShieldCheckIcon,
   LockClosedIcon,
   PaperAirplaneIcon,
-  PlusIcon
+  PlusIcon,
+  Bars3Icon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
 import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
@@ -51,6 +53,28 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [checkingSetup, setCheckingSetup] = useState(true)
   const [hasRedirected, setHasRedirected] = useState(false)
   const [waitingForAuth, setWaitingForAuth] = useState(false)
+  
+  // Mobile sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  
+  // Close sidebar when route changes (mobile)
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [pathname])
+  
+  // Close sidebar on ESC key (mobile)
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setSidebarOpen(false)
+      }
+    }
+    
+    if (sidebarOpen) {
+      document.addEventListener('keydown', handleEscape)
+      return () => document.removeEventListener('keydown', handleEscape)
+    }
+  }, [sidebarOpen])
   
   // Check if we just logged in (give UserContext time to load)
   useEffect(() => {
@@ -151,11 +175,47 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-lg z-40 h-16">
+        <div className="flex items-center justify-between px-4 h-full">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 rounded-md text-gray-300 hover:text-white hover:bg-slate-700 transition-colors"
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
+          <Link href="/dashboard" className="flex items-center flex-1 justify-center">
+            <Image 
+              src="/acrelist-logo-removebg.png" 
+              alt="AcreList" 
+              width={140} 
+              height={35}
+              className="h-10 w-auto"
+            />
+          </Link>
+          {/* Empty div for spacing balance */}
+          <div className="w-10"></div>
+        </div>
+      </div>
+
+      {/* Backdrop Overlay (Mobile) */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <div className="fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 shadow-lg">
+      <div className={`
+        fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 shadow-lg
+        transform transition-transform duration-300 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
         <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-16 items-center justify-center border-b border-slate-700 px-4">
+          {/* Logo + Close Button (Mobile) */}
+          <div className="flex h-16 items-center justify-between border-b border-slate-700 px-4">
             <Link href="/" className="flex items-center">
               <Image 
                 src="/acrelist-logo-removebg.png" 
@@ -165,6 +225,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 className="h-12 w-auto"
               />
             </Link>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="lg:hidden p-2 rounded-md text-gray-400 hover:text-white hover:bg-slate-700 transition-colors"
+            >
+              <XMarkIcon className="h-6 w-6" />
+            </button>
           </div>
 
           {/* Action Buttons */}
@@ -381,7 +447,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="pl-64">
+      <div className="lg:pl-64 pt-16 lg:pt-0">
         <main className="py-6">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {children}

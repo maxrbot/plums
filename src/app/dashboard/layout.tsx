@@ -175,8 +175,40 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Impersonation Banner */}
+      {typeof window !== 'undefined' && localStorage.getItem('isImpersonating') === 'true' && (
+        <div className="fixed top-0 left-0 right-0 bg-red-600 text-white py-2 px-4 z-50 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-700">
+              ADMIN MODE
+            </span>
+            <span className="text-sm font-medium">
+              Viewing as: {user?.profile?.companyName || user?.email}
+            </span>
+          </div>
+          <button
+            onClick={() => {
+              // Restore admin token
+              const adminToken = localStorage.getItem('adminToken')
+              if (adminToken) {
+                localStorage.setItem('accessToken', adminToken)
+                localStorage.setItem('refreshToken', adminToken)
+              }
+              localStorage.removeItem('isImpersonating')
+              localStorage.removeItem('adminToken')
+              window.location.href = '/admin'
+            }}
+            className="px-4 py-1 bg-white text-red-600 text-sm font-medium rounded hover:bg-red-50 transition-colors"
+          >
+            Exit Impersonation
+          </button>
+        </div>
+      )}
+      
       {/* Mobile Header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-lg z-40 h-16">
+      <div className={`lg:hidden fixed left-0 right-0 bg-slate-800 border-b border-slate-700 shadow-lg z-40 h-16 ${
+        typeof window !== 'undefined' && localStorage.getItem('isImpersonating') === 'true' ? 'top-10' : 'top-0'
+      }`}>
         <div className="flex items-center justify-between px-4 h-full">
           <button
             onClick={() => setSidebarOpen(true)}
@@ -447,7 +479,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64 pt-16 lg:pt-0">
+      <div className={`lg:pl-64 pt-16 lg:pt-0 ${
+        typeof window !== 'undefined' && localStorage.getItem('isImpersonating') === 'true' ? 'lg:pt-10' : ''
+      }`}>
         <main className="py-6">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             {children}

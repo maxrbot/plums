@@ -14,6 +14,7 @@ import cropsRoutes from './routes/crops'
 import certificationsRoutes from './routes/certifications'
 import packagingRoutes from './routes/packaging'
 import priceSheetsRoutes from './routes/priceSheets'
+import adminRoutes from './routes/admin'
   import contactsRoutes from './routes/contacts'
   import chatbotRoutes from './routes/chatbot'
   import chatbotConfigRoutes from './routes/chatbotConfig'
@@ -77,6 +78,7 @@ async function registerRoutes() {
     await fastify.register(chatbotRoutes, { prefix: '/api/chatbot' })
     await fastify.register(chatbotConfigRoutes, { prefix: '/api/chatbot-config' })
   await fastify.register(analyticsRoutes, { prefix: '/api/analytics' })
+  await fastify.register(adminRoutes, { prefix: '/api/admin' })
 }
 
 // Health check

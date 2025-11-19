@@ -12,7 +12,7 @@ export interface User extends BaseDocument {
   id: string // MongoDB ObjectId as string
   email: string
   password?: string // Optional for responses (excluded in most cases)
-  subscriptionTier: 'basic' | 'premium' | 'enterprise'
+  subscriptionTier: 'basic' | 'premium' | 'enterprise' | 'admin'
   
   // Embedded settings (from dashboard/settings tabs)
   profile: {

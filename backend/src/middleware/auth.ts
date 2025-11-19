@@ -7,7 +7,7 @@ export interface AuthenticatedRequest extends FastifyRequest {
   user: {
     id: string
     email: string
-    subscriptionTier: 'basic' | 'premium' | 'enterprise'
+    subscriptionTier: 'basic' | 'premium' | 'enterprise' | 'admin'
   }
 }
 
@@ -55,7 +55,7 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
 
 // Subscription tier check middleware
 export const requireTier = (requiredTier: 'basic' | 'premium' | 'enterprise') => {
-  const tierLevels = { basic: 1, premium: 2, enterprise: 3 }
+  const tierLevels = { basic: 1, premium: 2, enterprise: 3, admin: 999 }
   
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const authRequest = request as AuthenticatedRequest

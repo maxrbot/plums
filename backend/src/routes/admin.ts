@@ -66,20 +66,20 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         }
       },
       {
-        $project: {
-          password: 0, // Never return passwords
-          _id: 1,
-          id: 1,
-          email: 1,
-          subscriptionTier: 1,
-          'profile.companyName': 1,
-          'profile.contactName': 1,
-          createdAt: 1,
-          updatedAt: 1,
+        $addFields: {
           cropCount: { $size: '$crops' },
           contactCount: { $size: '$contacts' },
           priceSheetCount: { $size: '$priceSheets' },
           emailsSentCount: { $size: '$sentEmails' }
+        }
+      },
+      {
+        $project: {
+          password: 0, // Never return passwords
+          crops: 0,
+          contacts: 0,
+          priceSheets: 0,
+          sentEmails: 0
         }
       },
       {

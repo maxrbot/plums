@@ -52,20 +52,16 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'priceSheets',
-          let: { userId: { $toString: '$_id' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
-          ],
+          localField: '_id',
+          foreignField: 'userId',
           as: 'priceSheets'
         }
       },
       {
         $lookup: {
           from: 'sentEmails',
-          let: { userId: { $toString: '$_id' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
-          ],
+          localField: '_id',
+          foreignField: 'userId',
           as: 'sentEmails'
         }
       },

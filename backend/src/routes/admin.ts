@@ -28,40 +28,32 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'crops',
-          let: { userId: { $toObjectId: '$id' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
-          ],
+          localField: '_id',
+          foreignField: 'userId',
           as: 'crops'
         }
       },
       {
         $lookup: {
           from: 'contacts',
-          let: { userId: { $toObjectId: '$id' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
-          ],
+          localField: '_id',
+          foreignField: 'userId',
           as: 'contacts'
         }
       },
       {
         $lookup: {
           from: 'priceSheets',
-          let: { userId: { $toObjectId: '$id' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
-          ],
+          localField: '_id',
+          foreignField: 'userId',
           as: 'priceSheets'
         }
       },
       {
         $lookup: {
           from: 'sentEmails',
-          let: { userId: { $toObjectId: '$id' } },
-          pipeline: [
-            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
-          ],
+          localField: '_id',
+          foreignField: 'userId',
           as: 'sentEmails'
         }
       },

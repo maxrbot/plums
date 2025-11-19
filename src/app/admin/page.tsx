@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {users.filter(u => u.subscriptionTier !== 'admin').map((user) => (
+                {users.map((user) => (
                   <tr key={user._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -240,13 +240,17 @@ export default function AdminDashboard() {
                       {new Date(user.createdAt).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button
-                        onClick={() => handleImpersonate(user._id)}
-                        className="inline-flex items-center px-3 py-1.5 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors"
-                      >
-                        <EyeIcon className="h-4 w-4 mr-1" />
-                        View as User
-                      </button>
+                      {user.subscriptionTier === 'admin' ? (
+                        <span className="text-xs text-gray-400 italic">Admin account</span>
+                      ) : (
+                        <button
+                          onClick={() => handleImpersonate(user._id)}
+                          className="inline-flex items-center px-3 py-1.5 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors"
+                        >
+                          <EyeIcon className="h-4 w-4 mr-1" />
+                          View as User
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

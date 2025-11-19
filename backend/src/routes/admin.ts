@@ -26,9 +26,14 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // Get all users with their data counts
     const users = await db.collection('users').aggregate([
       {
+        $addFields: {
+          userIdString: { $toString: '$_id' }
+        }
+      },
+      {
         $lookup: {
           from: 'crops',
-          localField: '_id',
+          localField: 'userIdString',
           foreignField: 'userId',
           as: 'crops'
         }
@@ -36,15 +41,23 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'contacts',
-          localField: '_id',
+          localField: 'userIdString',
           foreignField: 'userId',
           as: 'contacts'
         }
       },
       {
         $lookup: {
+          from: 'shippingPoints',
+          localField: 'userIdString',
+          foreignField: 'userId',
+          as: 'shippingPoints'
+        }
+      },
+      {
+        $lookup: {
           from: 'priceSheets',
-          localField: '_id',
+          localField: 'userIdString',
           foreignField: 'userId',
           as: 'priceSheets'
         }
@@ -52,7 +65,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'sentEmails',
-          localField: '_id',
+          localField: 'userIdString',
           foreignField: 'userId',
           as: 'sentEmails'
         }
@@ -61,8 +74,15 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         $addFields: {
           cropCount: { $size: '$crops' },
           contactCount: { $size: '$contacts' },
+          shippingPointCount: { $size: '$shippingPoints' },
           priceSheetCount: { $size: '$priceSheets' },
-          emailsSentCount: { $size: '$sentEmails' }
+          emailsSentCount: { $size: '$sentEmails' },
+          lastActivity: {
+            $max: [
+              { $ifNull: [{ $max: '$priceSheets.createdAt' }, new Date(0)] },
+              { $ifNull: [{ $max: '$sentEmails.sentAt' }, new Date(0)] }
+            ]
+          }
         }
       },
       {
@@ -70,8 +90,10 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
           password: 0, // Never return passwords
           crops: 0,
           contacts: 0,
+          shippingPoints: 0,
           priceSheets: 0,
-          sentEmails: 0
+          sentEmails: 0,
+          userIdString: 0
         }
       },
       {

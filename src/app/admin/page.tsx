@@ -23,8 +23,10 @@ interface UserStats {
   createdAt: string
   cropCount: number
   contactCount: number
+  shippingPointCount: number
   priceSheetCount: number
   emailsSentCount: number
+  lastActivity: string
 }
 
 export default function AdminDashboard() {
@@ -191,6 +193,9 @@ export default function AdminDashboard() {
                     Tier
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Data
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Activity
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -230,10 +235,20 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       <div className="flex flex-col space-y-1">
+                        <span>{user.shippingPointCount} shipping points</span>
                         <span>{user.cropCount} crops</span>
                         <span>{user.contactCount} contacts</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <div className="flex flex-col space-y-1">
                         <span>{user.priceSheetCount} sheets</span>
                         <span>{user.emailsSentCount} emails</span>
+                        <span className="text-xs text-gray-400">
+                          {user.lastActivity && new Date(user.lastActivity).getTime() > 0
+                            ? new Date(user.lastActivity).toLocaleDateString()
+                            : 'No activity'}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

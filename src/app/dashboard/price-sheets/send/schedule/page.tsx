@@ -800,7 +800,7 @@ export default function ScheduleSendPage() {
                                 <h4 className="text-sm font-medium text-gray-900">Email Delivery</h4>
                                 <span className="text-xs text-gray-500">({emailContacts.length} contacts)</span>
                               </div>
-                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
                                 <table className="min-w-full divide-y divide-gray-200">
                                   <thead className="bg-gray-50">
                                     <tr>
@@ -887,7 +887,7 @@ export default function ScheduleSendPage() {
                                 <h4 className="text-sm font-medium text-gray-900">SMS Delivery</h4>
                                 <span className="text-xs text-gray-500">({smsContacts.length} contacts)</span>
                               </div>
-                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
                                 {smsContacts.map((contact) => {
                                   contactIndex++
                                   return (
@@ -941,7 +941,7 @@ export default function ScheduleSendPage() {
                                 <h4 className="text-sm font-medium text-gray-900">Email & SMS Delivery</h4>
                                 <span className="text-xs text-gray-500">({bothContacts.length} contacts)</span>
                               </div>
-                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden overflow-x-auto">
                                 {bothContacts.map((contact) => {
                                   contactIndex++
                                   return (

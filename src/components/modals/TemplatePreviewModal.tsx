@@ -327,7 +327,7 @@ export default function TemplatePreviewModal({
             <h2 className="text-sm font-semibold text-gray-900 mb-2 bg-gray-50 px-2 py-1">{region}</h2>
           )}
           
-          <div className="overflow-hidden">
+          <div className="overflow-hidden overflow-x-auto">
             <table className="min-w-full text-xs">
               <thead className="bg-gray-50">
                 <tr>

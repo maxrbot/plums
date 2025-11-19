@@ -320,12 +320,12 @@ export default function PriceSheetPreviewModal({
 
                 {/* Pricing Tools Panel - Only show when editing prices */}
                 {isEditingPrices && allowPriceEditing && (
-                  <div className="bg-gradient-to-r from-lime-50 to-green-50 border-y border-lime-200 px-6 py-4">
-                    <div className="flex items-center justify-between gap-6">
+                  <div className="bg-gradient-to-r from-lime-50 to-green-50 border-y border-lime-200 px-4 sm:px-6 py-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-6">
                       {/* Price Type Toggle */}
-                      <div className="flex items-center space-x-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                         <span className="text-sm font-medium text-gray-700">Price Type:</span>
-                        <div className="flex rounded-lg border border-gray-300 bg-white overflow-hidden">
+                        <div className="flex rounded-lg border border-gray-300 bg-white overflow-hidden w-fit">
                           <button
                             type="button"
                             onClick={() => handlePriceTypeChange('FOB')}
@@ -352,26 +352,28 @@ export default function PriceSheetPreviewModal({
                       </div>
 
                       {/* Bulk Adjustment Tool */}
-                      <div className="flex items-center space-x-3">
-                        <span className="text-sm font-medium text-gray-700">Adjust All Prices:</span>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm text-gray-600">$</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            value={bulkAdjustment}
-                            onChange={(e) => setBulkAdjustment(e.target.value)}
-                            className="w-24 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleApplyBulkAdjustment}
-                            disabled={!bulkAdjustment || parseFloat(bulkAdjustment) === 0}
-                            className="px-4 py-2 text-sm font-medium text-white bg-lime-600 rounded-md hover:bg-lime-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                          >
-                            Apply
-                          </button>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">Adjust All:</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-600">$</span>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={bulkAdjustment}
+                              onChange={(e) => setBulkAdjustment(e.target.value)}
+                              className="w-20 sm:w-24 px-2 sm:px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-lime-500 focus:border-lime-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={handleApplyBulkAdjustment}
+                              disabled={!bulkAdjustment || parseFloat(bulkAdjustment) === 0}
+                              className="px-3 sm:px-4 py-2 text-sm font-medium text-white bg-lime-600 rounded-md hover:bg-lime-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                            >
+                              Apply
+                            </button>
+                          </div>
                         </div>
                         <span className="text-xs text-gray-500">
                           (+ to add, - to subtract)
@@ -422,7 +424,8 @@ export default function PriceSheetPreviewModal({
                           </div>
 
                           {/* Products Table */}
-                          <table className="min-w-full text-xs">
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs">
                             <thead>
                               <tr className="border-b border-gray-100 bg-gray-50">
                                 <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Variety</th>
@@ -520,6 +523,7 @@ export default function PriceSheetPreviewModal({
                               })}
                             </tbody>
                           </table>
+                          </div>
                         </div>
                       ))}
                     </div>

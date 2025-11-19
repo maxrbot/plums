@@ -1161,22 +1161,60 @@ export default function CleanPriceSheetPage() {
 
   return (
     <>
-      {/* Header */}
-      <div className="mb-8">
-        <Breadcrumbs 
-          items={[
-            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-            { label: 'Create New Price Sheet', current: true }
-          ]} 
-          className="mb-4"
-        />
-        
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Create New Price Sheet</h1>
-          <p className="mt-2 text-gray-600">Generate a professional price sheet using your imported data</p>
+      {/* Mobile Warning - Show only on small screens */}
+      <div className="lg:hidden flex items-center justify-center min-h-[60vh] p-6">
+        <div className="max-w-md text-center">
+          <div className="mb-6">
+            <svg 
+              className="mx-auto h-20 w-20 text-gray-400" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={1.5} 
+                d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+              />
+            </svg>
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">
+            Desktop Required
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Creating price sheets requires a larger screen for the best experience. Please use a desktop or tablet in landscape mode (1024px or wider).
+          </p>
+          <a 
+            href="/dashboard" 
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+          >
+            <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Dashboard
+          </a>
         </div>
       </div>
-        
+
+      {/* Desktop Content - Only show on large screens */}
+      <div className="hidden lg:block">
+        {/* Header */}
+        <div className="mb-8">
+          <Breadcrumbs 
+            items={[
+              { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+              { label: 'Create New Price Sheet', current: true }
+            ]} 
+            className="mb-4"
+          />
+          
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Create New Price Sheet</h1>
+            <p className="mt-2 text-gray-600">Generate a professional price sheet using your imported data</p>
+          </div>
+        </div>
+          
         {/* Three Panel Layout */}
         <div className="bg-white shadow rounded-lg overflow-hidden">
           <div className="flex h-[600px]">
@@ -2198,6 +2236,8 @@ export default function CleanPriceSheetPage() {
           hasSaved={hasSaved}
           priceType="FOB"
         />
+      </div>
+      {/* End Desktop Content */}
     </>
   )
 }

@@ -49,6 +49,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { user, loading, logout } = useUser()
   
+  // Add admin link if user is admin
+  const navigationWithAdmin = user?.subscriptionTier === 'admin' 
+    ? [
+        ...navigation,
+        { name: 'divider' }, // Another separator before admin
+        { name: 'Admin Panel', href: '/admin', icon: ShieldCheckIcon }
+      ]
+    : navigation
+  
   // Track setup completion for action buttons
   const [isSetupComplete, setIsSetupComplete] = useState(false)
   const [checkingSetup, setCheckingSetup] = useState(true)
@@ -167,7 +176,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   
   const userFeatures = featureAccess[user.subscriptionTier]
   
-  const filteredNavigation = navigation.filter(item => {
+  const filteredNavigation = navigationWithAdmin.filter(item => {
     if (item.name === 'AI Chatbot') return userFeatures.includes('ai_chatbot')
     if (item.name === 'Analytics') return userFeatures.includes('analytics')
     if (item.name === 'Contacts') return userFeatures.includes('contacts')
@@ -178,7 +187,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50">
       {/* Impersonation Banner */}
       {typeof window !== 'undefined' && localStorage.getItem('isImpersonating') === 'true' && (
-        <div className="fixed top-0 left-0 right-0 bg-red-600 text-white py-2 px-4 z-50 flex items-center justify-between">
+        <div className="fixed top-0 left-0 right-0 bg-red-600 text-white py-2 px-4 z-[60] flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-700">
               ADMIN MODE

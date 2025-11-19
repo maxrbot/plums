@@ -33,6 +33,12 @@ export interface SendPriceSheetEmailParams {
     overrideComment?: string
   }>
   orderUrl?: string // Direct link to order page for inline delivery
+  attachments?: Array<{ // File attachments
+    content: string // Base64 encoded file content
+    filename: string
+    type: string // MIME type
+    disposition: string // 'attachment' or 'inline'
+  }>
 }
 
 export interface EmailSendResult {
@@ -403,6 +409,17 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
     
     msg.bcc = bccEmails
     console.log(`📧 BCC: ${bccEmails.join(', ')}`)
+    
+    // Add attachments if provided
+    if (params.attachments && params.attachments.length > 0) {
+      msg.attachments = params.attachments.map(att => ({
+        content: att.content,
+        filename: att.filename,
+        type: att.type,
+        disposition: att.disposition
+      }))
+      console.log(`📎 Attachments: ${params.attachments.length} file(s) - ${params.attachments.map(a => a.filename).join(', ')}`)
+    }
 
     const [response] = await sgMail.send(msg)
     

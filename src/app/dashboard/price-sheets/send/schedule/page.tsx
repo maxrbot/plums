@@ -13,7 +13,9 @@ import {
   EnvelopeIcon,
   DevicePhoneMobileIcon,
   DocumentTextIcon,
-  SparklesIcon
+  SparklesIcon,
+  PaperClipIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../../components/ui'
 import { Contact } from '../../../../../types'
@@ -220,6 +222,10 @@ export default function ScheduleSendPage() {
   // Terms of Service state
   const [termsAccepted, setTermsAccepted] = useState(false)
   const [showTermsModal, setShowTermsModal] = useState(false)
+  
+  // Attachments state
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [attachmentError, setAttachmentError] = useState<string | null>(null)
 
   // Load data from URL parameters
   useEffect(() => {
@@ -391,12 +397,73 @@ export default function ScheduleSendPage() {
     
     console.log('💰 Price type set for contact:', contactId, '→', newPriceType)
   }
+  
+  // File upload handlers
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files
+    if (!files || files.length === 0) return
+    
+    setAttachmentError(null)
+    
+    const validFiles: File[] = []
+    const errors: string[] = []
+    
+    // Validate each file
+    Array.from(files).forEach(file => {
+      // Check file type
+      const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
+      if (!validTypes.includes(file.type)) {
+        errors.push(`${file.name}: Invalid file type. Only PDF, JPG, PNG, and DOC files are allowed.`)
+        return
+      }
+      
+      // Check file size (10MB per file)
+      if (file.size > 10 * 1024 * 1024) {
+        errors.push(`${file.name}: File too large. Maximum size is 10MB per file.`)
+        return
+      }
+      
+      validFiles.push(file)
+    })
+    
+    // Check total size (25MB total)
+    const currentTotalSize = attachments.reduce((sum, file) => sum + file.size, 0)
+    const newTotalSize = validFiles.reduce((sum, file) => sum + file.size, 0)
+    if (currentTotalSize + newTotalSize > 25 * 1024 * 1024) {
+      errors.push('Total attachment size cannot exceed 25MB.')
+      setAttachmentError(errors.join(' '))
+      return
+    }
+    
+    if (errors.length > 0) {
+      setAttachmentError(errors.join(' '))
+      return
+    }
+    
+    setAttachments(prev => [...prev, ...validFiles])
+    
+    // Reset input
+    event.target.value = ''
+  }
+  
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+    setAttachmentError(null)
+  }
+  
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
 
   const handleGenerateEmails = async () => {
     setIsGeneratingEmails(true)
     
     // Simulate AI processing time (3 seconds for realistic feel)
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    await new Promise(resolve => setTimeout(resolve, 3500))
     
     setIsGeneratingEmails(false)
     setEmailsGenerated(true)
@@ -451,7 +518,31 @@ export default function ScheduleSendPage() {
         }
       })
       
-      // Call real API to send emails with custom content, pricing, and price types
+      // Convert attachments to base64
+      const attachmentsData = await Promise.all(
+        attachments.map(async (file) => {
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader()
+            reader.onload = () => {
+              const result = reader.result as string
+              // Remove data URL prefix (e.g., "data:application/pdf;base64,")
+              const base64String = result.split(',')[1]
+              resolve(base64String)
+            }
+            reader.onerror = reject
+            reader.readAsDataURL(file)
+          })
+          
+          return {
+            content: base64,
+            filename: file.name,
+            type: file.type,
+            disposition: 'attachment'
+          }
+        })
+      )
+      
+      // Call real API to send emails with custom content, pricing, price types, and attachments
       const result = await priceSheetsApi.send(sheetId, {
         contactIds,
         subject: priceSheet?.title,
@@ -459,7 +550,8 @@ export default function ScheduleSendPage() {
         customEmailContent: Object.keys(customContentMap).length > 0 ? customContentMap : undefined,
         customPricing: Object.keys(customPricingMap).length > 0 ? customPricingMap : undefined,
         customPriceType: Object.keys(customPriceTypeMap).length > 0 ? customPriceTypeMap : undefined,
-        bccSender: bccSelf
+        bccSender: bccSelf,
+        attachments: attachmentsData.length > 0 ? attachmentsData : undefined
       })
 
       // Show success
@@ -544,14 +636,6 @@ export default function ScheduleSendPage() {
       />
 
       <div className="space-y-6">
-        {/* Loading State */}
-        {isLoading && (
-          <div className="bg-white shadow rounded-lg p-12 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading price sheet and contacts...</p>
-          </div>
-        )}
-
         {/* Main Content */}
         {!isLoading && (
           <>
@@ -574,56 +658,111 @@ export default function ScheduleSendPage() {
               {isGeneratingEmails && (
                 <div className="mb-8 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-8">
                   <div className="flex items-center justify-center mb-6">
-                    <SparklesIcon className="h-12 w-12 text-blue-600 animate-pulse" />
+                    <PaperAirplaneIcon className="h-12 w-12 text-blue-600 animate-pulse" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-6 text-center">
-                    ✨ Generating personalized emails...
+                    Generating personalized emails...
                   </h3>
                   
-                  {/* Progress Bar */}
+                  {/* Animated Progress Bar */}
                   <div className="max-w-md mx-auto mb-6">
                     <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                       <div 
-                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-pulse"
-                        style={{ width: '100%' }}
+                        className="h-full bg-gradient-to-r from-blue-600 to-purple-600 rounded-full transition-all duration-[3500ms] ease-linear"
+                        style={{ 
+                          width: '100%',
+                          animation: 'progressBar 3.5s linear forwards'
+                        }}
                       ></div>
                     </div>
                   </div>
                   
-                  {/* Status Steps */}
+                  {/* Sequential Status Steps */}
                   <div className="space-y-3 max-w-md mx-auto text-sm">
-                    <div className="flex items-center text-gray-700">
-                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    {/* Step 1 - Appears immediately */}
+                    <div 
+                      className="flex items-center text-gray-700 transition-all duration-300"
+                      style={{ 
+                        animation: 'fadeInCheck 0.3s ease-out forwards',
+                        opacity: 0
+                      }}
+                    >
+                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 animate-[scaleIn_0.3s_ease-out_forwards]" />
                       <span>Analyzing contact preferences</span>
                     </div>
-                    <div className="flex items-center text-gray-700">
-                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    
+                    {/* Step 2 - Appears after 0.75s */}
+                    <div 
+                      className="flex items-center text-gray-700 transition-all duration-300"
+                      style={{ 
+                        animation: 'fadeInCheck 0.3s ease-out 0.75s forwards',
+                        opacity: 0
+                      }}
+                    >
+                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 animate-[scaleIn_0.3s_ease-out_0.75s_forwards]" style={{ opacity: 0 }} />
                       <span>Customizing pricing for {selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''}</span>
                     </div>
-                    <div className="flex items-center text-gray-700">
-                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0" />
+                    
+                    {/* Step 3 - Appears after 1.5s */}
+                    <div 
+                      className="flex items-center text-gray-700 transition-all duration-300"
+                      style={{ 
+                        animation: 'fadeInCheck 0.3s ease-out 1.5s forwards',
+                        opacity: 0
+                      }}
+                    >
+                      <CheckCircleIcon className="h-5 w-5 text-green-500 mr-3 flex-shrink-0 animate-[scaleIn_0.3s_ease-out_1.5s_forwards]" style={{ opacity: 0 }} />
                       <span>Personalizing messages</span>
                     </div>
-                    <div className="flex items-center text-green-600 font-medium">
-                      <CheckCircleIcon className="h-5 w-5 mr-3 flex-shrink-0" />
+                    
+                    {/* Step 4 - Appears after 2.5s */}
+                    <div 
+                      className="flex items-center text-green-600 font-medium transition-all duration-300"
+                      style={{ 
+                        animation: 'fadeInCheck 0.3s ease-out 2.5s forwards',
+                        opacity: 0
+                      }}
+                    >
+                      <CheckCircleIcon className="h-5 w-5 mr-3 flex-shrink-0 animate-[scaleIn_0.3s_ease-out_2.5s_forwards]" style={{ opacity: 0 }} />
                       <span>Ready to send!</span>
                     </div>
                   </div>
+                  
+                  {/* CSS Animations */}
+                  <style jsx>{`
+                    @keyframes progressBar {
+                      from { width: 0%; }
+                      to { width: 100%; }
+                    }
+                    
+                    @keyframes fadeInCheck {
+                      from { 
+                        opacity: 0;
+                        transform: translateX(-10px);
+                      }
+                      to { 
+                        opacity: 1;
+                        transform: translateX(0);
+                      }
+                    }
+                    
+                    @keyframes scaleIn {
+                      from { 
+                        opacity: 0;
+                        transform: scale(0);
+                      }
+                      to { 
+                        opacity: 1;
+                        transform: scale(1);
+                      }
+                    }
+                  `}</style>
                 </div>
               )}
 
               {/* Success - Show Recipients */}
               {emailsGenerated && !isSending && sentEmails.length === 0 && (
                 <>
-                  <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <CheckCircleIcon className="h-5 w-5 text-green-600 mr-2" />
-                      <p className="text-sm text-green-800 font-medium">
-                        ✨ All emails generated and ready to send!
-                      </p>
-                    </div>
-                  </div>
-
               {/* Final Review */}
               <div className="mb-8">
                 <div className="mb-4">
@@ -861,6 +1000,80 @@ export default function ScheduleSendPage() {
                     })()}
                   </div>
                   
+                </div>
+              </div>
+
+              {/* Enhance Your Message */}
+              <div className="mb-8">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">Enhance Your Message</h3>
+                <div className="bg-gray-50 rounded-lg p-6">
+                  <div className="mb-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Add Attachments
+                    </label>
+                    <p className="text-sm text-gray-500 mb-4">
+                      Attach certificates, product photos, or spec sheets to your emails. Max 10MB per file, 25MB total.
+                    </p>
+                    
+                    {/* File Upload Button */}
+                    <div className="flex items-center space-x-4">
+                      <label className="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 cursor-pointer transition-colors">
+                        <PaperClipIcon className="h-5 w-5 mr-2 text-gray-400" />
+                        Choose Files
+                        <input
+                          type="file"
+                          multiple
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      <span className="text-xs text-gray-500">
+                        PDF, JPG, PNG, DOC
+                      </span>
+                    </div>
+                    
+                    {/* Error Message */}
+                    {attachmentError && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <p className="text-sm text-red-600">{attachmentError}</p>
+                      </div>
+                    )}
+                    
+                    {/* Attached Files List */}
+                    {attachments.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {attachments.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <PaperClipIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleRemoveAttachment(index)}
+                              className="ml-3 p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Remove attachment"
+                            >
+                              <XMarkIcon className="h-5 w-5" />
+                            </button>
+                          </div>
+                        ))}
+                        
+                        {/* Total Size */}
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                          <span className="text-sm font-medium text-gray-700">
+                            Total: {attachments.length} file{attachments.length !== 1 ? 's' : ''}
+                          </span>
+                          <span className="text-sm text-gray-600">
+                            {formatFileSize(attachments.reduce((sum, file) => sum + file.size, 0))} / 25 MB
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 

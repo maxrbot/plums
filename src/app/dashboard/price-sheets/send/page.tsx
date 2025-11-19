@@ -112,13 +112,7 @@ export default function SendPriceSheets() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
   // Removed email generation state - now handled on schedule page
-  
-  // Step 3: Enhancement state
-  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
-  const [customMessage, setCustomMessage] = useState('')
-  const [isDragOver, setIsDragOver] = useState(false)
-  const [isStep3Collapsed, setIsStep3Collapsed] = useState(false)
-  const [step3HasContent, setStep3HasContent] = useState(false)
+  // Removed Step 3 (Enhance Your Message) - now handled on schedule page
 
   // Preview modal state
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false)
@@ -760,174 +754,10 @@ export default function SendPriceSheets() {
           </div>
         )}
 
-        {/* Step 3: Enhance Your Message */}
-        {selectedPriceSheet && selectedContacts.length > 0 && (
-          <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-orange-100 text-orange-600 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
-                <div>
-                  <h2 className="text-lg font-medium text-gray-900">Enhance Your Message</h2>
-                </div>
-              </div>
-              
-              {isStep3Collapsed && (
-                <button
-                  onClick={handleEditStep3}
-                  className="text-sm font-medium text-orange-600 hover:text-orange-500"
-                >
-                  Edit
-                </button>
-              )}
-            </div>
-            
-            {/* Collapsed Content Summary */}
-            {isStep3Collapsed && step3HasContent && (
-              <div className="ml-11 mb-4 p-3 bg-orange-50 border border-orange-200 rounded-md">
-                {attachedFiles.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700 mb-2">Attached Files ({attachedFiles.length}):</p>
-                    <div className="flex flex-wrap gap-2">
-                      {attachedFiles.map((file, index) => (
-                        <span key={`attached-file-${index}-${file.name}`} className="inline-flex items-center px-2 py-1 rounded-md bg-white border border-orange-300 text-xs text-gray-700">
-                          {file.type.startsWith('image/') ? '📷' : file.type.startsWith('video/') ? '🎥' : file.type === 'application/pdf' ? '📄' : '📎'}
-                          <span className="ml-1">{file.name.length > 20 ? file.name.substring(0, 20) + '...' : file.name}</span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {!isStep3Collapsed && (
-              <>
-                <p className="text-sm text-gray-600 mb-6 ml-11">
-                  Upload photos and videos to showcase your product quality and build buyer confidence.
-                </p>
-
-            <div className="max-w-3xl ml-11">
-              {/* File Upload Section */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Upload Images & Documents
-                </label>
-                <div
-                  onDragOver={attachedFiles.length < 5 ? handleDragOver : undefined}
-                  onDragLeave={attachedFiles.length < 5 ? handleDragLeave : undefined}
-                  onDrop={attachedFiles.length < 5 ? handleDrop : undefined}
-                  className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
-                    attachedFiles.length >= 5
-                      ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
-                      : isDragOver 
-                        ? 'border-orange-400 bg-orange-50' 
-                        : 'border-gray-300 hover:border-gray-400'
-                  }`}
-                >
-                  {attachedFiles.length < 5 && (
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/*,video/*,.pdf,.doc,.docx"
-                      onChange={handleFileSelect}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                  )}
-                  <div className="flex items-center justify-center space-x-2">
-                    <div className={`h-10 w-10 ${attachedFiles.length >= 5 ? 'text-gray-300' : 'text-gray-400'}`}>
-                      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <div className="text-left">
-                      {attachedFiles.length >= 5 ? (
-                        <>
-                          <p className="text-sm text-gray-500">
-                            Maximum of 5 files reached
-                          </p>
-                          <p className="text-xs text-gray-400">
-                            Remove a file to add more
-                          </p>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-sm text-gray-600">
-                            <span className="font-semibold text-orange-600 hover:text-orange-500">Click to upload</span> or drag files here
-                          </p>
-                          <p className="text-xs text-gray-500">
-                            Images, videos, PDFs • Max 10MB each • {5 - attachedFiles.length} remaining
-                          </p>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Attached Files Grid */}
-                {attachedFiles.length > 0 && (
-                  <div className="mt-6">
-                    <p className="text-sm font-medium text-gray-700 mb-3">Attached Files ({attachedFiles.length}):</p>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                      {attachedFiles.map((file, index) => (
-                        <div key={`summary-file-${index}-${file.name}`} className="relative group">
-                          <div className="flex flex-col items-center p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-orange-300 transition-colors">
-                            <div className="flex-shrink-0 mb-2">
-                              {file.type.startsWith('image/') ? (
-                                <span className="text-3xl">📷</span>
-                              ) : file.type.startsWith('video/') ? (
-                                <span className="text-3xl">🎥</span>
-                              ) : file.type === 'application/pdf' ? (
-                                <span className="text-3xl">📄</span>
-                              ) : (
-                                <span className="text-3xl">📎</span>
-                              )}
-                            </div>
-                            <div className="text-center w-full">
-                              <p className="text-xs font-medium text-gray-900 truncate">{file.name}</p>
-                              <p className="text-xs text-gray-500 mt-0.5">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                            </div>
-                            <button
-                              onClick={() => removeFile(index)}
-                              className="absolute top-1 right-1 p-1 bg-white rounded-full shadow-sm text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
-                            >
-                              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Action Buttons - Bottom Right */}
-            <div className="flex justify-end space-x-3 mt-6">
-              {attachedFiles.length > 0 ? (
-                <button
-                  onClick={handleSaveStep3}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700"
-                >
-                  Done Adding Attachments
-                </button>
-              ) : (
-                <button
-                  onClick={handleSkipStep3}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
-                >
-                  Skip Adding Attachments
-                </button>
-              )}
-            </div>
-              </>
-            )}
-          </div>
-        )}
+        {/* Step 3: Removed - Attachments now handled on schedule page */}
 
         {/* Continue to Review Button */}
-        {selectedPriceSheet && selectedContacts.length > 0 && isStep3Collapsed && (
+        {selectedPriceSheet && selectedContacts.length > 0 && (
           <div className="bg-white shadow rounded-lg p-6">
             <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-8 text-center">
               <div className="flex items-center justify-center mb-4">
@@ -954,7 +784,6 @@ export default function SendPriceSheets() {
               </h3>
               <p className="text-gray-600 mb-6 max-w-2xl mx-auto">
                 You've selected <span className="font-semibold text-gray-900">{selectedContacts.length} contact{selectedContacts.length !== 1 ? 's' : ''}</span> to receive <span className="font-semibold text-gray-900">{priceSheets.find(s => s._id === selectedPriceSheet)?.title}</span>.
-                {customMessage && <span className="block mt-1">Custom message will be included.</span>}
               </p>
               
               <button
@@ -963,8 +792,7 @@ export default function SendPriceSheets() {
                   // Navigate to schedule page with data
                   const params = new URLSearchParams({
                     sheetId: selectedPriceSheet,
-                    contacts: selectedContacts.join(','),
-                    ...(customMessage && { message: customMessage })
+                    contacts: selectedContacts.join(',')
                   })
                   window.location.href = `/dashboard/price-sheets/send/schedule?${params.toString()}`
                 }}

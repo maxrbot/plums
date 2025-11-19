@@ -492,7 +492,7 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/:id/send', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
     const { id } = request.params as { id: string }
-    const { contactIds, subject, customMessage, customEmailContent, customPricing, customPriceType, bccSender } = request.body as {
+    const { contactIds, subject, customMessage, customEmailContent, customPricing, customPriceType, bccSender, attachments } = request.body as {
       contactIds: string[]
       subject?: string
       customMessage?: string
@@ -500,6 +500,7 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
       customPricing?: Record<string, Record<string, number>> // contactId -> productId -> price
       customPriceType?: Record<string, 'FOB' | 'DELIVERED'> // contactId -> price type
       bccSender?: boolean
+      attachments?: Array<{ content: string; filename: string; type: string; disposition: string }>
     }
     
     if (!ObjectId.isValid(id)) {
@@ -676,7 +677,9 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             // Delivery method and products for inline delivery
             deliveryMethod: deliveryMethod,
             ...(emailProducts && { products: emailProducts }),
-            ...(orderUrl && { orderUrl: orderUrl })
+            ...(orderUrl && { orderUrl: orderUrl }),
+            // Attachments
+            ...(attachments && attachments.length > 0 && { attachments })
           })
           
           // Store the sent email record with all custom data

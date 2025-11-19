@@ -26,14 +26,9 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     // Get all users with their data counts
     const users = await db.collection('users').aggregate([
       {
-        $addFields: {
-          userIdString: { $toString: '$_id' }
-        }
-      },
-      {
         $lookup: {
-          from: 'crops',
-          localField: 'userIdString',
+          from: 'cropManagement',
+          localField: '_id',
           foreignField: 'userId',
           as: 'crops'
         }
@@ -41,7 +36,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'contacts',
-          localField: 'userIdString',
+          localField: '_id',
           foreignField: 'userId',
           as: 'contacts'
         }
@@ -49,7 +44,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'shippingPoints',
-          localField: 'userIdString',
+          localField: '_id',
           foreignField: 'userId',
           as: 'shippingPoints'
         }
@@ -57,16 +52,20 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         $lookup: {
           from: 'priceSheets',
-          localField: 'userIdString',
-          foreignField: 'userId',
+          let: { userId: { $toString: '$_id' } },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
+          ],
           as: 'priceSheets'
         }
       },
       {
         $lookup: {
           from: 'sentEmails',
-          localField: 'userIdString',
-          foreignField: 'userId',
+          let: { userId: { $toString: '$_id' } },
+          pipeline: [
+            { $match: { $expr: { $eq: ['$userId', '$$userId'] } } }
+          ],
           as: 'sentEmails'
         }
       },
@@ -92,8 +91,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
           contacts: 0,
           shippingPoints: 0,
           priceSheets: 0,
-          sentEmails: 0,
-          userIdString: 0
+          sentEmails: 0
         }
       },
       {

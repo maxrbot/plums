@@ -185,9 +185,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Impersonation Banner */}
+      {/* Impersonation Banner - Only over content area, not sidebar */}
       {typeof window !== 'undefined' && localStorage.getItem('isImpersonating') === 'true' && (
-        <div className="fixed top-0 left-0 right-0 bg-red-600 text-white py-2 px-4 z-[60] flex items-center justify-between">
+        <div className="fixed top-0 left-0 lg:left-64 right-0 bg-red-600 text-white py-2 px-4 z-[60] flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <span className="inline-flex items-center px-2 py-1 rounded text-xs font-bold bg-red-700">
               ADMIN MODE

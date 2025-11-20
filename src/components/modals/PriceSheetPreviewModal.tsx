@@ -620,16 +620,6 @@ export default function PriceSheetPreviewModal({
                             )}
                           </button>
                         )}
-                        {hasSaved && onSendPriceSheet && (
-                          <button
-                            type="button"
-                            onClick={onSendPriceSheet}
-                            className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-                          >
-                            <RocketLaunchIcon className="h-4 w-4 mr-2" />
-                            Send Price Sheet
-                          </button>
-                        )}
                       </>
                     )}
                   </div>

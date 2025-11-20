@@ -222,7 +222,7 @@ export default function Dashboard() {
               <div className="text-sm text-gray-500">Checking...</div>
             ) : setupProgress.products ? (
               <div className="text-sm text-green-700 font-medium">
-                ✅ {productsCount} product{productsCount !== 1 ? 's' : ''} added
+                ✅ {productsCount} commodit{productsCount !== 1 ? 'ies' : 'y'} added
               </div>
             ) : setupProgress.shippingPoints ? (
               <Link href="/dashboard/price-sheets/crops" className="text-sm text-blue-600 hover:text-blue-800 font-medium">

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import { cropsApi, shippingPointsApi, packagingApi, priceSheetsApi } from '../../../../lib/api'
@@ -40,7 +41,7 @@ interface ProcessedProduct {
 
 export default function CleanPriceSheetPage() {
   const { user } = useUser()
-  
+  const router = useRouter()
   
   const [showInsightsPanel, setShowInsightsPanel] = useState(false)
   const [selectedInsightProductId, setSelectedInsightProductId] = useState<string | null>(null)
@@ -1037,11 +1038,10 @@ export default function CleanPriceSheetPage() {
       console.log('✅ Price sheet saved successfully:', response)
       setHasSaved(true)
       
-      // Auto-close modal after successful save
+      // Redirect to price sheets library after successful save
       setTimeout(() => {
-        setIsPreviewModalOpen(false)
-        setHasSaved(false)
-      }, 2000)
+        router.push('/dashboard/price-sheets')
+      }, 1500)
 
     } catch (error) {
       console.error('❌ Failed to save price sheet:', error)

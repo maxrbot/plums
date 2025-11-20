@@ -323,7 +323,7 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700">
-                        Location *
+                        City or County *
                       </label>
                       <div className="mt-1 relative">
                         <input
@@ -333,7 +333,7 @@ export default function AddShippingPointModal({ isOpen, onClose, onSave, editing
                           value={formData.location}
                           onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                           className="block w-full rounded-md border border-gray-300 px-3 py-2 pl-10 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                          placeholder="Start typing an address..."
+                          placeholder="Start typing a city or county..."
                         />
                         <MapPinIcon className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>

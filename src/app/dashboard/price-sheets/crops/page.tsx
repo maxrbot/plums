@@ -368,7 +368,7 @@ export default function CropManagement() {
   const loadShippingPoints = async () => {
     try {
       const response = await shippingPointsApi.getAll()
-      const points = response.shippingPoints || []
+      const points = response.regions || [] // Backend returns 'regions' for backward compatibility
       console.log('🚢 Loaded shipping points:', points.length, 'points')
       setShippingPoints(points)
       setHasShippingPoints(points.length > 0)

@@ -26,7 +26,7 @@ import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
 
 // Feature access mapping - generous for demo purposes
 const featureAccess: Record<string, string[]> = {
-  basic: ['price_sheets', 'contacts'], // Basic users get core features
+  basic: ['price_sheets', 'contacts', 'analytics'], // Basic (Free Trial) gets all core features
   premium: ['price_sheets', 'analytics', 'contacts'], // Premium adds analytics
   enterprise: ['price_sheets', 'analytics', 'contacts', 'ai_chatbot'], // Enterprise gets everything
   admin: ['price_sheets', 'analytics', 'contacts', 'ai_chatbot'] // Admin gets everything

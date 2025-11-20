@@ -69,8 +69,6 @@ export default function Dashboard() {
         // Check if user has packaging structure defined (stored in user profile)
         const packagingStructure = user?.packagingStructure || {}
         const commoditiesWithPackaging = Object.keys(packagingStructure)
-        const hasPackaging = commoditiesWithPackaging.length > 0
-        const packagingSetupCount = commoditiesWithPackaging.length
         
         // Calculate packaging structure metrics
         const totalPackageTypes = commoditiesWithPackaging.reduce((sum, commodity) => {
@@ -79,6 +77,16 @@ export default function Dashboard() {
         const totalSizeGrades = commoditiesWithPackaging.reduce((sum, commodity) => {
           return sum + (packagingStructure[commodity]?.sizeGrades?.length || 0)
         }, 0)
+        
+        // Count commodities that have BOTH package types AND size grades
+        const commoditiesWithCompletePackaging = commoditiesWithPackaging.filter(commodity => {
+          const hasPackageTypes = (packagingStructure[commodity]?.packageTypes?.length || 0) > 0
+          const hasSizeGrades = (packagingStructure[commodity]?.sizeGrades?.length || 0) > 0
+          return hasPackageTypes && hasSizeGrades
+        }).length
+        
+        const hasPackaging = commoditiesWithCompletePackaging > 0
+        const packagingSetupCount = commoditiesWithCompletePackaging
         
         const contactCount = contacts.length
         const hasContacts = contactCount > 0

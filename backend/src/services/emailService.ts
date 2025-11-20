@@ -363,6 +363,7 @@ export async function sendPriceSheetEmail(params: SendPriceSheetEmailParams): Pr
     // But show the user's name, and set Reply-To to user's actual email
     const verifiedSendingEmail = process.env.SENDGRID_VERIFIED_EMAIL || 'noreply@acrelist.ag'
     
+    console.log('📧 Sending email TO:', params.to.email, `(${params.to.name})`)
     console.log('📧 Sending email FROM:', verifiedSendingEmail, '(verified)')
     console.log('📧 Reply-To will be:', params.from.email, '(user email)')
     console.log('📧 Price Sheet URL:', params.priceSheetUrl)
@@ -448,12 +449,17 @@ export async function sendBulkPriceSheetEmails(
   baseParams: Omit<SendPriceSheetEmailParams, 'to'>
 ): Promise<{ sent: number; failed: number; results: EmailSendResult[] }> {
   
+  console.log(`📬 Starting bulk email send to ${recipients.length} recipient(s)`)
+  
   const results: EmailSendResult[] = []
   let sent = 0
   let failed = 0
 
   // Send emails one by one with a small delay to respect rate limits
-  for (const recipient of recipients) {
+  for (let i = 0; i < recipients.length; i++) {
+    const recipient = recipients[i]
+    console.log(`📧 [${i + 1}/${recipients.length}] Sending to: ${recipient.email} (${recipient.name})`)
+    
     const result = await sendPriceSheetEmail({
       ...baseParams,
       to: recipient
@@ -463,8 +469,10 @@ export async function sendBulkPriceSheetEmails(
     
     if (result.success) {
       sent++
+      console.log(`✅ [${i + 1}/${recipients.length}] SUCCESS: ${recipient.email} - MessageID: ${result.messageId}`)
     } else {
       failed++
+      console.error(`❌ [${i + 1}/${recipients.length}] FAILED: ${recipient.email} - Error: ${result.error}`)
     }
 
     // Small delay between sends (100ms = max 10 emails/second)
@@ -472,6 +480,7 @@ export async function sendBulkPriceSheetEmails(
     await new Promise(resolve => setTimeout(resolve, 100))
   }
 
+  console.log(`📬 Bulk send complete: ${sent} sent, ${failed} failed`)
   return { sent, failed, results }
 }
 

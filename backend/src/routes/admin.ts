@@ -7,6 +7,9 @@ import jwt from 'jsonwebtoken'
 
 const adminRoutes: FastifyPluginAsync = async (fastify) => {
   
+  // Add authentication to all admin routes
+  fastify.addHook('preHandler', authenticate)
+  
   // Middleware to check if user is admin
   const requireAdmin = async (request: AuthenticatedRequest, reply: any) => {
     if (request.user.subscriptionTier !== 'admin') {
@@ -18,9 +21,10 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   }
   
   // Get all users (admin only)
-  fastify.get('/users', {
-    preHandler: [authenticate, requireAdmin]
-  }, async (request: AuthenticatedRequest) => {
+  fastify.get('/users', async (request, reply) => {
+    const authRequest = request as AuthenticatedRequest
+    await requireAdmin(authRequest, reply)
+    if (reply.sent) return
     const db = database.getDb()
     
     // Get all users with their data counts
@@ -99,9 +103,10 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   })
   
   // Get specific user details (admin only)
-  fastify.get('/users/:userId', {
-    preHandler: [authenticate, requireAdmin]
-  }, async (request: AuthenticatedRequest) => {
+  fastify.get('/users/:userId', async (request, reply) => {
+    const authRequest = request as AuthenticatedRequest
+    await requireAdmin(authRequest, reply)
+    if (reply.sent) return
     const db = database.getDb()
     const { userId } = request.params as { userId: string }
     
@@ -142,9 +147,11 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
   })
   
   // Impersonate user (admin only)
-  fastify.post('/impersonate/:userId', {
-    preHandler: [authenticate, requireAdmin]
-  }, async (request: AuthenticatedRequest, reply) => {
+  fastify.post('/impersonate/:userId', async (request, reply) => {
+    const authRequest = request as AuthenticatedRequest
+    await requireAdmin(authRequest, reply)
+    if (reply.sent) return
+    
     const db = database.getDb()
     const { userId } = request.params as { userId: string }
     
@@ -163,7 +170,7 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       {
         userId: targetUser.id,
         email: targetUser.email,
-        impersonatedBy: request.user.id,
+        impersonatedBy: authRequest.user.id,
         isImpersonation: true
       },
       process.env.JWT_SECRET || 'your-secret-key',
@@ -172,8 +179,8 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
     
     // Log the impersonation
     await db.collection('adminLogs').insertOne({
-      adminId: request.user.id,
-      adminEmail: request.user.email,
+      adminId: authRequest.user.id,
+      adminEmail: authRequest.user.email,
       action: 'impersonate',
       targetUserId: targetUser.id,
       targetUserEmail: targetUser.email,
@@ -190,15 +197,17 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
         subscriptionTier: targetUser.subscriptionTier,
         profile: targetUser.profile,
         isImpersonation: true,
-        impersonatedBy: request.user.email
+        impersonatedBy: authRequest.user.email
       }
     }
   })
   
   // Get admin activity logs
-  fastify.get('/logs', {
-    preHandler: [authenticate, requireAdmin]
-  }, async (request: AuthenticatedRequest) => {
+  fastify.get('/logs', async (request, reply) => {
+    const authRequest = request as AuthenticatedRequest
+    await requireAdmin(authRequest, reply)
+    if (reply.sent) return
+    
     const db = database.getDb()
     
     const logs = await db.collection('adminLogs')

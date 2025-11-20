@@ -54,7 +54,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     ? [
         ...navigation,
         { name: 'divider' }, // Another separator before admin
-        { name: 'Admin Panel', href: '/admin', icon: ShieldCheckIcon }
+        { name: 'Admin Panel', href: '/dashboard/admin', icon: ShieldCheckIcon }
       ]
     : navigation
   

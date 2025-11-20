@@ -204,7 +204,7 @@ export default function CropManagement() {
   const [crops, setCrops] = useState<CropManagement[]>([])
   const [regions, setRegions] = useState<GrowingRegion[]>([])
   const [shippingPoints, setShippingPoints] = useState<any[]>([])
-  const [hasShippingPoints, setHasShippingPoints] = useState(true)
+  const [hasShippingPoints, setHasShippingPoints] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -369,6 +369,7 @@ export default function CropManagement() {
     try {
       const response = await shippingPointsApi.getAll()
       const points = response.shippingPoints || []
+      console.log('🚢 Loaded shipping points:', points.length, 'points')
       setShippingPoints(points)
       setHasShippingPoints(points.length > 0)
     } catch (err) {

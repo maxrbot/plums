@@ -149,7 +149,20 @@ export default function Dashboard() {
     }
 
     loadSetupProgress()
-  }, [])
+    
+    // Reload setup progress when user returns to the dashboard tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadSetupProgress()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [user]) // Also reload when user context changes
 
   const completedSteps = Object.values(setupProgress).filter(Boolean).length
   const totalSteps = Object.keys(setupProgress).length

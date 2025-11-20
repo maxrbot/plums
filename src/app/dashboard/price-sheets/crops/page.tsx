@@ -287,6 +287,18 @@ export default function CropManagement() {
     loadShippingPoints()
   }, [])
 
+  // Reload shipping points when page becomes visible (e.g., after navigating back from regions page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        loadShippingPoints()
+      }
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [])
+
   const loadCrops = async () => {
     try {
       setIsLoading(true)

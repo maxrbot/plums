@@ -206,7 +206,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               }
               localStorage.removeItem('isImpersonating')
               localStorage.removeItem('adminToken')
-              window.location.href = '/admin'
+              window.location.href = '/dashboard/admin'
             }}
             className="px-4 py-1 bg-white text-red-600 text-sm font-medium rounded hover:bg-red-50 transition-colors"
           >

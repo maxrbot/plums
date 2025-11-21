@@ -212,7 +212,7 @@ export default function OrderBuilder() {
     const orderSummary = orderItems.map(item => {
       const priceDisplay = item.subtotal !== null 
         ? `$${item.subtotal.toFixed(2)}`
-        : `$${(item.price || 0).toFixed(2)} per ${item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'} × [pallet qty] (Pallet configuration TBD)`
+        : `$${(item.price || 0).toFixed(2)} per ${item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'} × [pallet qty]`
       return `${item.quantity} ${item.unit} - ${item.productName || `${item.variety} ${item.commodity}`} (${item.packageType}) - ${priceDisplay}`
     }).join('\n')
     
@@ -511,12 +511,12 @@ export default function OrderBuilder() {
                               {item.subtotal !== null ? (
                                 `$${item.subtotal.toFixed(2)}`
                               ) : (
-                                <div className="flex flex-col items-end">
+                                <div className="flex flex-col items-end leading-tight">
                                   <span className="text-gray-700 text-xs">
-                                    ${(item.price || 0).toFixed(2)} per {item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'} × [pallet qty]
+                                    ${(item.price || 0).toFixed(2)}/{item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'}
                                   </span>
-                                  <span className="text-orange-600 text-[10px] italic">
-                                    Pallet config TBD
+                                  <span className="text-red-600 text-[10px]">
+                                    × pallet qty
                                   </span>
                                 </div>
                               )}

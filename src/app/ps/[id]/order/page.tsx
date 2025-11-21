@@ -212,7 +212,7 @@ export default function OrderBuilder() {
     const orderSummary = orderItems.map(item => {
       const priceDisplay = item.subtotal !== null 
         ? `$${item.subtotal.toFixed(2)}`
-        : 'Price TBD (Pallet Configuration Required)'
+        : `$${(item.price || 0).toFixed(2)} per ${item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'} × [pallet qty] (Pallet configuration TBD)`
       return `${item.quantity} ${item.unit} - ${item.productName || `${item.variety} ${item.commodity}`} (${item.packageType}) - ${priceDisplay}`
     }).join('\n')
     
@@ -251,6 +251,7 @@ export default function OrderBuilder() {
             grade: item.grade,
             quantity: item.quantity,
             unit: item.unit,
+            price: item.price, // Add price for pallet calculations
             subtotal: item.subtotal
           })),
           orderComments,
@@ -510,7 +511,14 @@ export default function OrderBuilder() {
                               {item.subtotal !== null ? (
                                 `$${item.subtotal.toFixed(2)}`
                               ) : (
-                                <span className="text-orange-600 text-xs">TBD</span>
+                                <div className="flex flex-col items-end">
+                                  <span className="text-gray-700 text-xs">
+                                    ${(item.price || 0).toFixed(2)} per {item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'} × [pallet qty]
+                                  </span>
+                                  <span className="text-orange-600 text-[10px] italic">
+                                    Pallet config TBD
+                                  </span>
+                                </div>
                               )}
                             </span>
                           </div>

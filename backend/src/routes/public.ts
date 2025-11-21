@@ -259,6 +259,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         grade?: string
         quantity: number
         unit: string
+        price?: number
         subtotal: number | null
       }>
       orderComments?: string
@@ -335,7 +336,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       const orderSummary = orderItems.map(item => {
         const priceDisplay = item.subtotal !== null 
           ? `$${item.subtotal.toFixed(2)}`
-          : 'Price TBD (Pallet Configuration Required)'
+          : `$${(item.price || 0).toFixed(2)} per ${item.packageType && item.packageType !== '-' ? item.packageType.toLowerCase() : 'unit'} × [pallet qty] (Pallet configuration TBD)`
         
         // Format: quantity units - productName (packageType) - price
         // Don't include size or grade to match preview

@@ -8,7 +8,13 @@ import {
   ChartBarIcon, 
   ClockIcon,
   ArrowRightIcon,
-  EyeIcon
+  EyeIcon,
+  MapPinIcon,
+  CubeIcon,
+  UserGroupIcon,
+  DocumentTextIcon,
+  PaperAirplaneIcon,
+  ShieldCheckIcon
 } from '@heroicons/react/24/outline'
 
 interface UserStats {
@@ -27,6 +33,31 @@ interface UserStats {
   priceSheetCount: number
   emailsSentCount: number
   lastActivity: string
+  lastSeenAt?: string
+}
+
+// Utility function to format time ago
+function formatTimeAgo(dateString: string | undefined): string {
+  if (!dateString) return 'Never'
+  
+  const date = new Date(dateString)
+  const now = new Date()
+  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
+  
+  if (seconds < 60) return 'Just now'
+  if (seconds < 300) return `${Math.floor(seconds / 60)} min ago` // < 5 min
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`
+  
+  return date.toLocaleDateString()
+}
+
+// Check if user is online (active in last 5 minutes)
+function isUserOnline(lastSeenAt: string | undefined): boolean {
+  if (!lastSeenAt) return false
+  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+  return new Date(lastSeenAt) > fiveMinutesAgo
 }
 
 export default function AdminDashboard() {
@@ -199,7 +230,7 @@ export default function AdminDashboard() {
                     Activity
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Joined
+                    Last Seen
                   </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
@@ -251,8 +282,17 @@ export default function AdminDashboard() {
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(user.createdAt).toLocaleDateString()}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {isUserOnline(user.lastSeenAt) ? (
+                        <span className="flex items-center text-green-600 font-medium">
+                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                          Active now
+                        </span>
+                      ) : (
+                        <span className="text-gray-500">
+                          {formatTimeAgo(user.lastSeenAt)}
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {user.subscriptionTier === 'admin' ? (

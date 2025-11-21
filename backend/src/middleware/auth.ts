@@ -37,6 +37,13 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
       })
     }
     
+    // Update lastSeenAt timestamp (fire-and-forget, don't await)
+    const db = database.getDb()
+    db.collection('users').updateOne(
+      { id: dbUser.id },
+      { $set: { lastSeenAt: new Date() } }
+    ).catch(err => console.error('Failed to update lastSeenAt:', err))
+    
     // Add user info to request
     ;(request as AuthenticatedRequest).user = {
       id: dbUser.id,

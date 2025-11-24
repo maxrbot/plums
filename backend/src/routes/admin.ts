@@ -86,25 +86,19 @@ const adminRoutes: FastifyPluginAsync = async (fastify) => {
       },
       {
         $project: {
-          password: 0, // Never return passwords
-          crops: 0,
-          contacts: 0,
-          shippingPoints: 0,
-          priceSheets: 0,
-          sentEmails: 0,
-          // Explicitly include lastSeenAt to ensure it's returned
-          lastSeenAt: 1,
+          // Only include what we need (can't mix 0 and 1 in same projection)
+          _id: 1,
           email: 1,
           profile: 1,
           subscriptionTier: 1,
           createdAt: 1,
+          lastSeenAt: 1,
           cropCount: 1,
           contactCount: 1,
           shippingPointCount: 1,
           priceSheetCount: 1,
           emailsSentCount: 1,
-          lastActivity: 1,
-          _id: 1
+          lastActivity: 1
         }
       },
       {

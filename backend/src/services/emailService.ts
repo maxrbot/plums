@@ -458,6 +458,8 @@ export async function sendBulkPriceSheetEmails(
   // Send emails one by one with a small delay to respect rate limits
   for (let i = 0; i < recipients.length; i++) {
     const recipient = recipients[i]
+    if (!recipient) continue // Skip if recipient is undefined
+    
     console.log(`📧 [${i + 1}/${recipients.length}] Sending to: ${recipient.email} (${recipient.name})`)
     
     const result = await sendPriceSheetEmail({

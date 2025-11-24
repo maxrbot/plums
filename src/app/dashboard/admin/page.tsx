@@ -77,6 +77,7 @@ export default function AdminDashboard() {
   // Fetch users
   useEffect(() => {
     const fetchUsers = async () => {
+      console.log('🔧 Admin: Fetching users...', { isAdmin: user?.subscriptionTier === 'admin' })
       try {
         const token = localStorage.getItem('accessToken')
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users`, {
@@ -85,13 +86,20 @@ export default function AdminDashboard() {
           }
         })
 
+        console.log('🔧 Admin: Response status:', response.status)
+
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}))
+          console.error('🔧 Admin: Error response:', errorData)
           throw new Error('Failed to fetch users')
         }
 
         const data = await response.json()
+        console.log('🔧 Admin: Users fetched:', data.users?.length, 'users')
+        console.log('🔧 Admin: First user lastSeenAt:', data.users?.[0]?.lastSeenAt)
         setUsers(data.users)
       } catch (err) {
+        console.error('🔧 Admin: Fetch error:', err)
         setError(err instanceof Error ? err.message : 'Failed to load users')
       } finally {
         setLoading(false)
@@ -100,6 +108,9 @@ export default function AdminDashboard() {
 
     if (user?.subscriptionTier === 'admin') {
       fetchUsers()
+    } else {
+      console.log('🔧 Admin: Not fetching - user tier:', user?.subscriptionTier)
+      setLoading(false)
     }
   }, [user])
 

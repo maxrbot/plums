@@ -458,28 +458,28 @@ export async function sendBulkPriceSheetEmails(
   // Send emails one by one with a small delay to respect rate limits
   for (let i = 0; i < recipients.length; i++) {
     const recipient = recipients[i]
-    if (!recipient) continue // Skip if recipient is undefined
-    
-    console.log(`📧 [${i + 1}/${recipients.length}] Sending to: ${recipient.email} (${recipient.name})`)
-    
-    const result = await sendPriceSheetEmail({
-      ...baseParams,
-      to: recipient
-    })
+    if (recipient) {
+      console.log(`📧 [${i + 1}/${recipients.length}] Sending to: ${recipient.email} (${recipient.name})`)
 
-    results.push(result)
-    
-    if (result.success) {
-      sent++
-      console.log(`✅ [${i + 1}/${recipients.length}] SUCCESS: ${recipient.email} - MessageID: ${result.messageId}`)
-    } else {
-      failed++
-      console.error(`❌ [${i + 1}/${recipients.length}] FAILED: ${recipient.email} - Error: ${result.error}`)
+      const result = await sendPriceSheetEmail({
+        ...baseParams,
+        to: recipient
+      })
+
+      results.push(result)
+
+      if (result.success) {
+        sent++
+        console.log(`✅ [${i + 1}/${recipients.length}] SUCCESS: ${recipient.email} - MessageID: ${result.messageId}`)
+      } else {
+        failed++
+        console.error(`❌ [${i + 1}/${recipients.length}] FAILED: ${recipient.email} - Error: ${result.error}`)
+      }
+
+      // Small delay between sends (100ms = max 10 emails/second)
+      // SendGrid free tier: 100 emails/day
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
-
-    // Small delay between sends (100ms = max 10 emails/second)
-    // SendGrid free tier: 100 emails/day
-    await new Promise(resolve => setTimeout(resolve, 100))
   }
 
   console.log(`📬 Bulk send complete: ${sent} sent, ${failed} failed`)

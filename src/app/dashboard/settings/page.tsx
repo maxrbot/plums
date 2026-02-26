@@ -2,16 +2,18 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  UserIcon, 
+import {
+  UserIcon,
   BuildingOfficeIcon,
-  BellIcon, 
+  BellIcon,
   ShieldCheckIcon,
   CheckIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
   RocketLaunchIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  MagnifyingGlassIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline'
 import { useUser } from '@/contexts/UserContext'
 
@@ -75,6 +77,20 @@ export default function Settings() {
   const [isDraggingLogo, setIsDraggingLogo] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
+  // ProduceHunt claim flow
+  const [phOptedIn, setPhOptedIn] = useState(false)
+  const [phClaimStep, setPhClaimStep] = useState<'idle' | 'detecting' | 'pick' | 'compare' | 'confirming' | 'done'>('idle')
+  const [phMatches, setPhMatches] = useState<any[]>([])
+  const [phSelectedMatch, setPhSelectedMatch] = useState<any>(null)
+  const [phPreview, setPhPreview] = useState<any>(null)
+  const [phError, setPhError] = useState<string | null>(null)
+  // Editable merged values shown in comparison step
+  const [phMerged, setPhMerged] = useState<any>(null)
+  // Which side ('directory' | 'acrelist') was chosen for each field
+  const [phMergedSources, setPhMergedSources] = useState<Record<string, 'directory' | 'acrelist'>>({
+    companyName: 'directory', location: 'directory', contact: 'directory', certifications: 'directory'
+  })
+
   // Update form data when user data loads
   useEffect(() => {
     if (user) {
@@ -121,6 +137,9 @@ export default function Settings() {
           amount: '$100/month' // Default amount
         },
         
+        // ProduceHunt opt-in state
+        ...((() => { setPhOptedIn(!!(user as any).integrations?.producehunt); return {} })()),
+
         // Pricesheet Preferences (load from user data or use defaults)
         pricesheetSettings: (() => {
           const savedSettings = user.preferences?.pricesheet || user.pricesheetSettings
@@ -311,6 +330,101 @@ export default function Settings() {
       }
     }))
     setHasChanges(true)
+  }
+
+  const getAuthToken = () => localStorage.getItem('accessToken') || ''
+
+  const handlePhOptIn = async () => {
+    setPhError(null)
+    setPhClaimStep('detecting')
+    try {
+      const res = await fetch('http://localhost:3001/api/producehunt/claim/detect', {
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      })
+      const data = await res.json()
+      if (data.alreadyClaimed) {
+        setPhOptedIn(true)
+        setPhClaimStep('done')
+        return
+      }
+      setPhMatches(data.matches || [])
+      if (data.matches.length === 1) {
+        // Single match — skip picker, go straight to compare
+        await loadPreview(data.matches[0].id)
+      } else if (data.matches.length > 1) {
+        setPhClaimStep('pick')
+      } else {
+        setPhError('No matching directory entry found. Contact support to get listed.')
+        setPhClaimStep('idle')
+      }
+    } catch {
+      setPhError('Something went wrong. Please try again.')
+      setPhClaimStep('idle')
+    }
+  }
+
+  const loadPreview = async (directoryId: string) => {
+    setPhClaimStep('detecting')
+    try {
+      const res = await fetch(`http://localhost:3001/api/producehunt/claim/preview/${directoryId}`, {
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      })
+      const data = await res.json()
+      if (!res.ok) { setPhError(data.error); setPhClaimStep('idle'); return }
+      setPhPreview(data)
+      setPhSelectedMatch(phMatches.find(m => m.id === directoryId) || { id: directoryId })
+      setPhMergedSources({ companyName: 'directory', location: 'directory', contact: 'directory', certifications: 'directory' })
+      // Pre-fill merged values with directory data as default
+      // Auto-merge: prefer directory data, fall back to AcreList for missing contact fields
+      const dirContact = data.directoryData.contact || {}
+      const alContact = data.acrelistData.contact || {}
+      setPhMerged({
+        companyName: data.directoryData.companyName,
+        location: data.directoryData.location?.full ? data.directoryData.location : data.acrelistData.location,
+        contact: {
+          salesEmail: dirContact.salesEmail || alContact.salesEmail || '',
+          phone: dirContact.phone || alContact.phone || '',
+          website: dirContact.website || alContact.website || ''
+        },
+        certifications: data.directoryData.certifications?.length ? data.directoryData.certifications : (data.acrelistData.certifications || [])
+      })
+      setPhClaimStep('compare')
+    } catch {
+      setPhError('Failed to load preview.')
+      setPhClaimStep('idle')
+    }
+  }
+
+  const handlePhConfirm = async () => {
+    if (!phSelectedMatch || !phMerged) return
+    setPhClaimStep('confirming')
+    try {
+      const res = await fetch('http://localhost:3001/api/producehunt/claim/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+        body: JSON.stringify({ directoryId: phSelectedMatch.id, ...phMerged })
+      })
+      const data = await res.json()
+      if (!res.ok) { setPhError(data.error); setPhClaimStep('compare'); return }
+      setPhOptedIn(true)
+      setPhClaimStep('done')
+    } catch {
+      setPhError('Failed to confirm. Please try again.')
+      setPhClaimStep('compare')
+    }
+  }
+
+  const handlePhOptOut = async () => {
+    try {
+      await fetch('http://localhost:3001/api/producehunt/claim', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      })
+      setPhOptedIn(false)
+      setPhClaimStep('idle')
+    } catch {
+      setPhError('Failed to opt out. Please try again.')
+    }
   }
 
   const tabs = [
@@ -1028,52 +1142,230 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Company Branding */}
-            <div className="border-t border-gray-200 pt-6 mt-6">
-              <div className="flex items-center space-x-2 mb-4">
-                <h4 className="text-base font-medium text-gray-900">Company Branding</h4>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                  Coming Soon
-                </span>
-              </div>
-              
-              <div className="opacity-50 pointer-events-none">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Company Logo
-                </label>
-                <div className="relative border-2 border-dashed rounded-lg p-6 border-gray-300 bg-gray-50 w-48 h-48 flex items-center justify-center">
-                  {userData.pricesheetSettings?.companyLogo ? (
-                    <img
-                      src={userData.pricesheetSettings.companyLogo}
-                      alt="Company logo"
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  ) : (
-                    <div className="text-center">
-                      <svg
-                        className="mx-auto h-10 w-10 text-gray-400"
-                        stroke="currentColor"
-                        fill="none"
-                        viewBox="0 0 48 48"
-                      >
-                        <path
-                          d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                          strokeWidth={2}
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        />
-                      </svg>
-                      <p className="text-xs text-gray-400 mt-2">Upload logo</p>
-                      <p className="text-xs text-gray-400">PNG, JPG</p>
-                    </div>
-                  )}
+            {/* ProduceHunt Directory + Company Branding — side by side */}
+            <div className="border-t border-gray-200 pt-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+
+              {/* ProduceHunt Directory */}
+              <div className="border border-gray-200 rounded-lg p-5">
+                <div className="flex items-center space-x-3 mb-3">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-r from-green-500 to-lime-500 flex items-center justify-center flex-shrink-0">
+                    <MagnifyingGlassIcon className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900">ProduceHunt Directory</h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {phOptedIn ? 'Your listing is live and searchable.' : 'Get found by buyers searching ProduceHunt.'}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm text-gray-500 mt-2">Logo branding will be available in a future update</p>
+                {phOptedIn ? (
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                      Listed
+                    </span>
+                    <button onClick={handlePhOptOut} className="text-xs text-red-600 hover:text-red-700 font-medium">
+                      Remove listing
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={handlePhOptIn}
+                    disabled={phClaimStep === 'detecting'}
+                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {phClaimStep === 'detecting' ? 'Looking up...' : 'Join Directory'}
+                  </button>
+                )}
+                {phError && <p className="mt-2 text-xs text-red-600">{phError}</p>}
               </div>
+
+              {/* Company Branding */}
+              <div className="border border-gray-200 rounded-lg p-5">
+                <div className="flex items-center space-x-2 mb-3">
+                  <h4 className="text-sm font-semibold text-gray-900">Company Branding</h4>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                    Coming Soon
+                  </span>
+                </div>
+                <div className="opacity-50 pointer-events-none">
+                  <div className="border-2 border-dashed rounded-lg p-4 border-gray-300 bg-gray-50 flex items-center justify-center h-24">
+                    <div className="text-center">
+                      <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <p className="text-xs text-gray-400 mt-1">Upload logo</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-2">Logo branding coming in a future update</p>
+                </div>
+              </div>
+
             </div>
           </div>
         )}
       </div>
+
+      {/* ProduceHunt Claim Modal */}
+      {(phClaimStep === 'pick' || phClaimStep === 'compare' || phClaimStep === 'confirming') && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full p-6 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center space-x-3">
+                <div className="h-8 w-8 rounded-full bg-gradient-to-r from-green-500 to-lime-500 flex items-center justify-center">
+                  <MagnifyingGlassIcon className="h-4 w-4 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Join ProduceHunt Directory</h3>
+              </div>
+              <button onClick={() => setPhClaimStep('idle')} className="text-gray-400 hover:text-gray-600">
+                <XMarkIcon className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Step: Pick from multiple matches */}
+            {phClaimStep === 'pick' && (
+              <div>
+                <p className="text-sm text-gray-600 mb-4">
+                  We found multiple entries that might be yours. Select the correct one:
+                </p>
+                <div className="space-y-3">
+                  {phMatches.map(match => (
+                    <button
+                      key={match.id}
+                      onClick={() => loadPreview(match.id)}
+                      className="w-full text-left border-2 border-gray-200 hover:border-green-400 rounded-lg p-4 transition-all"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-gray-900">{match.companyName}</div>
+                          <div className="text-sm text-gray-500 mt-0.5">
+                            {match.location?.full} · {match.products?.slice(0, 3).join(', ')}
+                          </div>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Score: {match.verificationScore?.score}/{match.verificationScore?.maxScore}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPhClaimStep('idle')}
+                    className="w-full text-center text-sm text-gray-500 hover:text-gray-700 pt-2"
+                  >
+                    None of these are my business
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: Claim listing card */}
+            {(phClaimStep === 'compare' || phClaimStep === 'confirming') && phPreview && phMerged && (
+              <div>
+                {/* Headline */}
+                <div className="mb-5">
+                  <p className="text-sm font-medium text-gray-900">Your business is already listed — claim it to take control.</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Once claimed, you'll appear in ProduceHunt buyer searches and your AcreList pricing will be linked directly to your profile.
+                  </p>
+                </div>
+
+                {/* Listing preview card */}
+                <div className="border-2 border-green-200 bg-green-50 rounded-xl p-5 mb-5 relative">
+                  <div className="absolute top-3 right-3">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 border border-amber-200">
+                      Unclaimed
+                    </span>
+                  </div>
+
+                  {/* Company name + location */}
+                  <div className="mb-4">
+                    <div className="text-lg font-semibold text-gray-900">{phPreview.directoryData.companyName}</div>
+                    {phMerged.location?.full && (
+                      <div className="text-sm text-gray-500 mt-0.5">{phMerged.location.full}</div>
+                    )}
+                  </div>
+
+                  {/* Products */}
+                  {(phPreview.directoryData.products || []).length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Products</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(phPreview.directoryData.products || []).map((p: any, i: number) => (
+                          <span key={i} className="text-xs bg-white border border-green-200 rounded-full px-2.5 py-1 text-gray-700 font-medium">
+                            {p.isOrganic ? 'Organic ' : ''}{p.commodity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Certifications */}
+                  {(phPreview.directoryData.certifications || []).length > 0 && (
+                    <div className="mb-3">
+                      <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Certifications</div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {(phPreview.directoryData.certifications || []).map((c: string, i: number) => (
+                          <span key={i} className="text-xs bg-white border border-green-200 rounded-full px-2.5 py-1 text-green-700 font-medium">
+                            {c}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contact & verification row */}
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-green-200">
+                    <div className="text-xs text-gray-500">
+                      {phMerged.contact?.salesEmail || phPreview.acrelistData.contact?.salesEmail || 'No contact email'}
+                    </div>
+                    {phPreview.directoryData.verificationScore && (
+                      <div className="text-xs text-gray-500">
+                        Verified {phPreview.directoryData.verificationScore.score}/{phPreview.directoryData.verificationScore.maxScore}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* What you unlock */}
+                <div className="grid grid-cols-3 gap-3 mb-6 text-center">
+                  <div className="bg-white border border-gray-100 rounded-lg p-3">
+                    <div className="text-lg mb-1">🔍</div>
+                    <div className="text-xs font-medium text-gray-700">Buyer Searchable</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Appear in ProduceHunt searches</div>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-lg p-3">
+                    <div className="text-lg mb-1">📋</div>
+                    <div className="text-xs font-medium text-gray-700">Live Pricing</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Link your price sheets directly</div>
+                  </div>
+                  <div className="bg-white border border-gray-100 rounded-lg p-3">
+                    <div className="text-lg mb-1">✅</div>
+                    <div className="text-xs font-medium text-gray-700">Verified Profile</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Externally verified credentials</div>
+                  </div>
+                </div>
+
+                {phError && <p className="mb-4 text-sm text-red-600">{phError}</p>}
+
+                <div className="flex justify-end space-x-3">
+                  <button
+                    onClick={() => setPhClaimStep('idle')}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handlePhConfirm}
+                    disabled={phClaimStep === 'confirming'}
+                    className="px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  >
+                    {phClaimStep === 'confirming' ? 'Claiming...' : 'Claim Listing & Go Live'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Delete Account Modal */}
       {showDeleteModal && (

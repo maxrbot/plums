@@ -382,6 +382,37 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
+  // Toggle ProduceHunt searchability
+  fastify.patch('/:id/searchable', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+    const { id } = request.params as { id: string }
+    const { searchable } = request.body as { searchable: boolean }
+
+    if (!ObjectId.isValid(id)) {
+      return reply.status(400).send({ error: 'Bad Request', message: 'Invalid price sheet ID' })
+    }
+
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      if (!userDoc) return reply.status(404).send({ error: 'User Not Found', message: 'User not found' })
+
+      const result = await db.collection<PriceSheet>('priceSheets').updateOne(
+        { _id: new ObjectId(id), userId: userDoc._id },
+        { $set: { searchable, updatedAt: new Date() } }
+      )
+
+      if (result.matchedCount === 0) {
+        return reply.status(404).send({ error: 'Price Sheet Not Found', message: 'Price sheet not found' })
+      }
+
+      return { success: true, searchable }
+    } catch (error) {
+      console.error('Toggle searchable error:', error)
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to update searchability' })
+    }
+  })
+
   // Delete price sheet and associated products
   fastify.delete('/:id', async (request, reply) => {
     const { user } = request as AuthenticatedRequest

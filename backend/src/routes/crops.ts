@@ -4,6 +4,39 @@ import database from '../config/database'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth'
 import { CropManagement } from '../models/types'
 
+// Keep supplierDirectory.products in sync whenever a user's crops change
+async function syncDirectoryProducts(db: any, userId: string, userMongoId: any) {
+  const dirEntry = await db.collection('supplierDirectory').findOne({ acrelistUserId: userId })
+  if (!dirEntry) return // user hasn't claimed a listing, nothing to sync
+
+  const crops = await db.collection('cropManagement').find({ userId: userMongoId }).toArray()
+  const products = crops.flatMap((crop: any) => {
+    const varieties = [...new Set(
+      (crop.variations || []).map((v: any) => v.variety).filter(Boolean)
+    )] as string[]
+    const isOrganic = (crop.variations || []).some((v: any) => v.isOrganic)
+    const isYearRound = (crop.variations || []).some((v: any) =>
+      v.shippingPoints?.some((sp: any) => sp.availability?.isYearRound)
+    )
+    return [{
+      commodity: crop.commodity
+        ? crop.commodity.charAt(0).toUpperCase() + crop.commodity.slice(1)
+        : crop.commodity,
+      varieties,
+      isOrganic,
+      seasonality: { type: isYearRound ? 'year-round' : 'seasonal', description: isYearRound ? 'Year-round' : 'Seasonal' },
+      volume: null, priceRange: null,
+      tags: [...(isOrganic ? ['organic'] : []), isYearRound ? 'year-round' : 'seasonal'],
+      minimumOrder: null, typicalLotSizes: [], packaging: []
+    }]
+  })
+
+  await db.collection('supplierDirectory').updateOne(
+    { acrelistUserId: userId },
+    { $set: { products, updatedAt: new Date() } }
+  )
+}
+
 const cropsRoutes: FastifyPluginAsync = async (fastify) => {
   
   // Add auth middleware to all routes
@@ -142,9 +175,12 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         id: createdCrop._id ? createdCrop._id.toString() : undefined,
         _id: undefined // Remove _id to avoid confusion
       }
-      
+
+      // Sync directory listing in the background
+      syncDirectoryProducts(db, user.id, userDoc._id).catch(() => {})
+
       return { crop: transformedCrop }
-      
+
     } catch (error) {
       console.error('Create crop error:', error)
       return reply.status(500).send({
@@ -217,9 +253,12 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         id: updatedCrop._id ? updatedCrop._id.toString() : undefined,
         _id: undefined // Remove _id to avoid confusion
       }
-      
+
+      // Sync directory listing in the background
+      syncDirectoryProducts(db, user.id, userDoc._id).catch(() => {})
+
       return { crop: transformedCrop }
-      
+
     } catch (error) {
       console.error('Update crop error:', error)
       return reply.status(500).send({
@@ -264,8 +303,11 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
       
+      // Sync directory listing in the background (crop removed, so products list shrinks)
+      syncDirectoryProducts(db, user.id, userDoc._id).catch(() => {})
+
       return { message: 'Crop deleted successfully' }
-      
+
     } catch (error) {
       console.error('Delete crop error:', error)
       return reply.status(500).send({

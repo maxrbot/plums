@@ -232,6 +232,9 @@ export interface PriceSheetProduct extends BaseDocument {
   // Customer-specific
   customNote?: string // For specific customers
   discountPercent?: number // Customer-specific pricing
+
+  // Source tracking
+  source?: 'supplier' | 'generated' // Track if product is from real supplier or AI-generated
 }
 
 // Contacts
@@ -432,6 +435,69 @@ export interface ChatRequest {
 export interface ChatResponse {
   message: string
   timestamp: Date
+}
+
+// ProduceHunt Supplier Directory
+export interface SupplierDirectoryProduct {
+  commodity: string
+  varieties: string[]
+  isOrganic: boolean
+  seasonality: {
+    type: 'year-round' | 'seasonal'
+    months: number[]
+    description: string
+  } | string
+  volume?: 'small' | 'medium' | 'large'
+  priceRange?: 'budget' | 'standard' | 'premium'
+  tags?: string[]
+  // Spec fields — populated selectively as data becomes available
+  minimumOrder?: { qty: number; unit: string } | null
+  typicalLotSizes?: string[]  // ["pallet", "half-truckload", "full-truckload"]
+  packaging?: string[]        // ["40lb carton", "3ct carton"]
+}
+
+export interface SupplierDirectory extends BaseDocument {
+  slug: string
+  companyName: string
+  description?: string
+  claimed: boolean
+  tier?: 1 | 2 | 3
+  scale?: 'small' | 'medium' | 'large'
+  location: {
+    city?: string
+    state?: string
+    region?: string
+    full: string
+  }
+  contact?: {
+    salesEmail?: string
+    phone?: string
+    website?: string
+    preferredMethod?: string
+    responseTime?: string
+  }
+  website?: string
+  certifications: string[]
+  products: SupplierDirectoryProduct[]
+  dataSources?: {
+    paca?: { verified: boolean; licenseNumber?: string; verifiedDate?: string; score?: number }
+    gfsi?: { verified: boolean; certificationType?: string; certificationDate?: string; score?: number }
+    established?: { verified: boolean; yearEstablished?: number; yearsInBusiness?: number; score?: number }
+    usdaOrganic?: { verified: boolean; certifier?: string; certificationDate?: string; score?: number }
+    drc?: { verified: boolean; memberSince?: string; score?: number }
+    website?: { verified: boolean; url?: string; score?: number }
+    acrelist?: { verified: boolean; score?: number }
+  }
+  verificationScore?: {
+    score: number
+    maxScore: number
+    percentage: number
+  }
+  // AcreList bridge — links to users._id when supplier claims their ProduceHunt profile
+  acrelistUserId?: ObjectId | null
+  logistics?: any
+  importSource?: string
+  importDate?: Date
 }
 
 // Scraped Data (for future website scraping)

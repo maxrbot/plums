@@ -24,6 +24,7 @@ interface PriceSheet {
   _id: string
   title: string
   status: 'draft' | 'active' | 'archived'
+  searchable?: boolean
   createdAt: string
   updatedAt: string
   lastSentAt?: string
@@ -323,6 +324,25 @@ export default function PriceSheets() {
     }
   }
 
+  const handleToggleSearchable = async (sheetId: string, currentSearchable: boolean) => {
+    const next = !currentSearchable
+    // Optimistic update
+    setPriceSheets(prev => prev.map(s => s._id === sheetId ? { ...s, searchable: next } : s))
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/price-sheets/${sheetId}/searchable`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+        },
+        body: JSON.stringify({ searchable: next })
+      })
+    } catch {
+      // Revert on failure
+      setPriceSheets(prev => prev.map(s => s._id === sheetId ? { ...s, searchable: currentSearchable } : s))
+    }
+  }
+
   const handleArchivePriceSheet = async (sheetId: string, currentStatus: string) => {
     const shouldArchive = currentStatus !== 'archived'
     const actionText = shouldArchive ? 'archive' : 'restore'
@@ -483,6 +503,22 @@ export default function PriceSheets() {
                       </div>
                     )}
                   </div>
+
+                  {/* ProduceHunt searchability toggle */}
+                  {(user as any)?.integrations?.producehunt && (
+                    <div className="flex items-center justify-between py-2 mb-3 border-t border-gray-100">
+                      <div className="flex items-center space-x-1.5">
+                        <MagnifyingGlassIcon className="h-3.5 w-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-500">ProduceHunt searchable</span>
+                      </div>
+                      <button
+                        onClick={() => handleToggleSearchable(sheet._id, !!sheet.searchable)}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${sheet.searchable ? 'bg-green-500' : 'bg-gray-200'}`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${sheet.searchable ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   <div className="space-y-2">

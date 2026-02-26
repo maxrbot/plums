@@ -463,6 +463,522 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       })
     }
   })
+
+  // Public route - Search products (for ProduceHunt)
+  // Public route - Search directory suppliers by commodity/variety
+  fastify.get('/search-products', async (request, reply) => {
+    const { q, limit = 20 } = request.query as { q?: string; limit?: number }
+
+    try {
+      const db = database.getDb()
+
+      if (!q || !q.trim()) {
+        return {
+          results: [],
+          count: 0,
+          query: ''
+        }
+      }
+
+      const searchTerm = q.toLowerCase().trim()
+
+      // Parse search query for modifiers and commodity terms
+      const words = searchTerm.split(/\s+/)
+
+      // Modifier detection
+      const modifiers = {
+        organic: false
+      }
+
+      // Category mappings (citrus -> lemons, oranges, mandarins, etc.)
+      const categoryMappings: { [key: string]: string[] } = {
+        'citrus': ['lemon', 'lemons', 'orange', 'oranges', 'mandarin', 'mandarins', 'grapefruit', 'lime', 'limes', 'tangerine', 'tangerines', 'clementine', 'clementines'],
+        'berries': ['strawberry', 'strawberries', 'blueberry', 'blueberries', 'raspberry', 'raspberries', 'blackberry', 'blackberries'],
+        'stone fruit': ['peach', 'peaches', 'nectarine', 'nectarines', 'plum', 'plums', 'apricot', 'apricots', 'cherry', 'cherries'],
+        'tropical': ['mango', 'mangoes', 'pineapple', 'pineapples', 'papaya', 'papayas', 'banana', 'bananas'],
+        'melons': ['watermelon', 'watermelons', 'cantaloupe', 'cantaloupes', 'honeydew']
+      }
+
+      // Remove modifiers from search words
+      const commodityWords = words.filter(word => {
+        if (word === 'organic' || word === 'organics') {
+          modifiers.organic = true
+          return false
+        }
+        return true
+      })
+
+      // Stem a word to its singular base form
+      const stem = (word: string): string | null => {
+        if (word.endsWith('ies') && word.length > 4) return word.slice(0, -3) + 'y' // berries -> berry
+        if (word.endsWith('s') && !word.endsWith('ss') && word.length > 3) return word.slice(0, -1) // lemons -> lemon, limes -> lime
+        return null
+      }
+
+      // Build commodity search terms (include category expansions + singular stems)
+      const commoditySearchTerms: string[] = []
+      commodityWords.forEach(word => {
+        commoditySearchTerms.push(word)
+        // Add stemmed singular form so "lemons" also matches "lemon" etc.
+        const singular = stem(word)
+        if (singular && singular !== word) commoditySearchTerms.push(singular)
+        // Check if this word is a category
+        for (const [category, items] of Object.entries(categoryMappings)) {
+          if (category === word || category.includes(word)) {
+            commoditySearchTerms.push(...items)
+          }
+        }
+      })
+
+      // Build crop query with modifiers
+      const cropQuery: any = {
+        $or: [
+          // Search by commodity name
+          ...(commoditySearchTerms.length > 0
+            ? commoditySearchTerms.map(term => ({
+                commodity: { $regex: term, $options: 'i' }
+              }))
+            : []),
+          // Search by variety
+          ...(commoditySearchTerms.length > 0
+            ? commoditySearchTerms.map(term => ({
+                'variations.variety': { $regex: term, $options: 'i' }
+              }))
+            : []),
+          // Search by subtype
+          ...(commoditySearchTerms.length > 0
+            ? commoditySearchTerms.map(term => ({
+                'variations.subtype': { $regex: term, $options: 'i' }
+              }))
+            : [])
+        ]
+      }
+
+      // If no commodity terms but we have the full search, use it
+      if (commoditySearchTerms.length === 0 && searchTerm) {
+        cropQuery.$or = [
+          { commodity: { $regex: searchTerm, $options: 'i' } },
+          { 'variations.variety': { $regex: searchTerm, $options: 'i' } },
+          { 'variations.subtype': { $regex: searchTerm, $options: 'i' } }
+        ]
+      }
+
+      // Apply organic filter if needed
+      if (modifiers.organic) {
+        cropQuery['variations.isOrganic'] = true
+      }
+
+      // Search supplierDirectory using embedded products array
+      const productMatchQuery: any = {
+        $or: [
+          // Match by commodity
+          ...(commoditySearchTerms.length > 0
+            ? commoditySearchTerms.map(term => ({
+                products: { $elemMatch: { commodity: { $regex: term, $options: 'i' } } }
+              }))
+            : [{ products: { $elemMatch: { commodity: { $regex: searchTerm, $options: 'i' } } } }]),
+          // Match by variety
+          ...(commoditySearchTerms.length > 0
+            ? commoditySearchTerms.map(term => ({
+                products: { $elemMatch: { varieties: { $regex: term, $options: 'i' } } }
+              }))
+            : [{ products: { $elemMatch: { varieties: { $regex: searchTerm, $options: 'i' } } } }]),
+          // Match by company name
+          { companyName: { $regex: searchTerm, $options: 'i' } }
+        ]
+      }
+
+      if (modifiers.organic) {
+        productMatchQuery['products'] = { $elemMatch: { isOrganic: true } }
+      }
+
+      const suppliers = await db.collection('supplierDirectory')
+        .find(productMatchQuery)
+        .limit(Math.min(Number(limit), 20))
+        .toArray()
+
+      // Check which claimed suppliers have live price sheet products matching the search
+      const claimedUserIds = suppliers
+        .map(s => s.acrelistUserId)
+        .filter(Boolean)
+
+      const pricingSet = new Set<string>()
+      const pricingSheetMap = new Map<string, string>() // userId -> priceSheetId
+      const pricingProductMap = new Map<string, any[]>() // userId -> matching products
+
+      if (claimedUserIds.length > 0) {
+        const commodityRegexes = commoditySearchTerms.length > 0
+          ? commoditySearchTerms.map(t => new RegExp(t, 'i'))
+          : [new RegExp(searchTerm, 'i')]
+
+        // Convert string userIds to ObjectIds for the MongoDB query
+        const claimedObjectIds = claimedUserIds
+          .map(id => { try { return new ObjectId(id) } catch { return null } })
+          .filter(Boolean)
+
+        // Only include products from price sheets explicitly marked searchable
+        // Keep as ObjectIds for the query (priceSheetProducts.priceSheetId is ObjectId)
+        const searchablePriceSheets = await db.collection('priceSheets').find({
+          searchable: true
+        }, { projection: { _id: 1 } }).toArray()
+        const searchablePriceSheetObjectIds = searchablePriceSheets.map((ps: any) => ps._id)
+
+        const pricingMatches = searchablePriceSheetObjectIds.length > 0 && claimedObjectIds.length > 0
+          ? await db.collection('priceSheetProducts').find({
+              userId: { $in: claimedObjectIds },
+              priceSheetId: { $in: searchablePriceSheetObjectIds },
+              $or: commodityRegexes.map(r => ({ commodity: r }))
+            }).toArray()
+          : []
+
+        pricingMatches.forEach((pm: any) => {
+          // Always use string form as key so it matches supplier.acrelistUserId (string)
+          const userIdStr = pm.userId?.toString()
+          if (!userIdStr) return
+          pricingSet.add(userIdStr)
+          if (!pricingSheetMap.has(userIdStr)) {
+            pricingSheetMap.set(userIdStr, pm.priceSheetId?.toString())
+          }
+          const existing = pricingProductMap.get(userIdStr) || []
+          if (existing.length < 3) {
+            existing.push({
+              commodity: pm.commodity,
+              packageType: pm.packageType,
+              price: pm.price,
+              unit: pm.unit,
+              size: pm.size
+            })
+            pricingProductMap.set(userIdStr, existing)
+          }
+        })
+      }
+
+      // Build results from embedded products
+      const results = suppliers.map(supplier => {
+        const embeddedProducts: any[] = supplier.products || []
+
+        // Find the best matching product
+        const matchingProduct = embeddedProducts.find(p => {
+          const commodityMatch = commoditySearchTerms.some(term =>
+            p.commodity?.toLowerCase().includes(term)
+          ) || p.commodity?.toLowerCase().includes(searchTerm)
+
+          const varietyMatch = (p.varieties || []).some((v: string) =>
+            commoditySearchTerms.some(term => v.toLowerCase().includes(term)) ||
+            v.toLowerCase().includes(searchTerm)
+          )
+
+          const organicMatch = modifiers.organic ? p.isOrganic : true
+
+          return (commodityMatch || varietyMatch) && organicMatch
+        }) || embeddedProducts[0]
+
+        const commodity = matchingProduct?.commodity || 'Unknown'
+        const isOrganic = matchingProduct?.isOrganic || false
+        const varieties: string[] = matchingProduct?.varieties || []
+        const hasPricing = supplier.acrelistUserId ? pricingSet.has(supplier.acrelistUserId) : false
+
+        return {
+          _id: supplier._id,
+          productName: `${isOrganic ? 'Organic ' : ''}${commodity}`,
+          commodity,
+          variety: varieties[0],
+          isOrganic,
+          regionName: supplier.location?.region,
+          packageType: 'Various',
+          price: 0,
+          availability: hasPricing ? 'Pricing available' : 'Contact for availability',
+          source: 'supplier' as const,
+          hasPricing,
+          priceSheetId: hasPricing && supplier.acrelistUserId
+            ? pricingSheetMap.get(supplier.acrelistUserId)
+            : undefined,
+          pricingProducts: hasPricing && supplier.acrelistUserId
+            ? (pricingProductMap.get(supplier.acrelistUserId) || [])
+            : [],
+          supplier: {
+            companyName: supplier.companyName || 'Unknown Supplier',
+            location: supplier.location?.full || 'Unknown Location',
+            email: supplier.contact?.salesEmail,
+            slug: supplier.slug || supplier._id.toString(),
+            verificationScore: supplier.verificationScore
+          }
+        }
+      })
+
+      // Sort: suppliers with live pricing first
+      results.sort((a, b) => (b.hasPricing ? 1 : 0) - (a.hasPricing ? 1 : 0))
+
+      return {
+        results,
+        count: results.length,
+        query: q
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error searching suppliers:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to search suppliers',
+        details: error.message
+      })
+    }
+  })
+
+  // Public route - Get suppliers for directory
+  fastify.get('/suppliers', async (request, reply) => {
+    try {
+      const db = database.getDb()
+
+      const suppliers = await db.collection('supplierDirectory').find({}).toArray()
+
+      const supplierProfiles = suppliers.map(supplier => {
+        const embeddedProducts: any[] = supplier.products || []
+
+        // Get unique commodity names for the directory listing
+        const products = [...new Set(
+          embeddedProducts.map((p: any) => {
+            const name = p.commodity || ''
+            return name.charAt(0).toUpperCase() + name.slice(1)
+          }).filter(Boolean)
+        )]
+
+        // Certifications: use stored array, add USDA Organic if any product is organic
+        const certifications: string[] = [...(supplier.certifications || [])]
+        const hasOrganic = embeddedProducts.some((p: any) => p.isOrganic)
+        if (hasOrganic && !certifications.includes('USDA Organic')) {
+          certifications.push('USDA Organic')
+        }
+
+        return {
+          id: supplier._id.toString(),
+          slug: supplier.slug,
+          companyName: supplier.companyName || 'Unknown Company',
+          location: supplier.location || { city: null, state: null, full: 'Unknown Location' },
+          products,
+          certifications,
+          claimed: supplier.claimed !== false,
+          email: supplier.contact?.salesEmail,
+          dataSources: supplier.dataSources,
+          verificationScore: supplier.verificationScore || { score: 0, maxScore: 34, percentage: 0 }
+        }
+      })
+
+      // Sort: claimed first, then by company name
+      supplierProfiles.sort((a, b) => {
+        if (a.claimed !== b.claimed) return b.claimed ? 1 : -1
+        return a.companyName.localeCompare(b.companyName)
+      })
+
+      return {
+        suppliers: supplierProfiles,
+        count: supplierProfiles.length
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error fetching suppliers:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch suppliers',
+        details: error.message
+      })
+    }
+  })
+
+  // AI-friendly search endpoint (must come before /:slug route)
+  fastify.get('/suppliers/search', async (request, reply) => {
+    const {
+      commodity,
+      organic,
+      region,
+      state,
+      scale,
+      seasonality,
+      volume,
+      priceRange,
+      tags,
+      limit = 20
+    } = request.query as {
+      commodity?: string
+      organic?: string
+      region?: string
+      state?: string
+      scale?: string
+      seasonality?: string
+      volume?: string
+      priceRange?: string
+      tags?: string
+      limit?: number
+    }
+
+    try {
+      const db = database.getDb()
+
+      // Build query against supplierDirectory with embedded products
+      const supplierQuery: any = {}
+
+      if (state) {
+        supplierQuery['location.state'] = { $regex: `^${state}$`, $options: 'i' }
+      }
+      if (region) {
+        supplierQuery['location.region'] = { $regex: region, $options: 'i' }
+      }
+      if (scale) {
+        supplierQuery.scale = scale
+      }
+
+      // Product-level filters via $elemMatch
+      const productFilter: any = {}
+      if (commodity) productFilter.commodity = { $regex: commodity, $options: 'i' }
+      if (organic === 'true') productFilter.isOrganic = true
+      if (organic === 'false') productFilter.isOrganic = false
+      if (seasonality) productFilter['seasonality.type'] = seasonality
+      if (volume) productFilter.volume = volume
+      if (priceRange) productFilter.priceRange = priceRange
+      if (tags) productFilter.tags = { $in: tags.split(',').map((t: string) => t.trim()) }
+
+      if (Object.keys(productFilter).length > 0) {
+        supplierQuery.products = { $elemMatch: productFilter }
+      }
+
+      const suppliers = await db.collection('supplierDirectory')
+        .find(supplierQuery)
+        .limit(parseInt(limit as any) || 20)
+        .toArray()
+
+      const results = suppliers.map(supplier => {
+        const embeddedProducts: any[] = supplier.products || []
+        return {
+          id: supplier._id.toString(),
+          slug: supplier.slug,
+          companyName: supplier.companyName || 'Unknown Company',
+          location: supplier.location || { full: 'Unknown' },
+          commodities: [...new Set(embeddedProducts.map((p: any) => p.commodity).filter(Boolean))],
+          products: embeddedProducts.map((p: any) => ({
+            commodity: p.commodity,
+            varieties: p.varieties || [],
+            isOrganic: p.isOrganic,
+            seasonality: p.seasonality,
+            volume: p.volume,
+            priceRange: p.priceRange,
+            tags: p.tags
+          })),
+          scale: supplier.scale,
+          claimed: supplier.claimed !== false,
+          certifications: supplier.certifications || [],
+          website: supplier.contact?.website || supplier.website,
+          phone: supplier.contact?.phone
+        }
+      })
+
+      return {
+        results,
+        count: results.length,
+        filters: { commodity, organic, region, state, scale, seasonality, volume, priceRange, tags },
+        suggestions: {
+          availableFilters: [
+            'organic (true/false)',
+            'scale (small/medium/large)',
+            'seasonality (year-round/seasonal)',
+            'priceRange (budget/standard/premium)',
+            'volume (small/medium/large)',
+            'state (CA/FL/TX/AZ/WA)',
+            'region (e.g., central-valley, ventura-county, fresno-county)'
+          ],
+          clarifyingQuestions: [
+            'Would you like organic suppliers only?',
+            'Do you need year-round availability?',
+            'What scale of operation? (small farm, medium, large commercial)',
+            'What price range fits your budget?',
+            'Any specific region preference?'
+          ]
+        }
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error in supplier search:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to search suppliers',
+        details: error.message
+      })
+    }
+  })
+
+  // Public route - Get single supplier by slug
+  fastify.get('/suppliers/:slug', async (request, reply) => {
+    const { slug } = request.params as { slug: string }
+
+    try {
+      const db = database.getDb()
+
+      const supplier = await db.collection('supplierDirectory').findOne({ slug })
+
+      if (!supplier) {
+        return reply.status(404).send({
+          error: 'Not Found',
+          message: 'Supplier not found'
+        })
+      }
+
+      const embeddedProducts: any[] = supplier.products || []
+
+      // Map embedded products to the shape the profile page expects
+      const products = embeddedProducts.map((p: any) => {
+        const commodity = p.commodity || ''
+        const seasonalityStr = typeof p.seasonality === 'string'
+          ? p.seasonality
+          : p.seasonality?.description || 'Year-round'
+
+        return {
+          commodity: commodity.charAt(0).toUpperCase() + commodity.slice(1),
+          varieties: p.varieties || [],
+          isOrganic: p.isOrganic || false,
+          seasonality: seasonalityStr,
+          volume: p.volume,
+          priceRange: p.priceRange,
+          minimumOrder: p.minimumOrder || null,
+          typicalLotSizes: p.typicalLotSizes || [],
+          packaging: p.packaging || []
+        }
+      })
+
+      // Certifications
+      const certifications: string[] = [...(supplier.certifications || [])]
+      const hasOrganic = embeddedProducts.some((p: any) => p.isOrganic)
+      if (hasOrganic && !certifications.includes('USDA Organic')) {
+        certifications.push('USDA Organic')
+      }
+
+      return {
+        supplier: {
+          id: supplier._id.toString(),
+          slug: supplier.slug,
+          companyName: supplier.companyName || 'Unknown Company',
+          claimed: supplier.claimed !== false,
+          location: supplier.location || { full: 'Unknown Location' },
+          contact: {
+            email: supplier.contact?.salesEmail,
+            phone: supplier.contact?.phone,
+            website: supplier.contact?.website || supplier.website
+          },
+          products,
+          certifications,
+          description: supplier.description,
+          dataSources: supplier.dataSources || {},
+          verificationScore: supplier.verificationScore || { score: 0, maxScore: 34, percentage: 0 }
+        }
+      }
+
+    } catch (error: any) {
+      console.error('❌ Error fetching supplier profile:', error)
+      return reply.status(500).send({
+        error: 'Internal Server Error',
+        message: 'Failed to fetch supplier profile',
+        details: error.message
+      })
+    }
+  })
 }
 
 export default publicRoutes

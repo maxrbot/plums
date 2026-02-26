@@ -94,9 +94,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.error('👤 UserContext: Failed to load user:', err)
       setError(err instanceof Error ? err.message : 'Failed to load user')
       
-      // If token is invalid, clear it and redirect to login
-      if (err instanceof Error && err.message.includes('Unauthorized')) {
-        console.log('👤 UserContext: Token invalid, clearing and redirecting...')
+      // If token is invalid or user not found, clear it and redirect to login
+      if (err instanceof Error && (err.message.includes('Unauthorized') || err.message.toLowerCase().includes('not found'))) {
+        console.log('👤 UserContext: Token invalid or user not found, clearing and redirecting...')
         localStorage.removeItem('accessToken')
         localStorage.removeItem('refreshToken')
         localStorage.removeItem('user')

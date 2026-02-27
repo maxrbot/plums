@@ -465,7 +465,11 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // Public route - Search products (for ProduceHunt)
-  // Public route - Search directory suppliers by commodity/variety
+  // Returns tiered results:
+  //   Tier 1 — AcreList supplier with matching priceSheetProducts on a searchable price sheet (live pricing)
+  //   Tier 2 — AcreList supplier with matching directory products but no live pricing
+  //   Tier 3 — Directory supplier (unclaimed) with matching products, ranked by verification score
+  //   Tier 4 — Company name match only (no product match), ranked by verification score
   fastify.get('/search-products', async (request, reply) => {
     const { q, limit = 20 } = request.query as { q?: string; limit?: number }
 
@@ -519,10 +523,8 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       const commoditySearchTerms: string[] = []
       commodityWords.forEach(word => {
         commoditySearchTerms.push(word)
-        // Add stemmed singular form so "lemons" also matches "lemon" etc.
         const singular = stem(word)
         if (singular && singular !== word) commoditySearchTerms.push(singular)
-        // Check if this word is a category
         for (const [category, items] of Object.entries(categoryMappings)) {
           if (category === word || category.includes(word)) {
             commoditySearchTerms.push(...items)
@@ -530,60 +532,19 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         }
       })
 
-      // Build crop query with modifiers
-      const cropQuery: any = {
-        $or: [
-          // Search by commodity name
-          ...(commoditySearchTerms.length > 0
-            ? commoditySearchTerms.map(term => ({
-                commodity: { $regex: term, $options: 'i' }
-              }))
-            : []),
-          // Search by variety
-          ...(commoditySearchTerms.length > 0
-            ? commoditySearchTerms.map(term => ({
-                'variations.variety': { $regex: term, $options: 'i' }
-              }))
-            : []),
-          // Search by subtype
-          ...(commoditySearchTerms.length > 0
-            ? commoditySearchTerms.map(term => ({
-                'variations.subtype': { $regex: term, $options: 'i' }
-              }))
-            : [])
-        ]
-      }
-
-      // If no commodity terms but we have the full search, use it
-      if (commoditySearchTerms.length === 0 && searchTerm) {
-        cropQuery.$or = [
-          { commodity: { $regex: searchTerm, $options: 'i' } },
-          { 'variations.variety': { $regex: searchTerm, $options: 'i' } },
-          { 'variations.subtype': { $regex: searchTerm, $options: 'i' } }
-        ]
-      }
-
-      // Apply organic filter if needed
-      if (modifiers.organic) {
-        cropQuery['variations.isOrganic'] = true
-      }
-
-      // Search supplierDirectory using embedded products array
+      // Build directory query (products + company name)
       const productMatchQuery: any = {
         $or: [
-          // Match by commodity
           ...(commoditySearchTerms.length > 0
             ? commoditySearchTerms.map(term => ({
                 products: { $elemMatch: { commodity: { $regex: term, $options: 'i' } } }
               }))
             : [{ products: { $elemMatch: { commodity: { $regex: searchTerm, $options: 'i' } } } }]),
-          // Match by variety
           ...(commoditySearchTerms.length > 0
             ? commoditySearchTerms.map(term => ({
                 products: { $elemMatch: { varieties: { $regex: term, $options: 'i' } } }
               }))
             : [{ products: { $elemMatch: { varieties: { $regex: searchTerm, $options: 'i' } } } }]),
-          // Match by company name
           { companyName: { $regex: searchTerm, $options: 'i' } }
         ]
       }
@@ -594,30 +555,42 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
 
       const suppliers = await db.collection('supplierDirectory')
         .find(productMatchQuery)
-        .limit(Math.min(Number(limit), 20))
+        .limit(Math.min(Number(limit) * 3, 60)) // fetch more so tiers have room
         .toArray()
+
+      // Helper: does this supplier's products[] contain a match for the search?
+      const hasDirectoryProductMatch = (supplier: any): boolean => {
+        return (supplier.products || []).some((p: any) => {
+          const commodityMatch = commoditySearchTerms.some(t =>
+            p.commodity?.toLowerCase().includes(t)
+          ) || p.commodity?.toLowerCase().includes(searchTerm)
+          const varietyMatch = (p.varieties || []).some((v: string) =>
+            commoditySearchTerms.some(t => v.toLowerCase().includes(t)) ||
+            v.toLowerCase().includes(searchTerm)
+          )
+          const organicMatch = modifiers.organic ? p.isOrganic : true
+          return (commodityMatch || varietyMatch) && organicMatch
+        })
+      }
 
       // Check which claimed suppliers have live price sheet products matching the search
       const claimedUserIds = suppliers
         .map(s => s.acrelistUserId)
-        .filter(Boolean)
+        .filter(Boolean) as string[]
 
       const pricingSet = new Set<string>()
-      const pricingSheetMap = new Map<string, string>() // userId -> priceSheetId
-      const pricingProductMap = new Map<string, any[]>() // userId -> matching products
+      const pricingSheetMap = new Map<string, string>()
+      const pricingProductMap = new Map<string, any[]>()
 
       if (claimedUserIds.length > 0) {
         const commodityRegexes = commoditySearchTerms.length > 0
           ? commoditySearchTerms.map(t => new RegExp(t, 'i'))
           : [new RegExp(searchTerm, 'i')]
 
-        // Convert string userIds to ObjectIds for the MongoDB query
         const claimedObjectIds = claimedUserIds
           .map(id => { try { return new ObjectId(id) } catch { return null } })
-          .filter(Boolean)
+          .filter(Boolean) as ObjectId[]
 
-        // Only include products from price sheets explicitly marked searchable
-        // Keep as ObjectIds for the query (priceSheetProducts.priceSheetId is ObjectId)
         const searchablePriceSheets = await db.collection('priceSheets').find({
           searchable: true
         }, { projection: { _id: 1 } }).toArray()
@@ -632,7 +605,6 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           : []
 
         pricingMatches.forEach((pm: any) => {
-          // Always use string form as key so it matches supplier.acrelistUserId (string)
           const userIdStr = pm.userId?.toString()
           if (!userIdStr) return
           pricingSet.add(userIdStr)
@@ -646,37 +618,76 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
               packageType: pm.packageType,
               price: pm.price,
               unit: pm.unit,
-              size: pm.size
+              size: pm.size,
+              regionName: pm.regionName // shipping point where this product originates
             })
             pricingProductMap.set(userIdStr, existing)
           }
         })
       }
 
-      // Build results from embedded products
+      // Fetch AcreList user profile locations for claimed suppliers (location fallback)
+      const userLocationMap = new Map<string, string>()
+      if (claimedUserIds.length > 0) {
+        const claimedObjectIds = claimedUserIds
+          .map(id => { try { return new ObjectId(id) } catch { return null } })
+          .filter(Boolean) as ObjectId[]
+
+        const claimedUsers = await db.collection('users').find(
+          { _id: { $in: claimedObjectIds } },
+          { projection: { _id: 1, 'profile.address': 1 } }
+        ).toArray()
+
+        claimedUsers.forEach(u => {
+          const addr = u.profile?.address
+          if (addr?.city && addr?.state) {
+            userLocationMap.set(u._id.toString(), `${addr.city}, ${addr.state}`)
+          } else if (addr?.state) {
+            userLocationMap.set(u._id.toString(), addr.state)
+          }
+        })
+      }
+
+      // Build results with tier assignment
       const results = suppliers.map(supplier => {
         const embeddedProducts: any[] = supplier.products || []
 
-        // Find the best matching product
         const matchingProduct = embeddedProducts.find(p => {
           const commodityMatch = commoditySearchTerms.some(term =>
             p.commodity?.toLowerCase().includes(term)
           ) || p.commodity?.toLowerCase().includes(searchTerm)
-
           const varietyMatch = (p.varieties || []).some((v: string) =>
             commoditySearchTerms.some(term => v.toLowerCase().includes(term)) ||
             v.toLowerCase().includes(searchTerm)
           )
-
           const organicMatch = modifiers.organic ? p.isOrganic : true
-
           return (commodityMatch || varietyMatch) && organicMatch
         }) || embeddedProducts[0]
 
         const commodity = matchingProduct?.commodity || 'Unknown'
         const isOrganic = matchingProduct?.isOrganic || false
         const varieties: string[] = matchingProduct?.varieties || []
-        const hasPricing = supplier.acrelistUserId ? pricingSet.has(supplier.acrelistUserId) : false
+
+        const isClaimed = Boolean(supplier.acrelistUserId)
+        const hasPricing = isClaimed && pricingSet.has(supplier.acrelistUserId)
+        const isProductMatch = hasDirectoryProductMatch(supplier)
+
+        // Tier assignment
+        // Tier 1: AcreList supplier with matching searchable price sheet products (live pricing)
+        // Tier 2: AcreList supplier with matching directory products, no live pricing
+        // Tier 3: Unclaimed directory supplier with matching products
+        // Tier 4: Company name match only (no product match in products[])
+        let tier: 1 | 2 | 3 | 4
+        if (hasPricing && isProductMatch) tier = 1
+        else if (isClaimed && isProductMatch) tier = 2
+        else if (isProductMatch) tier = 3
+        else tier = 4
+
+        // Location: prefer directory data, fall back to AcreList profile address
+        const location =
+          supplier.location?.full ||
+          (supplier.acrelistUserId ? userLocationMap.get(supplier.acrelistUserId) : null) ||
+          'Unknown Location'
 
         return {
           _id: supplier._id,
@@ -689,6 +700,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           price: 0,
           availability: hasPricing ? 'Pricing available' : 'Contact for availability',
           source: 'supplier' as const,
+          tier,
           hasPricing,
           priceSheetId: hasPricing && supplier.acrelistUserId
             ? pricingSheetMap.get(supplier.acrelistUserId)
@@ -698,7 +710,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
             : [],
           supplier: {
             companyName: supplier.companyName || 'Unknown Supplier',
-            location: supplier.location?.full || 'Unknown Location',
+            location,
             email: supplier.contact?.salesEmail,
             slug: supplier.slug || supplier._id.toString(),
             verificationScore: supplier.verificationScore
@@ -706,11 +718,18 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         }
       })
 
-      // Sort: suppliers with live pricing first
-      results.sort((a, b) => (b.hasPricing ? 1 : 0) - (a.hasPricing ? 1 : 0))
+      // Sort: by tier ascending (1 = best), then within tier by verification score descending
+      // Within Tier 1, also prioritize organic if the search requested it
+      results.sort((a, b) => {
+        if (a.tier !== b.tier) return a.tier - b.tier
+        if (modifiers.organic && a.isOrganic !== b.isOrganic) return a.isOrganic ? -1 : 1
+        const aScore = a.supplier.verificationScore?.score || 0
+        const bScore = b.supplier.verificationScore?.score || 0
+        return bScore - aScore
+      })
 
       return {
-        results,
+        results: results.slice(0, Math.min(Number(limit), 20)),
         count: results.length,
         query: q
       }

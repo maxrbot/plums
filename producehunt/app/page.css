@@ -1414,6 +1414,38 @@ body {
 }
 
 /* Updated Result Cards */
+.card-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.tier-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.tier-badge.tier-1 {
+  background: #dcfce7;
+  color: #15803d;
+}
+
+.tier-badge.tier-2 {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.pricing-region {
+  color: #888;
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
 .verification-badge {
   padding: 6px 12px;
   background: linear-gradient(90deg, #FF9900, #FF3366);
@@ -1448,4 +1480,204 @@ body {
 .view-supplier-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+}
+
+/* Clickable supplier name */
+.supplier-name-link {
+  cursor: pointer;
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: inherit;
+  transition: color 0.15s;
+}
+
+.supplier-name-link:hover {
+  color: #FF9900;
+}
+
+/* Supplier Modal */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-company-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 4px;
+  color: #111;
+}
+
+.modal-location {
+  font-size: 0.85rem;
+  color: #666;
+  margin: 0;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  color: #999;
+  cursor: pointer;
+  padding: 0 0 0 12px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.modal-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-section-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+
+.modal-product-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+
+.modal-variety {
+  font-size: 0.85rem;
+  color: #666;
+  margin-top: 4px;
+}
+
+.modal-pricing {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-pricing-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  padding: 6px 10px;
+  background: #f9fafb;
+  border-radius: 6px;
+}
+
+.modal-pricing-pkg {
+  color: #444;
+}
+
+.modal-pricing-region {
+  color: #999;
+  font-size: 0.8rem;
+}
+
+.modal-pricing-price {
+  font-weight: 700;
+  color: #16a34a;
+}
+
+.modal-score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-score-bar {
+  flex: 1;
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.modal-score-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #FF9900, #FF3366);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.modal-score-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #555;
+  white-space: nowrap;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  gap: 12px;
+}
+
+.modal-contact-btn {
+  padding: 10px 20px;
+  background: #111;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.modal-contact-btn:hover {
+  background: #333;
+}
+
+.modal-profile-link {
+  font-size: 0.85rem;
+  color: #888;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.modal-profile-link:hover {
+  color: #111;
 }

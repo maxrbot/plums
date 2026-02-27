@@ -15,6 +15,7 @@ interface PricingProduct {
   price: number | null
   unit?: string
   size?: string
+  regionName?: string // shipping point where this product originates
 }
 
 interface SearchResult {
@@ -28,6 +29,7 @@ interface SearchResult {
   price: number
   availability: string
   source?: 'supplier' | 'generated'
+  tier?: 1 | 2 | 3 | 4
   hasPricing?: boolean
   priceSheetId?: string
   pricingProducts?: PricingProduct[]
@@ -75,6 +77,7 @@ export default function ProduceHunt() {
   const [showConversation, setShowConversation] = useState(false)
   const [favoriteSuppliers, setFavoriteSuppliers] = useState<any[]>([])
   const [favoriteSlugs, setFavoriteSlugs] = useState<string[]>([])
+  const [selectedSupplier, setSelectedSupplier] = useState<SearchResult | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -597,13 +600,19 @@ export default function ProduceHunt() {
                     <div key={result._id} className="result-card">
                       <div className="card-header">
                         <div>
-                          <h4>{result.supplier.companyName}</h4>
+                          <h4
+                            className="supplier-name-link"
+                            onClick={() => setSelectedSupplier(result)}
+                          >
+                            {result.supplier.companyName}
+                          </h4>
                           <p className="location">📍 {result.supplier.location}</p>
                         </div>
-                        {result.supplier.verificationScore && (
-                          <span className="verification-badge">
-                            {result.supplier.verificationScore.score}/{result.supplier.verificationScore.maxScore}
-                          </span>
+                        {(result.tier === 1 || result.tier === 2) && (
+                          <div className="card-header-right">
+                            {result.tier === 1 && <span className="tier-badge tier-1">Live Pricing</span>}
+                            {result.tier === 2 && <span className="tier-badge tier-2">Member</span>}
+                          </div>
                         )}
                       </div>
 
@@ -624,6 +633,7 @@ export default function ProduceHunt() {
                               <div key={i} className="pricing-row">
                                 <span className="pricing-package">
                                   {p.packageType || 'Various'}{p.size ? ` · ${p.size}` : ''}
+                                  {p.regionName && <span className="pricing-region"> · {p.regionName}</span>}
                                 </span>
                                 {p.price !== null && p.price > 0 ? (
                                   <span className="pricing-price">
@@ -639,13 +649,6 @@ export default function ProduceHunt() {
                           <div className="pricing-badge">💰 Pricing available</div>
                         ) : null}
                       </div>
-
-                      <a
-                        href={`/directory/${result.supplier.slug}`}
-                        className="view-supplier-btn"
-                      >
-                        View Supplier Profile →
-                      </a>
                     </div>
                   ))}
                 </div>
@@ -669,6 +672,99 @@ export default function ProduceHunt() {
         </aside>
         )}
       </div>
+
+      {/* Supplier Modal */}
+      {selectedSupplier && (
+        <div className="modal-backdrop" onClick={() => setSelectedSupplier(null)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h2 className="modal-company-name">{selectedSupplier.supplier.companyName}</h2>
+                <p className="modal-location">📍 {selectedSupplier.supplier.location}</p>
+              </div>
+              <button className="modal-close" onClick={() => setSelectedSupplier(null)}>✕</button>
+            </div>
+
+            <div className="modal-body">
+              {/* Tier / status badges */}
+              <div className="modal-badges">
+                {selectedSupplier.tier === 1 && <span className="tier-badge tier-1">Live Pricing</span>}
+                {selectedSupplier.tier === 2 && <span className="tier-badge tier-2">AcreList Member</span>}
+                {selectedSupplier.isOrganic && <span className="badge organic">🌿 Organic</span>}
+              </div>
+
+              {/* Product + pricing */}
+              <div className="modal-section">
+                <div className="modal-section-label">Product</div>
+                <div className="modal-product-name">{selectedSupplier.productName}</div>
+                {selectedSupplier.variety && (
+                  <div className="modal-variety">Variety: {selectedSupplier.variety}</div>
+                )}
+              </div>
+
+              {selectedSupplier.hasPricing && selectedSupplier.pricingProducts && selectedSupplier.pricingProducts.length > 0 && (
+                <div className="modal-section">
+                  <div className="modal-section-label">Current Pricing</div>
+                  <div className="modal-pricing">
+                    {selectedSupplier.pricingProducts.map((p, i) => (
+                      <div key={i} className="modal-pricing-row">
+                        <span className="modal-pricing-pkg">
+                          {p.packageType || 'Various'}{p.size ? ` · ${p.size}` : ''}
+                          {p.regionName && <span className="modal-pricing-region"> · {p.regionName}</span>}
+                        </span>
+                        {p.price !== null && p.price > 0 ? (
+                          <span className="modal-pricing-price">
+                            ${p.price.toFixed(2)}{p.unit ? `/${p.unit}` : ''}
+                          </span>
+                        ) : (
+                          <span className="pricing-contact">Contact for price</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Verification score */}
+              {selectedSupplier.supplier.verificationScore && (
+                <div className="modal-section">
+                  <div className="modal-section-label">Verification Score</div>
+                  <div className="modal-score">
+                    <div className="modal-score-bar">
+                      <div
+                        className="modal-score-fill"
+                        style={{
+                          width: `${Math.round(
+                            (selectedSupplier.supplier.verificationScore.score /
+                              selectedSupplier.supplier.verificationScore.maxScore) * 100
+                          )}%`
+                        }}
+                      />
+                    </div>
+                    <span className="modal-score-label">
+                      {selectedSupplier.supplier.verificationScore.score} / {selectedSupplier.supplier.verificationScore.maxScore}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="modal-footer">
+              {selectedSupplier.supplier.email && (
+                <a href={`mailto:${selectedSupplier.supplier.email}`} className="modal-contact-btn">
+                  Contact Supplier
+                </a>
+              )}
+              <a
+                href={`/directory/${selectedSupplier.supplier.slug}`}
+                className="modal-profile-link"
+              >
+                View Full Profile →
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

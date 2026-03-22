@@ -53,6 +53,30 @@ export default function PriceSheets() {
   const [previewPriceSheet, setPreviewPriceSheet] = useState<any>(null)
   const [isLoadingPreview, setIsLoadingPreview] = useState(false)
   
+  // ProduceHunt summary
+  const [phSummary, setPhSummary] = useState<{
+    isLive: boolean
+    totalProducts: number
+    searchableSheets: { _id: string; title: string; productsCount: number; updatedAt: string }[]
+    commodities: { commodity: string; count: number }[]
+    products: {
+      _id: string
+      commodity: string
+      variety?: string
+      isOrganic: boolean
+      packageType: string
+      size?: string
+      grade?: string
+      price: number
+      unit?: string
+      regionName?: string
+      priceSheetId: string
+      priceSheetTitle: string
+    }[]
+    lastUpdated: string | null
+  } | null>(null)
+  const [showPhProducts, setShowPhProducts] = useState(false)
+
   // Duplicate modal state
   const [isDuplicateOpen, setIsDuplicateOpen] = useState(false)
   const [duplicatePriceSheet, setDuplicatePriceSheet] = useState<any>(null)
@@ -63,7 +87,17 @@ export default function PriceSheets() {
 
   useEffect(() => {
     loadPriceSheets()
+    loadPhSummary()
   }, [])
+
+  const loadPhSummary = async () => {
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/price-sheets/producehunt-summary`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('accessToken')}` }
+      })
+      if (res.ok) setPhSummary(await res.json())
+    } catch { /* silent */ }
+  }
 
   useEffect(() => {
     filterAndSortSheets()
@@ -337,6 +371,7 @@ export default function PriceSheets() {
         },
         body: JSON.stringify({ searchable: next })
       })
+      loadPhSummary()
     } catch {
       // Revert on failure
       setPriceSheets(prev => prev.map(s => s._id === sheetId ? { ...s, searchable: currentSearchable } : s))
@@ -373,6 +408,91 @@ export default function PriceSheets() {
           <p className="mt-2 text-gray-600">View and manage all your saved price sheets.</p>
         </div>
       </div>
+
+      {/* ProduceHunt Panel */}
+      {(user as any)?.integrations?.producehunt && phSummary && (
+        <div className={`rounded-lg border p-5 mb-6 ${phSummary.isLive ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-lg">🥬</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-gray-900">ProduceHunt</span>
+                  {phSummary.isLive ? (
+                    <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                      Live
+                    </span>
+                  ) : (
+                    <span className="text-xs font-medium text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                      Not live
+                    </span>
+                  )}
+                </div>
+                {phSummary.isLive ? (
+                  <p className="text-sm text-gray-600 mt-0.5">
+                    <span className="font-semibold text-gray-900">{phSummary.totalProducts}</span> {phSummary.totalProducts === 1 ? 'product' : 'products'} visible across{' '}
+                    <span className="font-semibold text-gray-900">{phSummary.searchableSheets.length}</span> {phSummary.searchableSheets.length === 1 ? 'sheet' : 'sheets'}
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-0.5">Toggle a price sheet as searchable to go live</p>
+                )}
+              </div>
+            </div>
+
+            {phSummary.isLive && phSummary.commodities.length > 0 && (
+              <a
+                href={`http://localhost:3002/?q=${encodeURIComponent(phSummary.commodities[0].commodity)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-xs font-medium text-green-700 hover:text-green-900 underline underline-offset-2 whitespace-nowrap"
+              >
+                Search ProduceHunt →
+              </a>
+            )}
+          </div>
+
+          {phSummary.isLive && (
+            <div className="mt-4 space-y-3">
+              {/* Commodity breakdown */}
+              <div className="flex flex-wrap gap-2">
+                {phSummary.commodities.map(({ commodity, count }) => (
+                  <span
+                    key={commodity}
+                    className="inline-flex items-center gap-1 text-xs bg-white border border-green-200 text-gray-700 px-2.5 py-1 rounded-full"
+                  >
+                    <span className="capitalize font-medium">{commodity}</span>
+                    <span className="text-gray-400">·</span>
+                    <span className="text-gray-500">{count}</span>
+                  </span>
+                ))}
+              </div>
+
+              {/* Searchable sheets + view products */}
+              <div className="flex items-center justify-between gap-4 pt-1 border-t border-green-100">
+                <div className="flex flex-wrap gap-2">
+                  {phSummary.searchableSheets.map(sheet => (
+                    <span
+                      key={sheet._id}
+                      className="inline-flex items-center gap-1.5 text-xs text-gray-600 bg-white border border-green-200 px-2.5 py-1 rounded-full"
+                    >
+                      <span className="w-1.5 h-1.5 bg-green-400 rounded-full"></span>
+                      {sheet.title}
+                      <span className="text-gray-400">{sheet.productsCount}p</span>
+                    </span>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setShowPhProducts(true)}
+                  className="shrink-0 text-xs font-medium text-green-700 hover:text-green-900 underline underline-offset-2 whitespace-nowrap"
+                >
+                  View all products →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Price Sheets Library */}
       <div>
@@ -581,6 +701,165 @@ export default function PriceSheets() {
           userEmail={user?.profile?.email || user?.email}
           userPhone={user?.profile?.phone}
         />
+      )}
+
+      {/* ProduceHunt Live Products Modal */}
+      {showPhProducts && phSummary?.products && (
+        (() => {
+          type LiveProduct = typeof phSummary.products[0]
+
+          // Conflict detection: commodity+variety+organic+packageType+size+grade at different prices across sheets
+          const priceKey = (p: LiveProduct) =>
+            `${p.commodity}|${p.variety || ''}|${p.isOrganic}|${p.packageType}|${p.size || ''}|${p.grade || ''}`.toLowerCase()
+
+          const priceGroups = new Map<string, Set<number>>()
+          phSummary.products.forEach(p => {
+            const key = priceKey(p)
+            if (!priceGroups.has(key)) priceGroups.set(key, new Set())
+            if (p.price != null) priceGroups.get(key)!.add(p.price)
+          })
+          const isConflict = (p: LiveProduct) => (priceGroups.get(priceKey(p))?.size ?? 0) > 1
+          const conflictCount = [...priceGroups.values()].filter(prices => prices.size > 1).length
+
+          // Group by commodity label (includes organic distinction)
+          const grouped = phSummary.products.reduce((acc, p) => {
+            const label = `${p.commodity.charAt(0).toUpperCase() + p.commodity.slice(1)}${p.isOrganic ? ' (Organic)' : ''}`
+            if (!acc[label]) acc[label] = []
+            acc[label].push(p)
+            return acc
+          }, {} as Record<string, LiveProduct[]>)
+
+          // Sort each group by variety → packageType → size
+          Object.values(grouped).forEach(rows =>
+            rows.sort((a, b) =>
+              (a.variety || '').localeCompare(b.variety || '') ||
+              (a.packageType || '').localeCompare(b.packageType || '') ||
+              (a.size || '').localeCompare(b.size || '')
+            )
+          )
+
+          return (
+            <div
+              className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+              onClick={() => setShowPhProducts(false)}
+            >
+              <div
+                className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col"
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-900">Live in ProduceHunt</h2>
+                      <p className="text-sm text-gray-500 mt-0.5">
+                        {phSummary.totalProducts} {phSummary.totalProducts === 1 ? 'product' : 'products'} · {phSummary.searchableSheets.length} {phSummary.searchableSheets.length === 1 ? 'sheet' : 'sheets'}
+                      </p>
+                    </div>
+                    {conflictCount > 0 && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-100 text-amber-800 text-xs font-semibold rounded-full border border-amber-200">
+                        ⚠️ {conflictCount} pricing {conflictCount === 1 ? 'conflict' : 'conflicts'}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowPhProducts(false)}
+                    className="text-gray-400 hover:text-gray-600 text-xl leading-none ml-4"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Framed document */}
+                <div className="overflow-auto flex-1 bg-gray-50 px-6 py-5">
+                  <div className="bg-white border-2 border-gray-200 rounded-lg shadow-sm overflow-hidden">
+                    {Object.entries(grouped).map(([commodityLabel, rows], idx) => {
+                      const hasConflictInGroup = rows.some(isConflict)
+                      return (
+                        <div key={commodityLabel} className={idx > 0 ? 'border-t border-gray-200' : ''}>
+                          {/* Commodity header */}
+                          <div className={`flex items-center justify-between px-4 py-2.5 border-b border-gray-100 ${hasConflictInGroup ? 'bg-amber-50' : 'bg-gray-50'}`}>
+                            <h3 className="text-sm font-semibold text-gray-900">{commodityLabel}</h3>
+                            {hasConflictInGroup && (
+                              <span className="text-xs text-amber-700 font-medium">pricing conflict</span>
+                            )}
+                          </div>
+
+                          {/* Products table */}
+                          <div className="overflow-x-auto">
+                            <table className="min-w-full text-xs">
+                              <thead>
+                                <tr className="border-b border-gray-100 bg-gray-50/60">
+                                  <th className="px-4 py-2 text-left font-medium text-gray-400 uppercase tracking-wide">Variety</th>
+                                  <th className="px-4 py-2 text-left font-medium text-gray-400 uppercase tracking-wide">Package</th>
+                                  <th className="px-4 py-2 text-left font-medium text-gray-400 uppercase tracking-wide">Size</th>
+                                  <th className="px-4 py-2 text-left font-medium text-gray-400 uppercase tracking-wide">Grade</th>
+                                  <th className="px-4 py-2 text-left font-medium text-gray-400 uppercase tracking-wide">Region</th>
+                                  <th className="px-4 py-2 text-left font-medium text-gray-400 uppercase tracking-wide">Sheet</th>
+                                  <th className="px-4 py-2 text-right font-medium text-gray-400 uppercase tracking-wide">Price</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-50">
+                                {rows.map(p => {
+                                  const conflict = isConflict(p)
+                                  return (
+                                    <tr key={p._id} className={conflict ? 'bg-amber-50' : 'hover:bg-gray-50'}>
+                                      <td className="px-4 py-2.5 font-medium text-gray-900">
+                                        <div className="flex items-center gap-1">
+                                          {conflict && <span title="Price conflict" className="text-amber-500">⚠</span>}
+                                          {p.variety || <span className="text-gray-400">—</span>}
+                                        </div>
+                                      </td>
+                                      <td className="px-4 py-2.5 text-gray-600">{p.packageType || '—'}</td>
+                                      <td className="px-4 py-2.5 text-gray-600">{p.size || '—'}</td>
+                                      <td className="px-4 py-2.5 text-gray-600">{p.grade || '—'}</td>
+                                      <td className="px-4 py-2.5 text-gray-400">{p.regionName || '—'}</td>
+                                      <td className="px-4 py-2.5">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 whitespace-nowrap">
+                                          {p.priceSheetTitle}
+                                        </span>
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right">
+                                        {p.price != null && p.price > 0 ? (
+                                          <span className={`font-bold ${conflict ? 'text-amber-700' : 'text-gray-900'}`}>
+                                            ${p.price.toFixed(2)}{p.unit ? `/${p.unit}` : ''}
+                                          </span>
+                                        ) : (
+                                          <span className="text-gray-400">—</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  )
+                                })}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+                  {conflictCount > 0 ? (
+                    <p className="text-xs text-amber-700">
+                      Conflicting rows share the same variety, package, size and grade but have different prices across sheets.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-400">All products have consistent pricing across sheets.</p>
+                  )}
+                  <button
+                    onClick={() => setShowPhProducts(false)}
+                    className="ml-4 shrink-0 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        })()
       )}
 
       {/* Duplicate Modal */}

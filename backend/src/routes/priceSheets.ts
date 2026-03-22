@@ -382,6 +382,93 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
+  // ProduceHunt summary — what's currently live in search
+  fastify.get('/producehunt-summary', async (request, reply) => {
+    const { user } = request as AuthenticatedRequest
+
+    try {
+      const db = database.getDb()
+      const userDoc = await db.collection('users').findOne({ id: user.id })
+      if (!userDoc) return reply.status(404).send({ error: 'User Not Found', message: 'User not found' })
+
+      // All searchable sheets for this user
+      const searchableSheets = await db.collection<PriceSheet>('priceSheets').find({
+        userId: userDoc._id,
+        searchable: true
+      }, {
+        projection: { _id: 1, title: 1, updatedAt: 1, productsCount: 1 }
+      }).toArray()
+
+      if (searchableSheets.length === 0) {
+        return { isLive: false, totalProducts: 0, searchableSheets: [], commodities: [], lastUpdated: null }
+      }
+
+      const searchableSheetIds = searchableSheets.map(s => s._id!)
+
+      // Aggregate products by commodity across all searchable sheets
+      // Build sheet title map for joining
+      const sheetTitleMap = new Map(searchableSheets.map(s => [s._id!.toString(), s.title]))
+
+      // Fetch all live products in one query
+      const liveProducts = await db.collection<PriceSheetProduct>('priceSheetProducts').find(
+        { userId: userDoc._id, priceSheetId: { $in: searchableSheetIds } },
+        { projection: { _id: 1, commodity: 1, variety: 1, isOrganic: 1, packageType: 1, size: 1, countSize: 1, grade: 1, price: 1, unit: 1, priceSheetId: 1, regionName: 1 } }
+      ).toArray()
+
+      // Commodity aggregation derived from products (no extra query)
+      const commodityCountMap = new Map<string, number>()
+      const sheetCountMap = new Map<string, number>()
+
+      liveProducts.forEach((p: any) => {
+        const c = p.commodity || 'Unknown'
+        commodityCountMap.set(c, (commodityCountMap.get(c) || 0) + 1)
+        const sid = p.priceSheetId?.toString()
+        if (sid) sheetCountMap.set(sid, (sheetCountMap.get(sid) || 0) + 1)
+      })
+
+      const commodityAgg = [...commodityCountMap.entries()]
+        .map(([commodity, count]) => ({ commodity, count }))
+        .sort((a, b) => b.count - a.count)
+
+      const totalProducts = liveProducts.length
+
+      const lastUpdated = searchableSheets.reduce((latest, s) => {
+        const t = new Date(s.updatedAt).getTime()
+        return t > latest ? t : latest
+      }, 0)
+
+      return {
+        isLive: true,
+        totalProducts,
+        searchableSheets: searchableSheets.map(s => ({
+          _id: s._id,
+          title: s.title,
+          productsCount: sheetCountMap.get(s._id!.toString()) || 0,
+          updatedAt: s.updatedAt
+        })),
+        commodities: commodityAgg,
+        products: liveProducts.map((p: any) => ({
+          _id: p._id,
+          commodity: p.commodity,
+          variety: p.variety,
+          isOrganic: p.isOrganic,
+          packageType: p.packageType,
+          size: p.size || p.countSize,
+          grade: p.grade,
+          price: p.price,
+          unit: p.unit,
+          regionName: p.regionName,
+          priceSheetId: p.priceSheetId?.toString(),
+          priceSheetTitle: sheetTitleMap.get(p.priceSheetId?.toString()) || 'Unknown Sheet'
+        })),
+        lastUpdated: new Date(lastUpdated).toISOString()
+      }
+    } catch (error) {
+      console.error('ProduceHunt summary error:', error)
+      return reply.status(500).send({ error: 'Internal Server Error', message: 'Failed to get ProduceHunt summary' })
+    }
+  })
+
   // Toggle ProduceHunt searchability
   fastify.patch('/:id/searchable', async (request, reply) => {
     const { user } = request as AuthenticatedRequest

@@ -12,7 +12,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate)
 
   // Step 1 — Detect matching supplierDirectory entries for this AcreList user
-  fastify.get('/claim/detect', async (request, reply) => {
+  fastify.get('/listing/lookup', async (request, reply) => {
     const req = request as AuthenticatedRequest
     const userId = req.user.id
 
@@ -70,7 +70,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // Step 2 — Preview: return side-by-side comparison of directory entry vs AcreList user data
-  fastify.get('/claim/preview/:directoryId', async (request, reply) => {
+  fastify.get('/listing/preview/:directoryId', async (request, reply) => {
     const req = request as AuthenticatedRequest
     const userId = req.user.id
     const { directoryId } = request.params as { directoryId: string }
@@ -137,7 +137,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // Step 3 — Confirm: commit the claim with chosen field values
-  fastify.post('/claim/confirm', async (request, reply) => {
+  fastify.post('/listing/link', async (request, reply) => {
     const req = request as AuthenticatedRequest
     const userId = req.user.id
 
@@ -253,7 +253,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   // Opt-out — removes the claim link
-  fastify.delete('/claim', async (request, reply) => {
+  fastify.delete('/listing', async (request, reply) => {
     const req = request as AuthenticatedRequest
     const userId = req.user.id
 

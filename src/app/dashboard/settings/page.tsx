@@ -338,7 +338,7 @@ export default function Settings() {
     setPhError(null)
     setPhClaimStep('detecting')
     try {
-      const res = await fetch('http://localhost:3001/api/directory/listing/lookup', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/lookup`, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })
       const data = await res.json()
@@ -366,7 +366,7 @@ export default function Settings() {
   const loadPreview = async (directoryId: string) => {
     setPhClaimStep('detecting')
     try {
-      const res = await fetch(`http://localhost:3001/api/directory/listing/preview/${directoryId}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/preview/${directoryId}`, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })
       const data = await res.json()
@@ -399,7 +399,7 @@ export default function Settings() {
     if (!phSelectedMatch || !phMerged) return
     setPhClaimStep('confirming')
     try {
-      const res = await fetch('http://localhost:3001/api/directory/listing/link', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/link`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify({ directoryId: phSelectedMatch.id, ...phMerged })
@@ -416,7 +416,7 @@ export default function Settings() {
 
   const handlePhOptOut = async () => {
     try {
-      await fetch('http://localhost:3001/api/directory/listing', {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })

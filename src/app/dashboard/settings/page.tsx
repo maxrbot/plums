@@ -338,7 +338,7 @@ export default function Settings() {
     setPhError(null)
     setPhClaimStep('detecting')
     try {
-      const res = await fetch('http://localhost:3001/api/producehunt/claim/detect', {
+      const res = await fetch('http://localhost:3001/api/directory/claim/detect', {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })
       const data = await res.json()
@@ -366,7 +366,7 @@ export default function Settings() {
   const loadPreview = async (directoryId: string) => {
     setPhClaimStep('detecting')
     try {
-      const res = await fetch(`http://localhost:3001/api/producehunt/claim/preview/${directoryId}`, {
+      const res = await fetch(`http://localhost:3001/api/directory/claim/preview/${directoryId}`, {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })
       const data = await res.json()
@@ -399,7 +399,7 @@ export default function Settings() {
     if (!phSelectedMatch || !phMerged) return
     setPhClaimStep('confirming')
     try {
-      const res = await fetch('http://localhost:3001/api/producehunt/claim/confirm', {
+      const res = await fetch('http://localhost:3001/api/directory/claim/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
         body: JSON.stringify({ directoryId: phSelectedMatch.id, ...phMerged })
@@ -416,7 +416,7 @@ export default function Settings() {
 
   const handlePhOptOut = async () => {
     try {
-      await fetch('http://localhost:3001/api/producehunt/claim', {
+      await fetch('http://localhost:3001/api/directory/claim', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })

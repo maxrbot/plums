@@ -80,7 +80,7 @@ async function registerRoutes() {
     await fastify.register(chatbotConfigRoutes, { prefix: '/api/chatbot-config' })
   await fastify.register(analyticsRoutes, { prefix: '/api/analytics' })
   await fastify.register(adminRoutes, { prefix: '/api/admin' })
-  await fastify.register(produceHuntRoutes, { prefix: '/api/producehunt' })
+  await fastify.register(produceHuntRoutes, { prefix: '/api/directory' })
 }
 
 // Health check

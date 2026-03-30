@@ -46,6 +46,7 @@ export interface User extends BaseDocument {
       defaultEmailMessage?: string
       companyLogo?: string | null
     }
+    usdaMarkets?: string[]  // preferred terminal market cities e.g. ['Los Angeles', 'Chicago']
   }
   
   pricesheetSettings?: {

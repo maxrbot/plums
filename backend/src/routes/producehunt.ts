@@ -31,7 +31,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Find all potential matches — exact normalized match first, then partial
       const allSuppliers = await db.collection('supplierDirectory').find({
-        acrelistUserId: null // Only unclaimed entries
+        $or: [{ acrelistUserId: null }, { acrelistUserId: { $exists: false } }]
       }).toArray()
 
       const matches = allSuppliers.filter(s => {

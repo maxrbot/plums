@@ -1,18 +1,20 @@
 "use client"
 
 import Link from 'next/link'
-import { 
+import {
   CheckCircleIcon,
   ArrowRightIcon,
   PaperAirplaneIcon,
   Cog6ToothIcon,
   MapPinIcon,
   SparklesIcon,
-  ArchiveBoxIcon
+  ArchiveBoxIcon,
+  TagIcon,
 } from '@heroicons/react/24/outline'
 import { useUserName, useUser } from '@/contexts/UserContext'
 import { useState, useEffect } from 'react'
 import { regionsApi, cropsApi, contactsApi, certificationsApi, packagingApi } from '@/lib/api'
+import UsdaMarketWidget from './UsdaMarketWidget'
 
 export default function Dashboard() {
   const userName = useUserName()
@@ -30,7 +32,7 @@ export default function Dashboard() {
   const [packagingCount, setPackagingCount] = useState(0)
   const [contactsCount, setContactsCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  
+
   // Additional metrics for "Manage Your Data" section
   const [metrics, setMetrics] = useState({
     regions: { count: 0, data: [] as any[], lastUpdated: undefined as string | undefined },
@@ -149,7 +151,7 @@ export default function Dashboard() {
     }
 
     loadSetupProgress()
-    
+
     // Reload setup progress when user returns to the dashboard tab
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -173,8 +175,12 @@ export default function Dashboard() {
       {/* Welcome & Progress Section */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Welcome back, {userName}!</h1>
-        <p className="mt-2 text-gray-600">Here&apos;s what&apos;s next to get your farm online.</p>
+        {!loading && progressPercentage < 100 && (
+          <p className="mt-2 text-gray-600">Complete the steps below to get your account ready.</p>
+        )}
       </div>
+
+      <UsdaMarketWidget />
 
       {/* Progress Hero Section */}
       <div className="bg-gradient-to-r from-lime-50 to-cyan-50 border border-lime-200 rounded-lg p-6 mb-8">

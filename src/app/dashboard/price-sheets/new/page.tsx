@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
@@ -24,6 +24,114 @@ import {
 } from '../../../../config'
 import { getMarketDataSample } from '../../../../config/market-data-samples'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+
+// USDA market types (mirrors backend shape)
+interface UsdaPriceEntry {
+  low: number
+  high: number
+  mostlyLow: number | null
+  mostlyHigh: number | null
+  description?: string
+}
+interface UsdaMarketResult {
+  city: string
+  reportType: 'terminal' | 'shipping_point'
+  reportDate: string | null
+  entries: UsdaPriceEntry[]
+}
+interface UsdaIntelligence {
+  markets: UsdaMarketResult[]
+  fetchedAt: string | null
+  loading: boolean
+  error: string | null
+  commodity: string | null
+}
+interface MatchedEntry {
+  city: string
+  reportType: 'terminal' | 'shipping_point'
+  entry: UsdaPriceEntry
+}
+
+// Returns entries matched by variety+size (exact), variety-only, and the commodity-wide price range.
+// Size matching normalises "88s", "88", "88 size" → the numeric digits.
+function matchUsdaEntries(
+  markets: UsdaMarketResult[],
+  variety: string,
+  size: string
+): { exact: MatchedEntry[]; varietyOnly: MatchedEntry[]; range: { low: number; high: number } | null } {
+  const varietyUp = variety.trim().toUpperCase()
+  const sizeDigits = size.replace(/[^0-9]/g, '')
+
+  const exact: MatchedEntry[] = []
+  const varietyOnly: MatchedEntry[] = []
+  const allLows: number[] = []
+  const allHighs: number[] = []
+
+  for (const market of markets) {
+    for (const entry of market.entries) {
+      const desc = (entry.description ?? '').toUpperCase()
+      allLows.push(entry.low)
+      allHighs.push(entry.high)
+
+      const hasVariety = varietyUp.length > 0 && desc.includes(varietyUp)
+      const hasSize = sizeDigits.length > 0 && new RegExp(`\\b${sizeDigits}[Ss]?\\b`).test(desc)
+
+      if (hasVariety && hasSize) {
+        exact.push({ city: market.city, reportType: market.reportType, entry })
+      } else if (hasVariety) {
+        varietyOnly.push({ city: market.city, reportType: market.reportType, entry })
+      }
+    }
+  }
+
+  const range =
+    allLows.length > 0
+      ? { low: Math.min(...allLows), high: Math.max(...allHighs) }
+      : null
+
+  return { exact, varietyOnly, range }
+}
+
+// Extracts the size count from a USDA description: "NAVEL 88s" → "88s", "56 size" → "56s"
+function extractSizeFromDesc(desc: string): string | null {
+  const matches = [...desc.matchAll(/\b(\d{2,3})\s*[Ss]?(?:ize)?\b/gi)]
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const n = parseInt(matches[i]![1]!)
+    if (n >= 20 && n <= 200) return `${n}s`
+  }
+  return null
+}
+
+// Inline tooltip — a clickable ⓘ that shows an overlay on click, closes on outside click
+function PanelTooltip({ text }: { text: string }) {
+  const [open, setOpen] = React.useState(false)
+  const ref = React.useRef<HTMLSpanElement>(null)
+  React.useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+  return (
+    <span ref={ref} className="relative inline-flex items-center ml-1">
+      <button type="button" onClick={() => setOpen(o => !o)} className="text-gray-300 hover:text-gray-500 focus:outline-none">
+        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </button>
+      {open && (
+        <span className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 p-2.5 bg-gray-900 text-white text-xs rounded-lg z-30 leading-relaxed shadow-xl">
+          {text}
+          <span className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-900" />
+        </span>
+      )}
+    </span>
+  )
+}
+
 // Types from the original complex version
 interface ProcessedProduct {
   id: string
@@ -45,6 +153,10 @@ export default function CleanPriceSheetPage() {
   
   const [showInsightsPanel, setShowInsightsPanel] = useState(false)
   const [selectedInsightProductId, setSelectedInsightProductId] = useState<string | null>(null)
+  const [usdaIntelligence, setUsdaIntelligence] = useState<UsdaIntelligence>({
+    markets: [], fetchedAt: null, loading: false, error: null, commodity: null,
+  })
+  const [showAllCommodity, setShowAllCommodity] = useState(false)
   const [selectedProductIds, setSelectedProductIds] = useState<Set<string>>(new Set())
   
   // Preview and Save state
@@ -605,15 +717,43 @@ export default function CleanPriceSheetPage() {
     setSelectedProductIds(newSelected)
   }
 
+  const fetchUsdaForCommodity = useCallback((commodity: string) => {
+    const token = localStorage.getItem('accessToken')
+    setUsdaIntelligence(prev => ({ ...prev, loading: true, error: null, commodity }))
+    fetch(`${API_BASE}/usda-market?commodity=${encodeURIComponent(commodity)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => {
+        setUsdaIntelligence({
+          markets: data.markets || [],
+          fetchedAt: data.fetchedAt || null,
+          loading: false,
+          error: data.error || null,
+          commodity,
+        })
+      })
+      .catch(() => {
+        setUsdaIntelligence(prev => ({ ...prev, loading: false, error: 'Failed to load market data' }))
+      })
+  }, [])
+
   const toggleInsightsPanel = (productId: string) => {
     if (showInsightsPanel && selectedInsightProductId === productId) {
-      // Close if same product
       setShowInsightsPanel(false)
       setSelectedInsightProductId(null)
     } else {
-      // Open with new product
       setShowInsightsPanel(true)
       setSelectedInsightProductId(productId)
+      setShowAllCommodity(false)
+      // Lazy-fetch USDA data for this commodity if not already loaded
+      const product = products.find(p => p.id === productId)
+      if (product?.commodity) {
+        const c = product.commodity.charAt(0).toUpperCase() + product.commodity.slice(1).toLowerCase()
+        if (usdaIntelligence.commodity !== c && !usdaIntelligence.loading) {
+          fetchUsdaForCommodity(c)
+        }
+      }
     }
   }
 
@@ -1568,19 +1708,6 @@ export default function CleanPriceSheetPage() {
                                   placeholder="0.00"
                                 />
                               </div>
-                              {/* Price Breakdown */}
-                              {!productPriceOverride[productId] && (() => {
-                                const breakdown = getPriceBreakdown(productId, productPrices[productId])
-                                if (breakdown.breakdown) {
-                                  return (
-                                    <div className={`text-xs mt-1 ${breakdown.isCustom ? 'text-orange-600' : 'text-gray-500'}`}>
-                                      {breakdown.breakdown}
-                                      {breakdown.isCustom && <span className="ml-1">(custom)</span>}
-                                    </div>
-                                  )
-                                }
-                                return null
-                              })()}
                             </div>
                             
                             {/* Expand Options Button */}
@@ -1604,29 +1731,17 @@ export default function CleanPriceSheetPage() {
                             </div>
                             
                             {/* Market Data Section */}
-                            <div 
-                              className="border-l border-gray-200 pl-3 cursor-pointer hover:bg-blue-50 transition-colors rounded-r"
+                            <div
+                              className="border-l border-gray-200 pl-3 cursor-pointer hover:bg-blue-50 transition-colors rounded-r flex flex-col items-center justify-center gap-1 min-w-[48px]"
                               onClick={() => toggleInsightsPanel(productId)}
                               title="View market intelligence"
                             >
-                              <div className="flex items-center justify-center space-x-1">
-                                {/* Chart/Graph Icon */}
-                                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                </svg>
-                                <div className="text-xs text-center">
-                                  {(() => {
-                                    const marketData = getMarketDataSample(product.commodity, product.variety || '')
-                                    if (!marketData) return <div className="text-xs text-gray-500">No data</div>
-                                    return (
-                                      <>
-                                        <div className="font-medium text-blue-600">${marketData.basePrice}</div>
-                                        <div className="text-gray-500">{marketData.trend}</div>
-                                      </>
-                                    )
-                                  })()}
-                                </div>
-                              </div>
+                              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                              </svg>
+                              {usdaIntelligence.commodity?.toLowerCase() === product.commodity.toLowerCase() && usdaIntelligence.markets.length > 0 && (
+                                <span className="text-xs font-medium text-blue-500">Live</span>
+                              )}
                             </div>
                           </div>
                           
@@ -1857,19 +1972,6 @@ export default function CleanPriceSheetPage() {
                                       placeholder="0.00"
                                     />
                                   </div>
-                                  {/* Price Breakdown for Additional Pack Style */}
-                                  {!productPriceOverride[`${productId}-additional-${index}`] && (() => {
-                                    const breakdown = getPriceBreakdown(productId, productPrices[`${productId}-additional-${index}`])
-                                    if (breakdown.breakdown) {
-                                      return (
-                                        <div className={`text-xs mt-1 ${breakdown.isCustom ? 'text-orange-600' : 'text-gray-500'}`}>
-                                          {breakdown.breakdown}
-                                          {breakdown.isCustom && <span className="ml-1">(custom)</span>}
-                                        </div>
-                                      )
-                                    }
-                                    return null
-                                  })()}
                                 </div>
                                 
                                 {/* Expand Options Button */}
@@ -2041,147 +2143,374 @@ export default function CleanPriceSheetPage() {
                 <div className="flex-1 overflow-y-auto p-4">
                   {(() => {
                     const product = products.find(p => p.id === selectedInsightProductId)
-                    if (!product) return <div>Product not found</div>
-                    
-                    const marketData = getMarketDataSample(product.commodity, product.variety || '')
-                    if (!marketData) return <div>No market data available</div>
-                    
+                    if (!product) return <div className="text-sm text-gray-400">Product not found</div>
+
+                    const packaging = productPackaging[selectedInsightProductId!] ?? {}
+                    const variety = product.variety ?? ''
+                    const size = packaging.size ?? ''
+                    const hasSize = size.length > 0
+
+                    const { loading, error, markets, fetchedAt, commodity } = usdaIntelligence
+                    const commodityMatch = commodity?.toLowerCase() === product.commodity.toLowerCase()
+
+                    const formatDate = (d: string | null) => {
+                      if (!d) return null
+                      try { return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) } catch { return d }
+                    }
+
+                    // --- Loading / error states ---
+                    if (loading) return (
+                      <div className="flex items-center gap-2 py-8 text-gray-400 text-sm justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-emerald-300 border-t-transparent" />
+                        Fetching USDA data for {product.commodity}…
+                      </div>
+                    )
+                    if (error) return <p className="text-sm text-red-400 py-4">{error}</p>
+                    if (!commodityMatch || markets.length === 0) return (
+                      <p className="text-sm text-gray-400 py-8 text-center">No USDA market data available for {product.commodity}.</p>
+                    )
+
+                    // --- Match entries ---
+                    const terminalMarkets = markets.filter(m => m.reportType === 'terminal')
+                    const fobMarkets = markets.filter(m => m.reportType === 'shipping_point')
+                    const terminalMatch = matchUsdaEntries(terminalMarkets, variety, size)
+                    const fobMatch = matchUsdaEntries(fobMarkets, variety, size)
+
+                    // Commodity-level fallback: top entry from each city (no variety filter)
+                    const commodityTerminal: MatchedEntry[] = terminalMarkets
+                      .filter(m => m.entries.length > 0)
+                      .map(m => ({ city: m.city, reportType: 'terminal' as const, entry: m.entries[0]! }))
+                    const commodityFob: MatchedEntry[] = fobMarkets
+                      .filter(m => m.entries.length > 0)
+                      .map(m => ({ city: m.city, reportType: 'shipping_point' as const, entry: m.entries[0]! }))
+
+                    // Match level: exact > variety > commodity
+                    const matchLevel = terminalMatch.exact.length > 0 ? 'exact'
+                      : terminalMatch.varietyOnly.length > 0 ? 'variety'
+                      : 'commodity'
+
+                    const bestTerminal = matchLevel === 'exact' ? terminalMatch.exact
+                      : matchLevel === 'variety' ? terminalMatch.varietyOnly
+                      : commodityTerminal
+                    const bestFob = fobMatch.exact.length > 0 ? fobMatch.exact
+                      : fobMatch.varietyOnly.length > 0 ? fobMatch.varietyOnly
+                      : commodityFob
+
+                    // Match level badge label
+                    const terminalMatchLevel = matchLevel === 'exact'
+                      ? (variety && size ? `${variety} · ${size}` : variety || size)
+                      : matchLevel === 'variety' ? variety
+                      : product.commodity
+
+                    // Detect whether USDA ever mentions this variety (across all markets)
+                    // If not, the variety simply isn't tracked — not a missing-data problem
+                    const varietyAppearsAnywhere = variety.length > 0 && markets.some(m =>
+                      m.entries.some(e => (e.description ?? '').toUpperCase().includes(variety.toUpperCase()))
+                    )
+
+                    // Suggested price: only for exact or variety match (commodity-level is too broad)
+                    const suggestEntry = matchLevel !== 'commodity' ? (bestTerminal[0]?.entry ?? null) : null
+                    const suggestMid = suggestEntry
+                      ? ((suggestEntry.mostlyLow ?? suggestEntry.low) + (suggestEntry.mostlyHigh ?? suggestEntry.high)) / 2
+                      : null
+                    const suggestLabel = suggestEntry
+                      ? (matchLevel === 'exact' ? `USDA terminal midpoint · ${variety} ${size}`.trim() : `USDA terminal midpoint · ${variety || product.commodity}`)
+                      : null
+
+                    // --- Multi-size comparison ---
+                    // Collect all variety-matched terminal entries, extract sizes, group by size
+                    const allVarietyEntries = [...terminalMatch.exact, ...terminalMatch.varietyOnly]
+                    const sizeMap = new Map<string, { low: number; high: number }>()
+                    for (const m of allVarietyEntries) {
+                      const sz = extractSizeFromDesc(m.entry.description ?? '')
+                      if (!sz) continue
+                      const existing = sizeMap.get(sz)
+                      sizeMap.set(sz, existing
+                        ? { low: Math.min(existing.low, m.entry.low), high: Math.max(existing.high, m.entry.high) }
+                        : { low: m.entry.low, high: m.entry.high }
+                      )
+                    }
+                    const sizeRows = [...sizeMap.entries()].sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                    const userSizeDigits = size.replace(/[^0-9]/g, '')
+                    const showSizeComparison = sizeRows.length >= 2
+
+                    // --- Terminal vs FOB spread ---
+                    const terminalMids = bestTerminal.map(m => (m.entry.low + m.entry.high) / 2)
+                    const fobMids = bestFob.map(m => (m.entry.low + m.entry.high) / 2)
+                    const terminalAvg = terminalMids.length > 0 ? terminalMids.reduce((a, b) => a + b, 0) / terminalMids.length : null
+                    const fobAvg = fobMids.length > 0 ? fobMids.reduce((a, b) => a + b, 0) / fobMids.length : null
+                    const showSpread = terminalAvg != null && fobAvg != null
+
                     return (
-                      <div className="space-y-4">
-                        {/* Market Data Tiles */}
-                        <div className="grid grid-cols-1 gap-4">
-                          {/* USDA Tile */}
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">USDA Terminal Markets</h4>
-                            <div className="space-y-1">
-                              <p className="text-lg font-semibold text-gray-900">${marketData.basePrice}/lb</p>
-                              <p className="text-xs text-gray-600">Region: {marketData.primaryRegion}</p>
-                              <p className="text-xs text-gray-600">Regional: ${marketData.regionalPrice}/lb</p>
-                            </div>
+                      <div className="space-y-5">
+
+                        {/* Size nudge */}
+                        {!hasSize && (
+                          <div className="px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-700">
+                            Select a size in the product options for a more specific price match.
                           </div>
-                          
-                          {/* Market Insights */}
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Market Insights</h4>
-                            <div className="space-y-1">
-                              {marketData.insights.slice(0, 2).map((insight, index) => (
-                                <p key={index} className="text-xs text-gray-600">{insight}</p>
+                        )}
+
+                        {/* Match level explanation for commodity-level fallback */}
+                        {matchLevel === 'commodity' && variety.length > 0 && (
+                          <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-600 leading-relaxed">
+                            {varietyAppearsAnywhere
+                              ? <>Limited <span className="font-medium">{variety}</span> data today — showing {product.commodity} prices as context.</>
+                              : <>USDA reports {product.commodity} as a single category — <span className="font-medium">{variety}</span> isn&apos;t differentiated in market data. These prices reflect the commercial market your crop trades in.</>
+                            }
+                          </div>
+                        )}
+
+                        {/* Terminal Markets */}
+                        <div>
+                          <div className="flex items-center mb-2">
+                            <h4 className="text-xs font-semibold uppercase tracking-wide text-emerald-700">Terminal Markets</h4>
+                            <PanelTooltip text="Wholesale prices at major U.S. distribution hubs — what buyers pay when your product arrives at market. This is the industry benchmark for pricing once the commodity is in circulation." />
+                            {terminalMatchLevel && (
+                              <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{terminalMatchLevel}</span>
+                            )}
+                          </div>
+
+                          {bestTerminal.length > 0 && (
+                            <div className="space-y-2">
+                              {bestTerminal.slice(0, 4).map((m, i) => (
+                                <div key={i} className="bg-emerald-50 border border-emerald-100 rounded-lg p-3">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-xs font-medium text-gray-700">{m.city}</p>
+                                    {m.entry.description && (() => {
+                                      const cond = m.entry.description.match(/MARKET\s+(HIGHER|LOWER|STEADY|FIRM|WEAK|ABOUT\s+STEADY)/i)
+                                      if (!cond) return null
+                                      const w = cond[1]!.toUpperCase()
+                                      const icon = (w === 'HIGHER' || w === 'FIRM') ? '↑' : (w === 'LOWER' || w === 'WEAK') ? '↓' : '→'
+                                      const cls = (w === 'HIGHER' || w === 'FIRM') ? 'text-emerald-600' : (w === 'LOWER' || w === 'WEAK') ? 'text-red-500' : 'text-gray-400'
+                                      return <span className={`text-xs font-semibold ${cls}`}>{icon} {cond[1]!.charAt(0) + cond[1]!.slice(1).toLowerCase()}</span>
+                                    })()}
+                                  </div>
+                                  <p className="text-base font-bold text-emerald-700 mt-1">
+                                    ${m.entry.low.toFixed(2)}–${m.entry.high.toFixed(2)}
+                                  </p>
+                                  {m.entry.mostlyLow != null && m.entry.mostlyHigh != null && (
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                      mostly ${m.entry.mostlyLow.toFixed(2)}–${m.entry.mostlyHigh.toFixed(2)}
+                                    </p>
+                                  )}
+                                  {m.entry.description && (
+                                    <p className="text-xs text-gray-400 mt-1 leading-snug">
+                                      {m.entry.description.replace(/^-*[A-Z][A-Z /&'()-]+:\s*/i, '').replace(/\s+/g, ' ').trim()}
+                                    </p>
+                                  )}
+                                </div>
                               ))}
                             </div>
+                          )}
+
+                          {/* "See all reported X" toggle — only when variety-filtered results exist */}
+                          {matchLevel !== 'commodity' && commodityTerminal.length > bestTerminal.length && (
+                            <div className="mt-2">
+                              <button
+                                onClick={() => setShowAllCommodity(v => !v)}
+                                className="text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                              >
+                                {showAllCommodity
+                                  ? `Hide all reported ${product.commodity}s`
+                                  : `See all reported ${product.commodity}s (${commodityTerminal.length} cities)`}
+                              </button>
+                              {showAllCommodity && (
+                                <div className="mt-2 space-y-2">
+                                  <p className="text-xs text-gray-400">All {product.commodity} varieties reported today — for broader market context</p>
+                                  {commodityTerminal.slice(0, 6).map((m, i) => (
+                                    <div key={i} className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                      <div className="flex items-center justify-between">
+                                        <p className="text-xs font-medium text-gray-600">{m.city}</p>
+                                        {m.entry.description && (() => {
+                                          const cond = m.entry.description.match(/MARKET\s+(HIGHER|LOWER|STEADY|FIRM|WEAK|ABOUT\s+STEADY)/i)
+                                          if (!cond) return null
+                                          const w = cond[1]!.toUpperCase()
+                                          const icon = (w === 'HIGHER' || w === 'FIRM') ? '↑' : (w === 'LOWER' || w === 'WEAK') ? '↓' : '→'
+                                          const cls = (w === 'HIGHER' || w === 'FIRM') ? 'text-emerald-600' : (w === 'LOWER' || w === 'WEAK') ? 'text-red-500' : 'text-gray-400'
+                                          return <span className={`text-xs font-semibold ${cls}`}>{icon} {cond[1]!.charAt(0) + cond[1]!.slice(1).toLowerCase()}</span>
+                                        })()}
+                                      </div>
+                                      <p className="text-base font-bold text-gray-700 mt-1">
+                                        ${m.entry.low.toFixed(2)}–${m.entry.high.toFixed(2)}
+                                      </p>
+                                      {m.entry.mostlyLow != null && m.entry.mostlyHigh != null && (
+                                        <p className="text-xs text-gray-500 mt-0.5">
+                                          mostly ${m.entry.mostlyLow.toFixed(2)}–${m.entry.mostlyHigh.toFixed(2)}
+                                        </p>
+                                      )}
+                                      {m.entry.description && (
+                                        <p className="text-xs text-gray-400 mt-1 leading-snug">
+                                          {m.entry.description.replace(/^-*[A-Z][A-Z /&'()-]+:\s*/i, '').replace(/\s+/g, ' ').trim()}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Market sentiment across matched terminal cities */}
+                          {bestTerminal.length > 0 && (() => {
+                            const sentiments = bestTerminal.map(m => {
+                              const desc = m.entry.description ?? ''
+                              const hit = desc.match(/MARKET\s+(HIGHER|LOWER|STEADY|FIRM|WEAK|ABOUT\s+STEADY|ACTIVE|SLOW)/i)
+                              if (!hit) return null
+                              const w = hit[1]!.toUpperCase().replace(/\s+/g, ' ')
+                              const isUp = w === 'HIGHER' || w === 'FIRM' || w === 'ACTIVE'
+                              const isDown = w === 'LOWER' || w === 'WEAK' || w === 'SLOW'
+                              return {
+                                city: m.city.replace(' (Shipping Point)', '').split(',')[0]!,
+                                icon: isUp ? '↑' : isDown ? '↓' : '→',
+                                label: w === 'ABOUT STEADY' ? 'About steady' : w.charAt(0) + w.slice(1).toLowerCase(),
+                                bg: isUp ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : isDown ? 'bg-red-50 border-red-200 text-red-600' : 'bg-gray-50 border-gray-200 text-gray-500',
+                              }
+                            }).filter(Boolean)
+
+                            if (sentiments.length === 0) return null
+                            return (
+                              <div className="mt-3 pt-3 border-t border-emerald-100">
+                                <p className="text-xs text-gray-400 mb-2 flex items-center">
+                                  Market sentiment
+                                  <PanelTooltip text="Today's market direction for each reporting terminal city — whether prices are trending higher, lower, or holding steady. Pulled directly from the USDA report narrative for your matched variety." />
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {sentiments.map((s, i) => s && (
+                                    <div key={i} className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-medium ${s.bg}`}>
+                                      <span>{s.icon}</span>
+                                      <span className="text-gray-500 font-normal">{s.city}</span>
+                                      <span>{s.label}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )
+                          })()}
+                        </div>
+
+                        {/* FOB / Shipping Point */}
+                        {(bestFob.length > 0 || fobMatch.range) && (
+                          <div>
+                            <div className="flex items-center mb-2">
+                              <h4 className="text-xs font-semibold uppercase tracking-wide text-blue-700">FOB / Shipping Point</h4>
+                              <PanelTooltip text="FOB (Free On Board) is the price a grower charges at their packing shed — before freight. The buyer covers shipping from there. FOB prices are typically $3–8/carton lower than terminal because they don't include freight, handling, or distributor markup. Each location represents a growing region: Fresno = Central Valley CA, Phoenix = Nogales/Mexico + Salinas + Imperial Valley, Orlando/Miami = Florida, Yakima = Pacific Northwest. Terminal markets source from multiple regions simultaneously." />
+                              {fobMatch.exact.length > 0 && terminalMatchLevel && (
+                                <span className="ml-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{terminalMatchLevel}</span>
+                              )}
+                            </div>
+                            {bestFob.length > 0 ? (
+                              <div className="space-y-2">
+                                {bestFob.slice(0, 3).map((m, i) => (
+                                  <div key={i} className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+                                    <div className="flex items-center justify-between">
+                                      <p className="text-xs font-semibold text-gray-700">{m.city.replace(' (Shipping Point)', '')}</p>
+                                      <span className="text-xs text-blue-400 bg-blue-100 px-1.5 py-0.5 rounded-full">FOB origin</span>
+                                    </div>
+                                    <p className="text-base font-bold text-blue-700 mt-1">
+                                      ${m.entry.low.toFixed(2)}–${m.entry.high.toFixed(2)}
+                                    </p>
+                                    {m.entry.mostlyLow != null && m.entry.mostlyHigh != null && (
+                                      <p className="text-xs text-gray-500 mt-0.5">
+                                        mostly ${m.entry.mostlyLow.toFixed(2)}–${m.entry.mostlyHigh.toFixed(2)}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : fobMatch.range ? (
+                              <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+                                <div className="flex items-center justify-between mb-1">
+                                  <p className="text-xs text-gray-500">{product.commodity} · all sizes</p>
+                                  <span className="text-xs text-blue-400 bg-blue-100 px-1.5 py-0.5 rounded-full">FOB origin</span>
+                                </div>
+                                <p className="text-base font-bold text-gray-700">
+                                  ${fobMatch.range.low.toFixed(2)}–${fobMatch.range.high.toFixed(2)}
+                                </p>
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {fobMarkets.map(m => m.city.replace(' (Shipping Point)', '')).join(' · ')}
+                                </p>
+                              </div>
+                            ) : null}
                           </div>
-                          
-                          {/* Retail Benchmark */}
-                          <div className="bg-gray-50 p-4 rounded-lg">
-                            <h4 className="text-sm font-medium text-gray-900 mb-2">Retail Benchmark</h4>
-                            <div className="space-y-1">
-                              <p className="text-lg font-semibold text-green-600">{marketData.trend}</p>
-                              <p className="text-xs text-gray-600">Retail: ${(marketData.basePrice * marketData.retailMultiplier).toFixed(2)}/{marketData.retailUnit}</p>
-                              <p className="text-xs text-gray-600">Volatility: {marketData.volatility}</p>
+                        )}
+
+                        {/* Terminal vs FOB Spread */}
+                        {showSpread && (
+                          <div className="bg-gray-50 border border-gray-100 rounded-lg p-3">
+                            <div className="flex items-center mb-2">
+                              <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-500">Terminal vs FOB</h4>
+                              <PanelTooltip text="The difference between the average terminal price and average FOB price is a rough indicator of what freight, handling, and distribution add once the commodity leaves the farm. These are different geographic markets so treat it as directional, not precise." />
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <div>
+                                <p className="text-xs text-gray-400">Terminal avg</p>
+                                <p className="font-semibold text-gray-700">${terminalAvg!.toFixed(2)}</p>
+                              </div>
+                              <div className="text-center">
+                                <p className="text-xs text-gray-400">~spread</p>
+                                <p className="font-semibold text-orange-500">${(terminalAvg! - fobAvg!).toFixed(2)}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-400">FOB avg</p>
+                                <p className="font-semibold text-gray-700">${fobAvg!.toFixed(2)}</p>
+                              </div>
                             </div>
                           </div>
+                        )}
+
+                        {/* Historical Prices Placeholder */}
+                        <div className="border border-dashed border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center mb-1">
+                            <h4 className="text-xs font-semibold uppercase tracking-wide text-gray-400">Your Historical Prices</h4>
+                            <PanelTooltip text="Once your historical price sheets are connected, you'll see how your pricing has moved over time and how it compares to the market — useful for identifying seasonal patterns and margin trends." />
+                          </div>
+                          <p className="text-xs text-gray-400">
+                            Connect your past price sheets to see how your {variety || product.commodity} pricing has trended over time.
+                          </p>
+                          <p className="text-xs text-gray-300 mt-1">Coming soon</p>
                         </div>
-                        
-                        {/* Suggested Price Calculation */}
-                        <div className="border-t pt-4">
-                          <div className="bg-blue-50 p-4 rounded-lg">
-                            <div className="flex items-center justify-between mb-3">
-                              <h4 className="text-sm font-medium text-gray-900">Suggested Price</h4>
-                              <button 
-                                onClick={() => {
-                                  if (selectedInsightProductId) {
-                                    const packagePrice = calculateTotalPackagePrice(selectedInsightProductId)
-                                    if (packagePrice.totalPrice) {
+
+                        {/* Suggested Price — only when variety match exists */}
+                        {suggestMid != null && (terminalMatch.exact.length > 0 || terminalMatch.varietyOnly.length > 0) && (
+                          <div className="border-t pt-4">
+                            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                              <div className="flex items-start justify-between gap-3 mb-3">
+                                <div>
+                                  <h4 className="text-sm font-semibold text-gray-900">Suggested Price</h4>
+                                  <p className="text-xs text-gray-500 mt-0.5">{suggestLabel}</p>
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    if (selectedInsightProductId && suggestMid != null) {
                                       setProductPrices(prev => ({
                                         ...prev,
-                                        [selectedInsightProductId]: packagePrice.totalPrice
+                                        [selectedInsightProductId]: suggestMid.toFixed(2),
                                       }))
                                     }
-                                  }
-                                }}
-                                className="px-4 py-2 bg-black text-white text-sm font-medium rounded hover:bg-gray-800 transition-colors"
-                              >
-                                Use Price
-                              </button>
-                            </div>
-                            
-                            {/* Price Breakdown */}
-                            {marketData.priceBreakdown && (
-                              <div className="space-y-2 mb-4">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">USDA Terminal Average:</span>
-                                  <span className="font-medium">${marketData.priceBreakdown.usdaTerminalAverage.toFixed(2)}/lb</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">Supply Premium (USDA AMS):</span>
-                                  <span className="font-medium text-green-600">+${marketData.priceBreakdown.supplyPremiumAMS.toFixed(2)}/lb</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">Weather Impact:</span>
-                                  <span className="font-medium text-orange-600">+${marketData.priceBreakdown.weatherImpact.toFixed(2)}/lb</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">Transport Cost:</span>
-                                  <span className="font-medium text-blue-600">+${marketData.priceBreakdown.transportCost.toFixed(2)}/lb</span>
-                                </div>
-                                {marketData.priceBreakdown.seasonalAdjustment && marketData.priceBreakdown.seasonalAdjustment !== 0 && (
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Seasonal Adjustment:</span>
-                                    <span className={`font-medium ${marketData.priceBreakdown.seasonalAdjustment > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                                      {marketData.priceBreakdown.seasonalAdjustment > 0 ? '+' : ''}${marketData.priceBreakdown.seasonalAdjustment.toFixed(2)}/lb
-                                    </span>
-                                  </div>
-                                )}
-                                <div className="border-t pt-2 mt-2">
-                                  <div className="flex justify-between text-sm font-semibold">
-                                    <span className="text-gray-900">Total Base Price:</span>
-                                    <span className="text-gray-900">${marketData.basePrice.toFixed(2)}/lb</span>
-                                  </div>
-                                </div>
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors flex-shrink-0"
+                                >
+                                  Use Price
+                                </button>
                               </div>
-                            )}
-                            
-                            {/* Final Suggested Price */}
-                            <div className="bg-white p-3 rounded border">
-                              <div className="flex items-center justify-between">
-                                <div>
-                                  <p className="text-lg font-bold text-blue-600">
-                                    ${(() => {
-                                      if (selectedInsightProductId) {
-                                        const packagePrice = calculateTotalPackagePrice(selectedInsightProductId)
-                                        return packagePrice.totalPrice || marketData.basePrice.toFixed(2)
-                                      }
-                                      return marketData.basePrice.toFixed(2)
-                                    })()}
-                                  </p>
-                                  <p className="text-xs text-gray-600">
-                                    {(() => {
-                                      if (selectedInsightProductId) {
-                                        const packagePrice = calculateTotalPackagePrice(selectedInsightProductId)
-                                        return packagePrice.calculation || 'Based on market conditions'
-                                      }
-                                      return 'Based on market conditions'
-                                    })()}
-                                  </p>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-xs text-gray-500">Package</p>
-                                  <p className="text-sm font-medium text-gray-700">
-                                    {(() => {
-                                      if (selectedInsightProductId) {
-                                        const product = products.find(p => p.id === selectedInsightProductId)
-                                        const packaging = productPackaging[selectedInsightProductId]
-                                        if (product && packaging?.size) {
-                                          return `${packaging.size} ${packaging.packageType || 'package'}`
-                                        }
-                                      }
-                                      return 'Standard package'
-                                    })()}
-                                  </p>
-                                </div>
+                              <div className="bg-white border border-blue-100 rounded-lg p-3">
+                                <p className="text-2xl font-bold text-blue-600">${suggestMid.toFixed(2)}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  Midpoint of USDA terminal range · {bestTerminal[0]?.city}
+                                </p>
                               </div>
+                              <p className="text-xs text-gray-400 mt-2">
+                                This is the wholesale terminal price — your selling price should reflect your margins, freight, and packaging costs.
+                              </p>
                             </div>
                           </div>
-                        </div>
+                        )}
+
+                        {/* Source */}
+                        <p className="text-xs text-gray-300">
+                          USDA AMS Market News · {fetchedAt ? `updated ${formatDate(fetchedAt)}` : 'updated daily'}
+                        </p>
                       </div>
                     )
                   })()}

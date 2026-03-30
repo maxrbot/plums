@@ -78,6 +78,9 @@ export default function Settings() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   // ProduceHunt claim flow
+  const [usdaMarkets, setUsdaMarkets] = useState<string[]>([])
+  const [savingMarkets, setSavingMarkets] = useState(false)
+  const [marketsSaved, setMarketsSaved] = useState(false)
   const [phOptedIn, setPhOptedIn] = useState(false)
   const [phClaimStep, setPhClaimStep] = useState<'idle' | 'detecting' | 'pick' | 'compare' | 'confirming' | 'done'>('idle')
   const [phMatches, setPhMatches] = useState<any[]>([])
@@ -123,10 +126,10 @@ export default function Settings() {
         
         // Notification Preferences from user data
         emailNotifications: {
-          priceSheetOpens: user.preferences.notifications.priceAlerts,
-          newContacts: user.preferences.notifications.email,
-          weeklyReports: user.preferences.notifications.marketUpdates,
-          systemUpdates: user.preferences.notifications.email
+          priceSheetOpens: user.preferences?.notifications?.priceAlerts ?? false,
+          newContacts: user.preferences?.notifications?.email ?? false,
+          weeklyReports: user.preferences?.notifications?.marketUpdates ?? false,
+          systemUpdates: user.preferences?.notifications?.email ?? false,
         },
         
         // Subscription
@@ -139,6 +142,8 @@ export default function Settings() {
         
         // ProduceHunt opt-in state
         ...((() => { setPhOptedIn(!!(user as any).integrations?.producehunt); return {} })()),
+        // USDA market preferences
+        ...((() => { setUsdaMarkets((user as any).preferences?.usdaMarkets || []); return {} })()),
 
         // Pricesheet Preferences (load from user data or use defaults)
         pricesheetSettings: (() => {
@@ -430,7 +435,7 @@ export default function Settings() {
   const tabs = [
     { id: 'profile', name: 'Profile', icon: UserIcon },
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
-    { id: 'notifications', name: 'Notifications', icon: BellIcon },
+    { id: 'notifications', name: 'Market Data', icon: BellIcon },
     { id: 'pricesheet', name: 'Price Sheets', icon: DocumentTextIcon },
     { id: 'subscription', name: 'Subscription', icon: ShieldCheckIcon }
   ]
@@ -783,70 +788,95 @@ export default function Settings() {
           </div>
         )}
 
-        {activeTab === 'notifications' && (
-          <div className="p-6 relative">
-            <h3 className="text-lg font-medium text-gray-900 mb-6">Notification Preferences</h3>
-            
-            <div className="space-y-6 opacity-50 pointer-events-none">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">Price Sheet Opens</h4>
-                  <p className="text-sm text-gray-500">Get notified when contacts open your price sheets</p>
-                </div>
-                <button
-                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
-                >
-                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
-                </button>
+        {activeTab === 'notifications' && (() => {
+          const TERMINAL = ['Los Angeles', 'New York', 'Chicago', 'Atlanta', 'Philadelphia', 'Boston', 'Baltimore', 'Detroit', 'Miami']
+          const SHIPPING = ['Fresno, CA (Shipping Point)', 'Phoenix, AZ (Shipping Point)', 'Orlando, FL (Shipping Point)', 'Miami, FL (Shipping Point)', 'Yakima, WA (Shipping Point)']
+          const ALL = [...TERMINAL, ...SHIPPING]
+
+          const toggle = (city: string) =>
+            setUsdaMarkets(prev =>
+              prev.includes(city) ? prev.filter(c => c !== city) : [...prev, city]
+            )
+
+          const saveMarkets = async () => {
+            setSavingMarkets(true)
+            try {
+              await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/settings/preferences`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${getAuthToken()}` },
+                body: JSON.stringify({ usdaMarkets }),
+              })
+              setMarketsSaved(true)
+              setTimeout(() => setMarketsSaved(false), 3000)
+            } finally {
+              setSavingMarkets(false)
+            }
+          }
+
+          return (
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-1">
+                <h3 className="text-lg font-medium text-gray-900">USDA Market Data Preferences</h3>
+                {usdaMarkets.length > 0 && (
+                  <button onClick={() => setUsdaMarkets([])} className="text-xs text-gray-400 hover:text-gray-600">
+                    Reset to all markets
+                  </button>
+                )}
               </div>
-              
-              <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500 mb-6">
+                Choose which USDA terminal markets and shipping points appear on your dashboard.
+                {usdaMarkets.length === 0 && <span className="text-emerald-600"> All markets shown when none selected.</span>}
+              </p>
+
+              <div className="space-y-5">
                 <div>
-                  <h4 className="text-sm font-medium text-gray-900">New Contacts</h4>
-                  <p className="text-sm text-gray-500">Get notified when new contacts are added</p>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Terminal Markets</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {TERMINAL.map(city => (
+                      <label key={city} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={usdaMarkets.includes(city)}
+                          onChange={() => toggle(city)}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="text-sm text-gray-700 group-hover:text-gray-900">{city}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-                <button
-                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
-                >
-                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
-                </button>
+
+                <div>
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Shipping Points (FOB)</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {SHIPPING.map(city => (
+                      <label key={city} className="flex items-center gap-2.5 cursor-pointer group">
+                        <input
+                          type="checkbox"
+                          checked={usdaMarkets.includes(city)}
+                          onChange={() => toggle(city)}
+                          className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="text-sm text-gray-700 group-hover:text-gray-900">{city}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">Weekly Reports</h4>
-                  <p className="text-sm text-gray-500">Receive weekly analytics and engagement summaries</p>
-                </div>
+
+              <div className="mt-6 flex items-center gap-3">
                 <button
-                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
+                  onClick={saveMarkets}
+                  disabled={savingMarkets}
+                  className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
                 >
-                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
+                  {savingMarkets ? 'Saving…' : 'Save Preferences'}
                 </button>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">System Updates</h4>
-                  <p className="text-sm text-gray-500">Important updates about new features and maintenance</p>
-                </div>
-                <button
-                  className="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-gray-200"
-                >
-                  <span className="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 translate-x-0" />
-                </button>
+                {marketsSaved && <span className="text-sm text-emerald-600">Saved!</span>}
               </div>
             </div>
-            
-            {/* Coming Soon Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-60 backdrop-blur-sm">
-              <div className="text-center">
-                <SparklesIcon className="h-12 w-12 text-blue-500 mx-auto mb-3" />
-                <p className="text-lg font-semibold text-gray-900">Coming Soon</p>
-                <p className="text-sm text-gray-600 mt-1">Notification preferences will be available in a future update</p>
-              </div>
-            </div>
-          </div>
-        )}
+          )
+        })()}
 
         {activeTab === 'subscription' && (
           <div className="p-6">

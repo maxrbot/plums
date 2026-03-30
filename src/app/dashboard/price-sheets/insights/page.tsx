@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { ArrowPathIcon, ChevronRightIcon, ArrowTopRightOnSquareIcon, XMarkIcon, ChevronDownIcon } from '@heroicons/react/24/outline'
 import { fetchUsdaPrice, getAvailableMarkets } from '@/lib/usdaApi'
 import { cropsApi } from '@/lib/api'
+import RetailSaleAds from '../../RetailSaleAds'
 
 interface CropVariation {
   _id: string
@@ -1063,6 +1064,9 @@ export default function MarketInsightsPage() {
           </div>
         </div>
       )}
+
+      {/* Retail Sale Ads — weekly retailer deals for your commodities */}
+      <RetailSaleAds />
     </>
   )
 }

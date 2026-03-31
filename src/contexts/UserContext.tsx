@@ -7,6 +7,8 @@ interface User {
   id: string
   email: string
   subscriptionTier: 'basic' | 'premium' | 'enterprise'
+  orgId?: string
+  role?: 'owner' | 'member'
   profile: {
     companyName: string
     contactName: string

@@ -37,28 +37,34 @@ async function syncDirectoryProducts(db: any, userId: string, userMongoId: any) 
   )
 }
 
+// Returns the MongoDB filter to scope cropManagement queries.
+// Org users share crops across the org; legacy solo users query by their own ObjectId.
+function cropFilter(user: { id: string; orgId?: string }, userObjectId: ObjectId) {
+  return user.orgId ? { orgId: user.orgId } : { userId: userObjectId }
+}
+
 const cropsRoutes: FastifyPluginAsync = async (fastify) => {
-  
+
   // Add auth middleware to all routes
   fastify.addHook('preHandler', authenticate)
-  
-  // Get all user's crops
+
+  // Get all crops (org-scoped or user-scoped for legacy)
   fastify.get('/', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
-    
+
     try {
       const db = database.getDb()
       const userDoc = await db.collection('users').findOne({ id: user.id })
-      
+
       if (!userDoc) {
         return reply.status(404).send({
           error: 'User Not Found',
           message: 'User not found'
         })
       }
-      
+
       const crops = await db.collection<CropManagement>('cropManagement')
-        .find({ userId: userDoc._id })
+        .find(cropFilter(user, userDoc._id))
         .sort({ createdAt: -1 })
         .toArray()
       
@@ -105,7 +111,7 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
       
       const crop = await db.collection<CropManagement>('cropManagement').findOne({
         _id: new ObjectId(id),
-        userId: userDoc._id
+        ...cropFilter(user, userDoc._id)
       })
       
       if (!crop) {
@@ -133,25 +139,31 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
-  // Create new crop
+  // Create new crop (owner only for org accounts)
   fastify.post('/', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
+
+    if (user.orgId && user.role !== 'owner') {
+      return reply.status(403).send({ error: 'Only the account owner can add commodities' })
+    }
+
     const cropData = request.body as Omit<CropManagement, '_id' | 'userId' | 'createdAt' | 'updatedAt'>
-    
+
     try {
       const db = database.getDb()
       const userDoc = await db.collection('users').findOne({ id: user.id })
-      
+
       if (!userDoc) {
         return reply.status(404).send({
           error: 'User Not Found',
           message: 'User not found'
         })
       }
-      
+
       const newCrop: Omit<CropManagement, '_id'> = {
         ...cropData,
         userId: userDoc._id!,
+        ...(user.orgId ? { orgId: user.orgId } : {}),
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -190,9 +202,14 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
-  // Update crop
+  // Update crop (owner only for org accounts)
   fastify.put('/:id', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
+
+    if (user.orgId && user.role !== 'owner') {
+      return reply.status(403).send({ error: 'Only the account owner can edit commodities' })
+    }
+
     const { id } = request.params as { id: string }
     const updateData = request.body as Partial<CropManagement>
     
@@ -217,9 +234,9 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
       const { _id, userId, createdAt, ...allowedUpdates } = updateData
       
       const result = await db.collection<CropManagement>('cropManagement').updateOne(
-        { 
+        {
           _id: new ObjectId(id),
-          userId: userDoc._id
+          ...cropFilter(user, userDoc._id)
         },
         { 
           $set: {
@@ -268,9 +285,14 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
   
-  // Delete crop
+  // Delete crop (owner only for org accounts)
   fastify.delete('/:id', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
+
+    if (user.orgId && user.role !== 'owner') {
+      return reply.status(403).send({ error: 'Only the account owner can delete commodities' })
+    }
+
     const { id } = request.params as { id: string }
     
     if (!ObjectId.isValid(id)) {
@@ -293,7 +315,7 @@ const cropsRoutes: FastifyPluginAsync = async (fastify) => {
       
       const result = await db.collection<CropManagement>('cropManagement').deleteOne({
         _id: new ObjectId(id),
-        userId: userDoc._id
+        ...cropFilter(user, userDoc._id)
       })
       
       if (result.deletedCount === 0) {

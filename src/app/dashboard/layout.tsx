@@ -4,12 +4,12 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
-import { 
-  HomeIcon, 
-  DocumentTextIcon, 
-  UserGroupIcon, 
-  ChartBarIcon, 
-  ChatBubbleLeftRightIcon, 
+import {
+  HomeIcon,
+  DocumentTextIcon,
+  UserGroupIcon,
+  ChartBarIcon,
+  ChatBubbleLeftRightIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   LightBulbIcon,
@@ -19,7 +19,9 @@ import {
   PaperAirplaneIcon,
   PlusIcon,
   Bars3Icon,
-  XMarkIcon
+  XMarkIcon,
+  UsersIcon,
+  PresentationChartLineIcon,
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
 import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
@@ -34,6 +36,7 @@ const featureAccess: Record<string, string[]> = {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+  { name: 'USDA Market Data', href: '/dashboard/market-data', icon: PresentationChartLineIcon },
   { name: 'Price Sheets', href: '/dashboard/price-sheets', icon: DocumentTextIcon },
   { name: 'Contacts', href: '/dashboard/contacts', icon: UserGroupIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
@@ -175,7 +178,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }
   
   const userFeatures = featureAccess[user.subscriptionTier]
-  
+  const isOwner = user?.role === 'owner'
+
   const filteredNavigation = navigationWithAdmin.filter(item => {
     if (item.name === 'AI Chatbot') return userFeatures.includes('ai_chatbot')
     if (item.name === 'Analytics') return userFeatures.includes('analytics')
@@ -448,6 +452,22 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               })}
             </div>
 
+            {/* Team link — owner only */}
+            {isOwner && (
+              <div className="mt-2 pt-2 border-t border-slate-700">
+                <Link
+                  href="/dashboard/team"
+                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    pathname === '/dashboard/team'
+                      ? 'bg-slate-700 text-lime-400'
+                      : 'text-gray-300 hover:bg-slate-700 hover:text-white'
+                  }`}
+                >
+                  <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${pathname === '/dashboard/team' ? 'text-lime-400' : 'text-gray-400 group-hover:text-gray-300'}`} />
+                  Team
+                </Link>
+              </div>
+            )}
 
           </nav>
 

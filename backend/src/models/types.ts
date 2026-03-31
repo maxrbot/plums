@@ -7,12 +7,22 @@ export interface BaseDocument {
   updatedAt: Date
 }
 
+// Organization (top-level tenant)
+export interface Organization extends BaseDocument {
+  name: string
+  slug: string      // lowercase alphanumeric — doubles as the team invite code
+  ownerId: string   // user.id of the owner
+}
+
 // User and Settings
 export interface User extends BaseDocument {
   id: string // MongoDB ObjectId as string
   email: string
   password?: string // Optional for responses (excluded in most cases)
   subscriptionTier: 'basic' | 'premium' | 'enterprise' | 'admin'
+  orgId?: string        // Organization this user belongs to
+  role?: 'owner' | 'member'
+  lastSeenAt?: Date
   
   // Embedded settings (from dashboard/settings tabs)
   profile: {

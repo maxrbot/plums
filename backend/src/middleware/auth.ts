@@ -8,6 +8,8 @@ export interface AuthenticatedRequest extends FastifyRequest {
     id: string
     email: string
     subscriptionTier: 'basic' | 'premium' | 'enterprise' | 'admin'
+    orgId?: string
+    role?: 'owner' | 'member'
   }
 }
 
@@ -45,11 +47,14 @@ export const authenticate = async (request: FastifyRequest, reply: FastifyReply)
     ).catch(err => console.error('Failed to update lastSeenAt:', err))
     
     // Add user info to request
-    ;(request as AuthenticatedRequest).user = {
+    const userInfo: AuthenticatedRequest['user'] = {
       id: dbUser.id,
       email: dbUser.email,
-      subscriptionTier: dbUser.subscriptionTier
+      subscriptionTier: dbUser.subscriptionTier,
     }
+    if (dbUser.orgId) userInfo.orgId = dbUser.orgId
+    if (dbUser.role) userInfo.role = dbUser.role
+    ;(request as AuthenticatedRequest).user = userInfo
     
   } catch (error) {
     console.error('Authentication error:', error)

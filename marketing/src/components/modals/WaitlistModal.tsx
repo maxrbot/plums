@@ -24,6 +24,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
   const [showInviteForm, setShowInviteForm] = useState(false)
   const [waitlistEmail, setWaitlistEmail] = useState('')
   const [waitlistSubmitted, setWaitlistSubmitted] = useState(false)
+  const [isJoiningOrg, setIsJoiningOrg] = useState(false)
 
   // Reset form when modal opens
   useEffect(() => {
@@ -63,7 +64,8 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
             email,
             password,
             companyName,
-            contactName
+            contactName,
+            inviteCode: inviteCode.trim().toLowerCase(),
           }),
         })
 
@@ -117,17 +119,41 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     }
   }
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
+  const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setInviteError('')
-    
-    if (inviteCode.toLowerCase() === 'early2025') {
-      // Directly go to signup form with celebration message
+    setIsLoading(true)
+
+    const code = inviteCode.trim().toLowerCase()
+
+    if (code === 'early2025') {
+      // Creating a new org — needs company name
       setShowInviteForm(false)
       setIsInviteVerified(true)
       setIsRegisterMode(true)
-    } else {
-      setInviteError('Invalid invite code. Please check your code and try again.')
+      setIsLoading(false)
+      return
+    }
+
+    // Check if this code matches an existing org
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+      const res = await fetch(`${apiUrl}/team/org-by-slug?slug=${encodeURIComponent(code)}`)
+      if (res.ok) {
+        const data = await res.json()
+        // Joining an existing org — pre-fill company name (read-only) and skip that field
+        setCompanyName(data.name)
+        setShowInviteForm(false)
+        setIsInviteVerified(true)
+        setIsRegisterMode(true)
+        setIsJoiningOrg(true)
+      } else {
+        setInviteError('Invite code not recognised. Check with your account owner.')
+      }
+    } catch {
+      setInviteError('Could not verify code. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -196,6 +222,7 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
     setWaitlistEmail('')
     setWaitlistSubmitted(false)
     setIsRegisterMode(false)
+    setIsJoiningOrg(false)
   }
 
   const handleClose = () => {
@@ -405,19 +432,26 @@ export default function WaitlistModal({ isOpen, onClose }: WaitlistModalProps) {
                         )}
                         {isRegisterMode && (
                           <>
-                            <div>
-                              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
-                                Company Name
-                              </label>
-                              <input
-                                type="text"
-                                id="companyName"
-                                value={companyName}
-                                onChange={(e) => setCompanyName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
-                                placeholder="Your Company"
-                              />
-                            </div>
+                            {isJoiningOrg ? (
+                              <div className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-md text-sm text-gray-600">
+                                Joining <span className="font-medium">{companyName}</span>
+                              </div>
+                            ) : (
+                              <div>
+                                <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+                                  Company Name
+                                </label>
+                                <input
+                                  type="text"
+                                  id="companyName"
+                                  value={companyName}
+                                  onChange={(e) => setCompanyName(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                                  placeholder="Your Company"
+                                  required
+                                />
+                              </div>
+                            )}
 
                             <div>
                               <label htmlFor="contactName" className="block text-sm font-medium text-gray-700 mb-1">

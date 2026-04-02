@@ -131,9 +131,18 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
               }
             })
           }
+
+          // Filter products by contact's primary crop interests
+          const primaryCrops: string[] = contact.primaryCrops || []
+          if (primaryCrops.length > 0) {
+            products = products.filter((product: any) => {
+              const commodity = (product.commodity || '').toLowerCase()
+              return primaryCrops.some((crop: string) => crop.toLowerCase() === commodity)
+            })
+          }
         }
       }
-      
+
       // If no valid hash, hide all pricing
       if (!showPricing) {
         products = products.map(product => ({

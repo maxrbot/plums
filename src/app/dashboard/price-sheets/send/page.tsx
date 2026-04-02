@@ -2,21 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { 
-  PaperAirplaneIcon,
+import {
   EyeIcon,
   CheckIcon,
   CheckCircleIcon,
   MagnifyingGlassIcon,
-  EnvelopeIcon,
-  DevicePhoneMobileIcon,
-  CalendarIcon,
-  ArrowRightIcon
+  ArrowRightIcon,
+  RectangleGroupIcon,
+  CursorArrowRaysIcon
 } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import PriceSheetPreviewModal from '../../../../components/modals/PriceSheetPreviewModal'
 import { Contact } from '../../../../types'
-import { priceSheetsApi, contactsApi } from '../../../../lib/api'
+import { priceSheetsApi, contactsApi, contactBatchesApi } from '../../../../lib/api'
 import { useUser } from '../../../../contexts/UserContext'
 import { formatProductForPreview, formatProductsForPreview } from '../../../../lib/priceSheetUtils'
 
@@ -75,6 +73,12 @@ interface PriceSheetProduct {
   updatedAt: string
 }
 
+interface ContactBatch {
+  id: string
+  name: string
+  contactIds: string[]
+}
+
 // Utility function for relative time
 const getRelativeTime = (dateString: string) => {
   const date = new Date(dateString)
@@ -111,6 +115,20 @@ export default function SendPriceSheets() {
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedTiers, setSelectedTiers] = useState<string[]>([])
+  const [fromTemplate, setFromTemplate] = useState(false)
+  // Contact selection mode: 'batch' | 'all' | 'manual' | null
+  const [selectionMode, setSelectionMode] = useState<'batch' | 'manual' | null>(null)
+  const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null)
+  const [batches, setBatches] = useState<ContactBatch[]>([])
+  const [isLoadingBatches, setIsLoadingBatches] = useState(false)
+
+  // Settings tooltip state (fixed-position to escape scroll container)
+  const [settingsTooltip, setSettingsTooltip] = useState<{
+    contact: Contact
+    x: number
+    y: number
+  } | null>(null)
+
   // Removed email generation state - now handled on schedule page
   // Removed Step 3 (Enhance Your Message) - now handled on schedule page
 
@@ -144,18 +162,22 @@ export default function SendPriceSheets() {
   useEffect(() => {
     loadPriceSheets()
     loadContacts()
+    loadBatches()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPriceSheets = async () => {
     try {
       setIsLoadingPriceSheets(true)
       const response = await priceSheetsApi.getAll()
-      const sheets = response.priceSheets || []
+      const allSheets = response.priceSheets || []
+      // Exclude templates from the send page sheet selector
+      const sheets = allSheets.filter((s: any) => !s.isTemplate)
       setPriceSheets(sheets)
       
       // Check URL for sheetId parameter
       const urlParams = new URLSearchParams(window.location.search)
       const sheetIdFromUrl = urlParams.get('sheetId')
+      if (urlParams.get('fromTemplate') === 'true') setFromTemplate(true)
       
       let sheetToSelect = ''
       
@@ -199,6 +221,32 @@ export default function SendPriceSheets() {
     } finally {
       setIsLoadingContacts(false)
     }
+  }
+
+  const loadBatches = async () => {
+    try {
+      setIsLoadingBatches(true)
+      const response = await contactBatchesApi.getAll()
+      setBatches(response.batches || [])
+    } catch (error) {
+      console.error('Error loading batches:', error)
+    } finally {
+      setIsLoadingBatches(false)
+    }
+  }
+
+  const handleSelectBatch = (batch: ContactBatch) => {
+    setSelectedBatchId(batch.id)
+    setSelectedContacts(batch.contactIds)
+  }
+
+  const handleSetMode = (mode: 'batch' | 'manual') => {
+    setSelectionMode(mode)
+    setSelectedBatchId(null)
+    if (mode === 'batch') {
+      setSelectedContacts([])
+    }
+    // 'manual' keeps existing selection
   }
 
   const handlePreviewPriceSheet = async (priceSheetId: string) => {
@@ -304,127 +352,20 @@ export default function SendPriceSheets() {
           showStrikethrough: pricesheetSettings.showDiscountStrikethrough && adjustmentApplied !== 0 && !product.hasOverride && product.price !== null
         })
       })
-      
+
+      // Filter by primary crop interests
+      const primaryCrops: string[] = (contact as any).primaryCrops || []
+      const filteredProducts = primaryCrops.length > 0
+        ? adjustedProducts.filter(p => primaryCrops.some(crop => crop.toLowerCase() === (p.commodity || '').toLowerCase()))
+        : adjustedProducts
+
       setPreviewPriceSheet(selectedSheet)
-      setPreviewProducts(adjustedProducts)
+      setPreviewProducts(filteredProducts)
       setIsPreviewModalOpen(true)
     } catch (error) {
       console.error('Failed to load preview:', error)
     } finally {
       setIsLoadingPreview(false)
-    }
-  }
-
-  // File handling functions
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(true)
-  }
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-  }
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    
-    const files = Array.from(e.dataTransfer.files)
-    const validFiles = files.filter(file => 
-      file.type.startsWith('image/') || 
-      file.type === 'application/pdf' ||
-      file.type.includes('document')
-    )
-    
-    // Limit to 5 files total
-    const remainingSlots = 5 - attachedFiles.length
-    const filesToAdd = validFiles.slice(0, remainingSlots)
-    
-    if (validFiles.length > remainingSlots) {
-      alert(`You can only attach up to 5 files. ${validFiles.length - remainingSlots} file(s) were not added.`)
-    }
-    
-    const newFiles = [...attachedFiles, ...filesToAdd]
-    handleFilesChange(newFiles)
-  }
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const files = Array.from(e.target.files)
-      
-      // Limit to 5 files total
-      const remainingSlots = 5 - attachedFiles.length
-      const filesToAdd = files.slice(0, remainingSlots)
-      
-      if (files.length > remainingSlots) {
-        alert(`You can only attach up to 5 files. ${files.length - remainingSlots} file(s) were not added.`)
-      }
-      
-      const newFiles = [...attachedFiles, ...filesToAdd]
-      handleFilesChange(newFiles)
-    }
-  }
-
-  const removeFile = (index: number) => {
-    const newFiles = attachedFiles.filter((_, i) => i !== index)
-    handleFilesChange(newFiles)
-  }
-
-  // Check if step 3 has content and update state
-  const checkStep3Content = () => {
-    const hasContent = attachedFiles.length > 0
-    setStep3HasContent(hasContent)
-    return hasContent
-  }
-
-  // Handle step 3 actions
-  const handleSkipStep3 = () => {
-    setIsStep3Collapsed(true)
-  }
-
-  const handleSaveStep3 = () => {
-    if (checkStep3Content()) {
-      setIsStep3Collapsed(true)
-    }
-  }
-
-  const handleEditStep3 = () => {
-    setIsStep3Collapsed(false)
-  }
-
-  // Update content check when inputs change
-  const handleCustomMessageChange = (value: string) => {
-    setCustomMessage(value)
-    setTimeout(checkStep3Content, 0) // Check after state update
-  }
-
-  const handleFilesChange = (newFiles: File[]) => {
-    setAttachedFiles(newFiles)
-    setTimeout(checkStep3Content, 0) // Check after state update
-  }
-
-  // Analyze price sheet for smart content generation
-  const analyzePriceSheet = async (priceSheetId: string) => {
-    try {
-      const response = await priceSheetsApi.getProducts(priceSheetId)
-      const products = response.products || []
-      
-      const analysis = {
-        totalProducts: products.length,
-        availableItems: products.filter(p => p.availability === 'Available').length,
-        newCropItems: products.filter(p => p.availability === 'New Crop').length,
-        preOrderItems: products.filter(p => p.availability === 'Pre-order').length,
-        limitedItems: products.filter(p => p.availability === 'Limited').length,
-        organicItems: products.filter(p => p.isOrganic).length,
-        topProducts: products.slice(0, 3).map(p => p.productName || `${p.commodity} ${p.variety}`),
-        regions: [...new Set(products.map(p => p.regionName).filter(Boolean))]
-      }
-      
-      return analysis
-    } catch (error) {
-      console.error('Error analyzing price sheet:', error)
-      return null
     }
   }
 
@@ -435,45 +376,6 @@ export default function SendPriceSheets() {
     volume: contacts.filter(c => c.pricingTier === 'volume').length,
     standard: contacts.filter(c => c.pricingTier === 'standard').length,
     new_prospect: contacts.filter(c => c.pricingTier === 'new_prospect').length
-  }
-
-  // Helper function to render delivery method
-  const renderDeliveryMethod = (contact: Contact) => {
-    const pricesheetSettings = (contact as any).pricesheetSettings || {}
-    const deliveryMethod = pricesheetSettings.deliveryMethod || 
-      (contact.preferredContactMethod === 'phone' ? 'sms' : 'email')
-
-    switch (deliveryMethod) {
-      case 'email':
-        return (
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <EnvelopeIcon className="h-3 w-3" />
-            <span>Email</span>
-          </div>
-        )
-      case 'sms':
-        return (
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <DevicePhoneMobileIcon className="h-3 w-3" />
-            <span>SMS</span>
-          </div>
-        )
-      case 'both':
-        return (
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <EnvelopeIcon className="h-3 w-3" />
-            <DevicePhoneMobileIcon className="h-3 w-3" />
-            <span>Email & SMS</span>
-          </div>
-        )
-      default:
-        return (
-          <div className="flex items-center space-x-1 text-xs text-gray-500">
-            <EnvelopeIcon className="h-3 w-3" />
-            <span>Email</span>
-          </div>
-        )
-    }
   }
 
   return (
@@ -494,8 +396,37 @@ export default function SendPriceSheets() {
       </div>
 
       <div className="space-y-8">
-        {/* Step 1: Select Price Sheet */}
-        <div className="bg-white shadow rounded-lg p-6">
+        {/* From-template banner (replaces Step 1 when navigating from template flow) */}
+        {fromTemplate && selectedPriceSheet && (() => {
+          const sheet = priceSheets.find(s => s._id === selectedPriceSheet)
+          return (
+            <div className="bg-white border border-gray-200 rounded-lg px-5 py-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <CheckCircleIcon className="h-5 w-5 text-green-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium text-green-600 uppercase tracking-wide">Price sheet ready</p>
+                  <h3 className="text-base font-semibold text-gray-900 mt-0.5">{sheet?.title || 'Untitled'}</h3>
+                </div>
+                {sheet?.productsCount != null && (
+                  <div className="ml-6 pl-6 border-l border-gray-200">
+                    <p className="text-xs text-gray-400">Products</p>
+                    <p className="text-sm font-semibold text-gray-900">{sheet.productsCount}</p>
+                  </div>
+                )}
+                <div className="ml-4 pl-4 border-l border-gray-200">
+                  <p className="text-xs text-gray-400">Created</p>
+                  <p className="text-sm font-semibold text-gray-900">{sheet ? getRelativeTime(sheet.createdAt) : '—'}</p>
+                </div>
+                <p className="ml-auto text-xs text-gray-400">Select contacts below to send</p>
+              </div>
+            </div>
+          )
+        })()}
+
+        {/* Step 1: Select Price Sheet — hidden when navigating from template */}
+        {!fromTemplate && <div className="bg-white shadow rounded-lg p-6">
           <div className="flex items-center space-x-3 mb-4">
             <div className="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-semibold">1</div>
             <h2 className="text-lg font-medium text-gray-900">Select Price Sheet</h2>
@@ -600,157 +531,235 @@ export default function SendPriceSheets() {
               <p className="text-sm text-yellow-800">Please select a price sheet to continue.</p>
             </div>
           )}
-        </div>
+        </div>}
 
-        {/* Step 2: Select Contacts */}
+        {/* Step 2 (or Step 1 when from template): Select Contacts */}
         {selectedPriceSheet && (
           <div className="bg-white shadow rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="flex-shrink-0 w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+            <div className="flex items-center space-x-3 mb-6">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-sm font-semibold">{fromTemplate ? '1' : '2'}</div>
               <h2 className="text-lg font-medium text-gray-900">Select Contacts</h2>
             </div>
 
-            {/* Contact Filters & Search */}
-            <div className="mb-6 space-y-4">
-              <div className="flex items-center space-x-4">
-                <div className="flex-1 relative">
-                  <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                    <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            {/* Selection mode cards */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {/* Batch option */}
+              <button
+                onClick={() => handleSetMode('batch')}
+                className={`flex flex-col items-start p-4 rounded-lg border-2 text-left transition-colors ${
+                  selectionMode === 'batch'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${selectionMode === 'batch' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                  <RectangleGroupIcon className={`h-5 w-5 ${selectionMode === 'batch' ? 'text-blue-600' : 'text-gray-500'}`} />
+                </div>
+                <p className={`text-sm font-semibold ${selectionMode === 'batch' ? 'text-blue-900' : 'text-gray-900'}`}>Use a Batch</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {isLoadingBatches ? 'Loading...' : batches.length === 0 ? 'No batches yet' : `${batches.length} batch${batches.length !== 1 ? 'es' : ''} saved`}
+                </p>
+              </button>
+
+              {/* Manual option */}
+              <button
+                onClick={() => handleSetMode('manual')}
+                className={`flex flex-col items-start p-4 rounded-lg border-2 text-left transition-colors ${
+                  selectionMode === 'manual'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
+              >
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${selectionMode === 'manual' ? 'bg-blue-100' : 'bg-gray-100'}`}>
+                  <CursorArrowRaysIcon className={`h-5 w-5 ${selectionMode === 'manual' ? 'text-blue-600' : 'text-gray-500'}`} />
+                </div>
+                <p className={`text-sm font-semibold ${selectionMode === 'manual' ? 'text-blue-900' : 'text-gray-900'}`}>Select Manually</p>
+                <p className="text-xs text-gray-500 mt-0.5">Pick contacts one by one</p>
+              </button>
+            </div>
+
+            {/* Batch picker */}
+            {selectionMode === 'batch' && (
+              <div className="mb-6">
+                {batches.length === 0 ? (
+                  <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                    <RectangleGroupIcon className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500">No batches created yet.</p>
+                    <Link href="/dashboard/contacts" className="text-sm text-blue-600 hover:text-blue-500 font-medium mt-1 inline-block">
+                      Go to Contacts to create a batch →
+                    </Link>
                   </div>
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="block w-full rounded-md border border-gray-300 bg-white pl-10 pr-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    placeholder="Search contacts..."
-                  />
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {batches.map(batch => (
+                      <button
+                        key={batch.id}
+                        onClick={() => handleSelectBatch(batch)}
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium border transition-colors ${
+                          selectedBatchId === batch.id
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:text-blue-700'
+                        }`}
+                      >
+                        <RectangleGroupIcon className="h-4 w-4 flex-shrink-0" />
+                        {batch.name}
+                        <span className={`text-xs ${selectedBatchId === batch.id ? 'text-blue-100' : 'text-gray-400'}`}>
+                          {batch.contactIds.length}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Manual search */}
+            {selectionMode === 'manual' && (
+              <div className="mb-4 space-y-3">
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1 relative">
+                    <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                      <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="block w-full rounded-md border border-gray-300 bg-white pl-10 pr-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                      placeholder="Search contacts..."
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 text-sm">
+                    <button onClick={selectAllContacts} className="font-medium text-blue-600 hover:text-blue-500">Select All</button>
+                    <span className="text-gray-300">|</span>
+                    <button onClick={clearAllContacts} className="font-medium text-gray-500 hover:text-gray-700">Clear</button>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={selectAllContacts}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
-                  >
-                    Select All
-                  </button>
-                  <span className="text-gray-300">|</span>
-                  <button
-                    onClick={clearAllContacts}
-                    className="text-sm font-medium text-gray-600 hover:text-gray-500"
-                  >
-                    Clear All
-                  </button>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(tierCounts).map(([tier, count]) => (
+                    <button
+                      key={tier}
+                      onClick={() => toggleTier(tier)}
+                      className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                        selectedTiers.includes(tier)
+                          ? 'bg-blue-100 text-blue-800'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tier.replace('_', ' ')} ({count})
+                    </button>
+                  ))}
                 </div>
               </div>
+            )}
 
-              {/* Tier Filters */}
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(tierCounts).map(([tier, count]) => (
-                  <button
-                    key={tier}
-                    onClick={() => toggleTier(tier)}
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                      selectedTiers.includes(tier)
-                        ? 'bg-blue-100 text-blue-800'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                  >
-                    {tier.replace('_', ' ')} ({count})
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Contacts List */}
-            <div className="border border-gray-200 rounded-lg">
-              <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center justify-between mb-2">
+            {/* Contacts table — shown when a mode is active and contacts are selected or browsing manually */}
+            {selectionMode && (selectionMode === 'manual' || selectedContacts.length > 0) && (
+              <div className="border border-gray-200 rounded-lg">
+                <div className="px-4 py-3 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
                   <span className="text-sm font-medium text-gray-900">
-                    Contacts ({selectedContacts.length} of {filteredContacts.length} selected)
+                    {selectionMode === 'manual'
+                      ? `${selectedContacts.length} of ${filteredContacts.length} selected`
+                      : `${selectedContacts.length} contact${selectedContacts.length !== 1 ? 's' : ''} will receive this price sheet`}
                   </span>
-                  <span className="text-xs text-gray-500">Dynamic pricing will be applied automatically</span>
+                  <span className="text-xs text-gray-500">Dynamic pricing applied automatically</span>
                 </div>
-                
-              </div>
-              
-              <div className="max-h-96 overflow-y-auto border-t border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10">
-                    <tr>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12"></th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                      <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Pricing</th>
-                      <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Preview</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {filteredContacts.map((contact) => {
-                      const pricesheetSettings = (contact as any).pricesheetSettings || {}
-                      const hasGlobalAdjustment = (pricesheetSettings.globalAdjustment || 0) !== 0
-                      const hasIndividualAdjustments = (pricesheetSettings.cropAdjustments || []).length > 0
-                      const hasCustomPricing = hasGlobalAdjustment || hasIndividualAdjustments
-                      
-                      return (
-                        <tr key={contact.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 whitespace-nowrap w-12">
-                            <input
-                              type="checkbox"
-                              checked={selectedContacts.includes(contact.id)}
-                              onChange={() => toggleContact(contact.id)}
-                              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                            />
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <p className="text-sm font-medium text-gray-900">{contact.company}</p>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <p className="text-sm text-gray-900">
-                              {contact.firstName} {contact.lastName}
-                            </p>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <p className="text-sm text-gray-600">{contact.email}</p>
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-center">
-                            {hasCustomPricing ? (
-                              <div>
-                                <div className="flex items-center justify-center space-x-1">
-                                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                                  <span className="text-xs font-medium text-red-700">Custom</span>
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">
-                                  {hasGlobalAdjustment && `Global: ${pricesheetSettings.globalAdjustment > 0 ? '+' : ''}${pricesheetSettings.globalAdjustment}%`}
-                                  {hasGlobalAdjustment && hasIndividualAdjustments && <br />}
-                                  {hasIndividualAdjustments && `${pricesheetSettings.cropAdjustments.length} crops`}
-                                </div>
-                              </div>
-                            ) : (
-                              <div>
-                                <div className="flex items-center justify-center space-x-1">
-                                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                  <span className="text-xs font-medium text-green-700">Standard</span>
-                                </div>
-                                <div className="text-xs text-gray-500 mt-1">Base pricing</div>
-                              </div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-center">
-                            <button
-                              onClick={() => handlePreviewContact(contact)}
-                              className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
-                              title="Preview pricesheet for this contact"
+                <div className="max-h-80 overflow-y-auto">
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50 sticky top-0 z-10">
+                      <tr>
+                        {selectionMode === 'manual' && (
+                          <th className="px-4 py-2 w-10"></th>
+                        )}
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Company</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Contact Settings</th>
+                        <th className="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Preview</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-100">
+                      {(() => {
+                        // For batch/all modes show only selected contacts; for manual show filtered list
+                        const displayContacts = selectionMode === 'manual'
+                          ? filteredContacts
+                          : contacts.filter(c => selectedContacts.includes(c.id))
+
+                        return displayContacts.map((contact) => {
+                          const pricesheetSettings = (contact as any).pricesheetSettings || {}
+                          const hasGlobalAdjustment = (pricesheetSettings.globalAdjustment || 0) !== 0
+                          const hasIndividualAdjustments = (pricesheetSettings.cropAdjustments || []).length > 0
+                          const hasCustomPricing = hasGlobalAdjustment || hasIndividualAdjustments
+                          const isSelected = selectedContacts.includes(contact.id)
+
+                          return (
+                            <tr
+                              key={contact.id}
+                              onClick={selectionMode === 'manual' ? () => toggleContact(contact.id) : undefined}
+                              className={`${selectionMode === 'manual' ? 'cursor-pointer hover:bg-gray-50' : ''} ${isSelected && selectionMode === 'manual' ? 'bg-blue-50' : ''}`}
                             >
-                              <EyeIcon className="h-4 w-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                              {selectionMode === 'manual' && (
+                                <td className="px-4 py-3 w-10">
+                                  <input
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={() => toggleContact(contact.id)}
+                                    onClick={e => e.stopPropagation()}
+                                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                  />
+                                </td>
+                              )}
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <p className="text-sm font-medium text-gray-900">{contact.company}</p>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <p className="text-sm text-gray-900">{contact.firstName} {contact.lastName}</p>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap">
+                                <p className="text-sm text-gray-600">{contact.email}</p>
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                {(() => {
+                                  const primaryCrops: string[] = (contact as any).primaryCrops || []
+                                  const hasAnySetting = hasCustomPricing || primaryCrops.length > 0
+                                  return hasAnySetting ? (
+                                    <button
+                                      className="inline-flex items-center gap-1 cursor-default"
+                                      onMouseEnter={(e) => {
+                                        const rect = e.currentTarget.getBoundingClientRect()
+                                        setSettingsTooltip({ contact, x: rect.left + rect.width / 2, y: rect.bottom + 8 })
+                                      }}
+                                      onMouseLeave={() => setSettingsTooltip(null)}
+                                    >
+                                      <div className="w-1.5 h-1.5 bg-amber-500 rounded-full"></div>
+                                      <span className="text-xs font-medium text-amber-700">Custom</span>
+                                    </button>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                      <span className="text-xs font-medium text-green-700">Standard</span>
+                                    </div>
+                                  )
+                                })()}
+                              </td>
+                              <td className="px-4 py-3 whitespace-nowrap text-center">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handlePreviewContact(contact) }}
+                                  className="inline-flex items-center justify-center w-8 h-8 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                  title="Preview pricesheet for this contact"
+                                >
+                                  <EyeIcon className="h-4 w-4" />
+                                </button>
+                              </td>
+                            </tr>
+                          )
+                        })
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -823,6 +832,47 @@ export default function SendPriceSheets() {
           priceType={previewPriceSheet.priceType || 'FOB'}
         />
       )}
+
+      {/* Fixed-position settings tooltip (escapes scroll container) */}
+      {settingsTooltip && (() => {
+        const c = settingsTooltip.contact
+        const ps = (c as any).pricesheetSettings || {}
+        const globalAdj = ps.globalAdjustment || 0
+        const cropAdjs: any[] = ps.cropAdjustments || []
+        const primaryCrops: string[] = (c as any).primaryCrops || []
+        const hasCustomPricing = globalAdj !== 0 || cropAdjs.length > 0
+
+        return (
+          <div
+            className="fixed z-50 w-60 bg-gray-900 text-white text-xs rounded-lg shadow-xl p-3 pointer-events-none text-left"
+            style={{ left: settingsTooltip.x, top: settingsTooltip.y, transform: 'translateX(-50%)' }}
+          >
+            <p className="font-semibold text-gray-300 mb-1.5">Pricing</p>
+            {!hasCustomPricing && <p className="text-gray-400 mb-2">No adjustments</p>}
+            {globalAdj !== 0 && (
+              <p className="text-gray-200 mb-1">
+                Global: <span className={globalAdj > 0 ? 'text-red-300' : 'text-green-300'}>
+                  {globalAdj > 0 ? '+' : ''}{globalAdj}%
+                </span>
+              </p>
+            )}
+            {cropAdjs.map((adj: any, i: number) => (
+              <p key={i} className="text-gray-200 mb-0.5">
+                {adj.cropName}: <span className={adj.adjustment > 0 ? 'text-red-300' : 'text-green-300'}>
+                  {adj.adjustment > 0 ? '+' : ''}{adj.adjustment}%
+                </span>
+              </p>
+            ))}
+            {primaryCrops.length > 0 && (
+              <div className="border-t border-gray-700 mt-2 pt-2">
+                <p className="font-semibold text-gray-300 mb-1">Crop filter</p>
+                <p className="text-gray-400 leading-snug">Only showing: {primaryCrops.join(', ')}</p>
+              </div>
+            )}
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-gray-900"></div>
+          </div>
+        )
+      })()}
 
       {/* Loading overlay for preview */}
       {isLoadingPreview && (

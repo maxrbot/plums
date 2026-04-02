@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { XMarkIcon } from '@heroicons/react/24/outline'
 import { Breadcrumbs } from '../../../../components/ui'
 import { cropsApi, shippingPointsApi, packagingApi, priceSheetsApi } from '../../../../lib/api'
@@ -150,7 +150,9 @@ interface ProcessedProduct {
 export default function CleanPriceSheetPage() {
   const { user } = useUser()
   const router = useRouter()
-  
+  const searchParams = useSearchParams()
+  const templateId = searchParams.get('templateId')
+
   const [showInsightsPanel, setShowInsightsPanel] = useState(false)
   const [selectedInsightProductId, setSelectedInsightProductId] = useState<string | null>(null)
   const [usdaIntelligence, setUsdaIntelligence] = useState<UsdaIntelligence>({
@@ -164,6 +166,7 @@ export default function CleanPriceSheetPage() {
   const [priceSheetTitle, setPriceSheetTitle] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [hasSaved, setHasSaved] = useState(false)
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false)
   
   // Real data state (migrated from complex version)
   const [products, setProducts] = useState<ProcessedProduct[]>([])
@@ -506,14 +509,20 @@ export default function CleanPriceSheetPage() {
   // Set default title when user data loads
   useEffect(() => {
     if (user?.profile?.companyName && !priceSheetTitle) {
-      const today = new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      })
-      setPriceSheetTitle(`${user.profile.companyName} Price Sheet - ${today}`)
+      if (!templateId) {
+        // Template creation mode — name is the template name, auto-generated
+        setPriceSheetTitle(`${user.profile.companyName} Price Sheet - Template`)
+      } else {
+        // Use-template mode — name is the price sheet name, dated
+        const today = new Date().toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+        setPriceSheetTitle(`${user.profile.companyName} Price Sheet - ${today}`)
+      }
     }
-  }, [user?.profile?.companyName, priceSheetTitle])
+  }, [user?.profile?.companyName, templateId, priceSheetTitle])
 
   // Load user's crops and convert to products (migrated from complex version)
   const loadUserData = async () => {
@@ -600,6 +609,76 @@ export default function CleanPriceSheetPage() {
   useEffect(() => {
     loadUserData()
   }, [])
+
+  // Pre-populate from template once products are loaded
+  useEffect(() => {
+    if (!templateId || products.length === 0) return
+
+    const loadTemplate = async () => {
+      try {
+        const { priceSheet, products: templateProducts } = await priceSheetsApi.getById(templateId)
+
+        // Set title from template name
+        if (priceSheet.templateName || priceSheet.title) {
+          setPriceSheetTitle(priceSheet.templateName || priceSheet.title)
+        }
+
+        // Match template products to processed products and pre-populate state
+        // regionId is stored as null in DB, so match by cropId + variationId + regionName
+        const newSelected = new Set<string>()
+        const newPackaging: Record<string, any> = {}
+        const newPrices: Record<string, string> = {}
+        const newAdditionalPackStyles: Record<string, number> = {}
+
+        products.forEach(product => {
+          const matches = templateProducts.filter((t: any) =>
+            t.cropId?.toString() === product.cropId?.toString() &&
+            t.variationId?.toString() === product.variationId?.toString() &&
+            t.regionName === product.region
+          )
+          if (matches.length === 0) return
+
+          newSelected.add(product.id)
+
+          const restorePackaging = (tp: any) =>
+            tp.packagingState ?? {
+              packageType: tp.packageType || '',
+              size: tp.size || '',
+              sizeClassification: tp.countSize || '',
+              grade: tp.grade || '',
+            }
+
+          // First match = primary style
+          const primary = matches[0]
+          newPackaging[product.id] = restorePackaging(primary)
+          if (primary.price != null && primary.price > 0) {
+            newPrices[product.id] = String(primary.price)
+          }
+
+          // Additional matches = additional pack styles
+          if (matches.length > 1) {
+            newAdditionalPackStyles[product.id] = matches.length - 1
+            matches.slice(1).forEach((tp: any, i: number) => {
+              const packKey = `${product.id}-additional-${i}`
+              newPackaging[packKey] = restorePackaging(tp)
+              if (tp.price != null && tp.price > 0) {
+                newPrices[packKey] = String(tp.price)
+              }
+            })
+          }
+        })
+
+        setSelectedProductIds(newSelected)
+        setProductPackaging(newPackaging)
+        setProductPrices(newPrices)
+        setAdditionalPackStyles(newAdditionalPackStyles)
+      } catch (err) {
+        console.error('Failed to load template:', err)
+      }
+    }
+
+    loadTemplate()
+  }, [templateId, products])
 
   // Filter products based on category and season
   useEffect(() => {
@@ -1191,6 +1270,57 @@ export default function CleanPriceSheetPage() {
     }
   }
 
+  const handleSaveAsTemplate = async () => {
+    setIsSavingTemplate(true)
+    try {
+      const productsReadyForSaving = getProductsReadyForPreview()
+      if (productsReadyForSaving.length === 0) {
+        alert('Please add prices or override comments to at least one product before saving.')
+        setIsSavingTemplate(false)
+        return
+      }
+
+      const templateName = priceSheetTitle
+      const priceSheetData = {
+        title: templateName,
+        status: 'draft' as const,
+        notes: undefined,
+        priceType: 'FOB' as const,
+        isTemplate: true,
+        templateName,
+      }
+
+      const productsData: any[] = []
+      Array.from(selectedProductIds).forEach(productId => {
+        const product = products.find(p => p.id === productId)
+        if (!product) return
+        const packaging = productPackaging[productId]
+        const price = productPrices[productId]
+        if (isProductReadyForPreview(productId)) {
+          productsData.push(createProductData(product, packaging, price || '0', productId))
+        }
+        const additionalCount = additionalPackStyles[productId] || 0
+        for (let i = 0; i < additionalCount; i++) {
+          const packKey = `${productId}-additional-${i}`
+          const packPackaging = productPackaging[packKey] || packaging
+          const packPrice = productPrices[packKey]
+          if (isProductReadyForPreview(packKey)) {
+            productsData.push(createProductData(product, packPackaging, packPrice || '0', packKey))
+          }
+        }
+      })
+
+      await priceSheetsApi.create({ priceSheet: priceSheetData, products: productsData })
+      setHasSaved(true)
+      setTimeout(() => { router.push('/dashboard/price-sheets') }, 1500)
+    } catch (error) {
+      console.error('❌ Failed to save template:', error)
+      alert('Failed to save template. Please try again.')
+    } finally {
+      setIsSavingTemplate(false)
+    }
+  }
+
   // Create product data for saving to MongoDB
   const createProductData = (
     product: ProcessedProduct,
@@ -1271,6 +1401,14 @@ export default function CleanPriceSheetPage() {
       size: sizeDisplay,
       countSize: countDisplay,
       grade: packaging?.grade || '',
+      // Raw packaging keys — used when restoring from templates
+      packagingState: {
+        processingType: packaging?.processingType || '',
+        packageType: packaging?.packageType || '',
+        size: packaging?.size || '',
+        sizeClassification: packaging?.sizeClassification || '',
+        grade: packaging?.grade || '',
+      },
       price: hasOverride ? null : (parseFloat(price) || 0),
       availability: availability,
       seasonality: product.seasonality || 'Year-round',
@@ -1295,8 +1433,51 @@ export default function CleanPriceSheetPage() {
   }
 
   // Handle send price sheet (placeholder for now)
-  const handleSendPriceSheet = () => {
-    console.log('Send price sheet functionality - to be implemented')
+  const handleSendPriceSheet = async () => {
+    setIsSaving(true)
+    try {
+      const productsReadyForSaving = getProductsReadyForPreview()
+      if (productsReadyForSaving.length === 0) {
+        alert('Please add prices or override comments to at least one product before sending.')
+        setIsSaving(false)
+        return
+      }
+
+      const priceSheetData = {
+        title: priceSheetTitle,
+        status: 'draft' as const,
+        notes: undefined,
+        priceType: 'FOB' as const,
+      }
+
+      const productsData: any[] = []
+      Array.from(selectedProductIds).forEach(productId => {
+        const product = products.find(p => p.id === productId)
+        if (!product) return
+        const packaging = productPackaging[productId]
+        const price = productPrices[productId]
+        if (isProductReadyForPreview(productId)) {
+          productsData.push(createProductData(product, packaging, price || '0', productId))
+        }
+        const additionalCount = additionalPackStyles[productId] || 0
+        for (let i = 0; i < additionalCount; i++) {
+          const packKey = `${productId}-additional-${i}`
+          const packPackaging = productPackaging[packKey] || packaging
+          const packPrice = productPrices[packKey]
+          if (isProductReadyForPreview(packKey)) {
+            productsData.push(createProductData(product, packPackaging, packPrice || '0', packKey))
+          }
+        }
+      })
+
+      const response = await priceSheetsApi.create({ priceSheet: priceSheetData, products: productsData, fromTemplateId: templateId })
+      const sheetId = response.priceSheet?._id
+      router.push(`/dashboard/price-sheets/send?sheetId=${sheetId}&fromTemplate=true`)
+    } catch (error) {
+      console.error('❌ Failed to save price sheet for sending:', error)
+      alert('Failed to save price sheet. Please try again.')
+      setIsSaving(false)
+    }
   }
 
   return (
@@ -1341,17 +1522,23 @@ export default function CleanPriceSheetPage() {
       <div className="hidden lg:block">
         {/* Header */}
         <div className="mb-8">
-          <Breadcrumbs 
+          <Breadcrumbs
             items={[
               { label: 'Price Sheets', href: '/dashboard/price-sheets' },
-              { label: 'Create New Price Sheet', current: true }
-            ]} 
+              { label: templateId ? 'Use Template' : 'Create Template', current: true }
+            ]}
             className="mb-4"
           />
-          
+
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Create New Price Sheet</h1>
-            <p className="mt-2 text-gray-600">Generate a professional price sheet using your imported data</p>
+            <h1 className="text-3xl font-bold text-gray-900">
+              {templateId ? priceSheetTitle || 'Use Template' : 'Create Template'}
+            </h1>
+            <p className="mt-2 text-gray-600">
+              {templateId
+                ? 'Your template is pre-loaded — update prices, adjust products, then save as draft or send.'
+                : 'Build a reusable template with your products and packaging. Use it to quickly generate price sheets.'}
+            </p>
           </div>
         </div>
           
@@ -2559,9 +2746,10 @@ export default function CleanPriceSheetPage() {
           products={generatePreviewData()}
           userEmail={user?.profile?.email || user?.email}
           userPhone={user?.profile?.phone}
-          onSave={handleSave}
-          onSendPriceSheet={handleSendPriceSheet}
+          onSaveAsTemplate={templateId ? undefined : () => handleSaveAsTemplate()}
+          onSendPriceSheet={templateId ? handleSendPriceSheet : undefined}
           isSaving={isSaving}
+          isSavingTemplate={isSavingTemplate}
           hasSaved={hasSaved}
           priceType="FOB"
         />

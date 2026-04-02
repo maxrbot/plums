@@ -6,10 +6,8 @@ import Image from 'next/image'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   HomeIcon,
-  DocumentTextIcon,
   UserGroupIcon,
   ChartBarIcon,
-  ChatBubbleLeftRightIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   LightBulbIcon,
@@ -17,11 +15,10 @@ import {
   ShieldCheckIcon,
   LockClosedIcon,
   PaperAirplaneIcon,
-  PlusIcon,
   Bars3Icon,
   XMarkIcon,
-  UsersIcon,
   PresentationChartLineIcon,
+  ArchiveBoxIcon,
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
 import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
@@ -36,11 +33,11 @@ const featureAccess: Record<string, string[]> = {
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
-  { name: 'USDA Market Data', href: '/dashboard/market-data', icon: PresentationChartLineIcon },
-  { name: 'Price Sheets', href: '/dashboard/price-sheets', icon: DocumentTextIcon },
   { name: 'Contacts', href: '/dashboard/contacts', icon: UserGroupIcon },
+  { name: 'Catalog', href: '/dashboard/catalog', icon: ArchiveBoxIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
-  { name: 'divider' }, // Visual separator
+  { name: 'USDA Market Data', href: '/dashboard/market-data', icon: PresentationChartLineIcon },
+  { name: 'divider' },
   { name: 'Market Intelligence', href: '/dashboard/price-sheets/insights', icon: LightBulbIcon, locked: true },
   { name: 'Commodity Structure', href: '/dashboard/price-sheets/packaging', icon: CubeIcon, locked: true },
   { name: 'Certifications', href: '/dashboard/price-sheets/certifications', icon: ShieldCheckIcon, locked: true },
@@ -184,7 +181,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     if (item.name === 'AI Chatbot') return userFeatures.includes('ai_chatbot')
     if (item.name === 'Analytics') return userFeatures.includes('analytics')
     if (item.name === 'Contacts') return userFeatures.includes('contacts')
-    return true // Dashboard, Price Sheets always available
+    if ((item as any).ownerOnly) return isOwner || user.subscriptionTier === 'admin'
+    return true
   })
 
   return (
@@ -280,8 +278,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Action Buttons */}
-          <div className="px-4 pt-4 pb-2 space-y-2">
-            {/* Send Price Sheet Button */}
+          <div className="px-4 pt-4 pb-2">
             {checkingSetup ? (
               <div className="w-full flex items-center justify-center px-4 py-2.5 bg-gray-300 text-white text-sm font-medium rounded-md">
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
@@ -289,36 +286,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               </div>
             ) : isSetupComplete ? (
               <Link
-                href="/dashboard/price-sheets/send"
-                className="w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors shadow-sm"
-              >
-                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
-                Send Price Sheet
-              </Link>
-            ) : (
-              <button
-                disabled
-                className="w-full flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-md opacity-50 cursor-not-allowed"
-                title="Complete setup steps on dashboard to enable"
-              >
-                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
-                Send Price Sheet
-              </button>
-            )}
-            
-            {/* New Price Sheet Button */}
-            {checkingSetup ? (
-              <div className="w-full flex items-center justify-center px-4 py-2.5 bg-gray-300 text-white text-sm font-medium rounded-md">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Loading...
-              </div>
-            ) : isSetupComplete ? (
-              <Link
-                href="/dashboard/price-sheets/new"
+                href="/dashboard/price-sheets"
                 className="w-full flex items-center justify-center px-4 py-2.5 bg-lime-600 text-white text-sm font-medium rounded-md hover:bg-lime-700 transition-colors shadow-sm"
               >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                New Price Sheet
+                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                Send Price Sheet
               </Link>
             ) : (
               <button
@@ -326,8 +298,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                 className="w-full flex items-center justify-center px-4 py-2.5 bg-lime-600 text-white text-sm font-medium rounded-md opacity-50 cursor-not-allowed"
                 title="Complete setup steps on dashboard to enable"
               >
-                <PlusIcon className="h-4 w-4 mr-2" />
-                New Price Sheet
+                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                Send Price Sheet
               </button>
             )}
           </div>
@@ -346,9 +318,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                   )
                 }
 
-                const isCurrent = pathname === item.href
+                const isCatalogSection = [
+                  '/dashboard/catalog',
+                  '/dashboard/price-sheets/regions',
+                  '/dashboard/price-sheets/crops',
+                  '/dashboard/price-sheets/packaging-structure',
+                ].some(p => pathname.startsWith(p))
+                const isCurrent = item.name === 'Catalog' ? isCatalogSection : pathname === item.href
                 const isChatbotSection = pathname.startsWith('/dashboard/chatbot')
-                const isPriceSheetsSection = pathname.startsWith('/dashboard/price-sheets')
                 const isLocked = item.locked === true
                 const isDisabled = !userFeatures.includes(
                   item.name === 'AI Chatbot' ? 'ai_chatbot' :
@@ -387,8 +364,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                       )}
                     </Link>
                     
-                    {/* Price Sheets Sub-navigation - Always visible */}
-                    {item.name === 'Price Sheets' && !isDisabled && (
+                    {/* Catalog Sub-navigation */}
+                    {item.name === 'Catalog' && !isDisabled && (
                       <div className="ml-6 mt-1 space-y-1">
                         <Link
                           href="/dashboard/price-sheets/regions"
@@ -452,22 +429,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               })}
             </div>
 
-            {/* Team link — owner only */}
-            {isOwner && (
-              <div className="mt-2 pt-2 border-t border-slate-700">
-                <Link
-                  href="/dashboard/team"
-                  className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                    pathname === '/dashboard/team'
-                      ? 'bg-slate-700 text-lime-400'
-                      : 'text-gray-300 hover:bg-slate-700 hover:text-white'
-                  }`}
-                >
-                  <UsersIcon className={`mr-3 h-5 w-5 flex-shrink-0 ${pathname === '/dashboard/team' ? 'text-lime-400' : 'text-gray-400 group-hover:text-gray-300'}`} />
-                  Team
-                </Link>
-              </div>
-            )}
 
           </nav>
 

@@ -25,6 +25,7 @@ import produceHuntRoutes from './routes/producehunt'
 import retailSalesRoutes from './routes/retailSales'
 import usdaMarketRoutes from './routes/usdaMarket'
 import teamRoutes from './routes/team'
+import contactBatchesRoutes from './routes/contactBatches'
 
 const fastify = Fastify({
   logger: {
@@ -87,6 +88,7 @@ async function registerRoutes() {
   await fastify.register(retailSalesRoutes, { prefix: '/api' })
   await fastify.register(usdaMarketRoutes, { prefix: '/api' })
   await fastify.register(teamRoutes, { prefix: '/api/team' })
+  await fastify.register(contactBatchesRoutes, { prefix: '/api/contact-batches' })
 }
 
 // Health check

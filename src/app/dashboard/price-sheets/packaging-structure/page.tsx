@@ -285,7 +285,7 @@ export default function PackagingStructurePage() {
       <div className="mb-8">
         <Breadcrumbs 
           items={[
-            { label: 'Price Sheets', href: '/dashboard/price-sheets' },
+            { label: 'Catalog', href: '/dashboard/catalog' },
             { label: 'Packaging', current: true }
           ]} 
           className="mb-4"

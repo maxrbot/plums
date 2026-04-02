@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '../../../contexts/UserContext'
 import { UserPlusIcon, TrashIcon } from '@heroicons/react/24/outline'
+import { Breadcrumbs } from '../../../components/ui'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 
@@ -92,16 +93,21 @@ export default function TeamPage() {
 
   if (user?.role !== 'owner') {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
-        <p className="text-gray-500">Team management is only available to account owners.</p>
+      <div>
+        <div className="mb-8">
+          <Breadcrumbs items={[{ label: 'Team', current: true }]} />
+          <h1 className="text-2xl font-bold text-gray-900 mt-2">Team</h1>
+        </div>
+        <p className="text-gray-500 text-sm">Team management is only available to account owners.</p>
       </div>
     )
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div>
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Team</h1>
+        <Breadcrumbs items={[{ label: 'Team', current: true }]} />
+        <h1 className="text-2xl font-bold text-gray-900 mt-2">Team</h1>
         <p className="mt-1 text-sm text-gray-500">Manage who has access to your organisation.</p>
       </div>
 
@@ -197,3 +203,4 @@ export default function TeamPage() {
     </div>
   )
 }
+

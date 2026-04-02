@@ -341,7 +341,13 @@ export default function ScheduleSendPage() {
           })
         })
         
-        setPriceSheetProducts(formattedProducts)
+        // Filter by primary crop interests (empty = show all)
+        const primaryCrops: string[] = (contact as any).primaryCrops || []
+        const visibleProducts = primaryCrops.length > 0
+          ? formattedProducts.filter(p => primaryCrops.some(crop => crop.toLowerCase() === (p.commodity || '').toLowerCase()))
+          : formattedProducts
+
+        setPriceSheetProducts(visibleProducts)
       } catch (error) {
         console.error('Failed to load products:', error)
         setPriceSheetProducts([])

@@ -42,8 +42,10 @@ interface PriceSheetPreviewModalProps {
   userEmail?: string
   userPhone?: string
   onSave?: () => void
+  onSaveAsTemplate?: () => void
   onSendPriceSheet?: () => void
   isSaving?: boolean
+  isSavingTemplate?: boolean
   hasSaved?: boolean
   mode?: 'save' | 'send' // 'save' shows save button, 'send' is for preview only
   onSaveCustomPricing?: (productId: string, customValue: number | string) => void // Callback for saving custom pricing or comment
@@ -62,8 +64,10 @@ export default function PriceSheetPreviewModal({
   userEmail,
   userPhone,
   onSave,
+  onSaveAsTemplate,
   onSendPriceSheet,
   isSaving = false,
+  isSavingTemplate = false,
   hasSaved = false,
   mode = 'save',
   onSaveCustomPricing,
@@ -75,7 +79,7 @@ export default function PriceSheetPreviewModal({
   const [isEditingPrices, setIsEditingPrices] = useState(false)
   const [editedPrices, setEditedPrices] = useState<Record<string, number | string>>({}) // Can be number (price) or string (comment)
   const [isSavingPrices, setIsSavingPrices] = useState(false)
-  
+
   // Pricing tools state
   const [priceType, setPriceType] = useState<'FOB' | 'DELIVERED'>(initialPriceType)
   const [bulkAdjustment, setBulkAdjustment] = useState<string>('')
@@ -261,7 +265,9 @@ export default function PriceSheetPreviewModal({
                 {/* Clean Header */}
                 <div className="bg-white px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold text-gray-900">Price Sheet Preview</h1>
+                    <h1 className="text-xl font-semibold text-gray-900">
+                      {onSaveAsTemplate ? 'Template Preview' : 'Price Sheet Preview'}
+                    </h1>
                     <button
                       type="button"
                       onClick={onClose}
@@ -303,7 +309,7 @@ export default function PriceSheetPreviewModal({
                   <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
                     <div>
                       <label htmlFor="priceSheetTitle" className="block text-sm font-medium text-gray-700 mb-2">
-                        Price Sheet Title
+                        {onSaveAsTemplate ? 'Template Title' : 'Price Sheet Title'}
                       </label>
                       <input
                         type="text"
@@ -311,9 +317,11 @@ export default function PriceSheetPreviewModal({
                         value={title}
                         onChange={(e) => onTitleChange(e.target.value)}
                         className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                        placeholder="Enter price sheet title"
+                        placeholder={onSaveAsTemplate ? 'Enter template name' : 'Enter price sheet title'}
                       />
-                      <p className="mt-1 text-xs text-gray-500">This will be the title shown on your price sheet</p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {onSaveAsTemplate ? 'This name identifies the template in your library' : 'This will be the title shown on your price sheet'}
+                      </p>
                     </div>
                   </div>
                 )}
@@ -598,28 +606,72 @@ export default function PriceSheetPreviewModal({
                     )}
                     
                     {/* Save/Send buttons for 'save' mode */}
-                    {mode === 'save' && !isEditingPrices && (
+                    {mode === 'save' && !isEditingPrices && !hasSaved && (
                       <>
-                        {!hasSaved && onSave && (
-                          <button
-                            type="button"
-                            onClick={onSave}
-                            disabled={isSaving}
-                            className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
-                          >
-                            {isSaving ? (
-                              <>
-                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                Saving...
-                              </>
-                            ) : (
-                              <>
-                                <BookmarkIcon className="h-4 w-4 mr-2" />
-                                Save Price Sheet
-                              </>
+                        {onSaveAsTemplate && (
+                              <button
+                                type="button"
+                                onClick={onSaveAsTemplate}
+                                disabled={isSavingTemplate}
+                                className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-black disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              >
+                                {isSavingTemplate ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <BookmarkIcon className="h-4 w-4 mr-2" />
+                                    Save Template
+                                  </>
+                                )}
+                              </button>
                             )}
-                          </button>
-                        )}
+                            {onSave && (
+                              <button
+                                type="button"
+                                onClick={onSave}
+                                disabled={isSaving}
+                                className={`inline-flex items-center px-6 py-2 border text-sm font-medium rounded-md shadow-sm disabled:bg-gray-400 disabled:cursor-not-allowed ${
+                                  onSendPriceSheet
+                                    ? 'border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+                                    : 'border-transparent text-white bg-lime-500 hover:bg-lime-600'
+                                }`}
+                              >
+                                {isSaving && !onSendPriceSheet ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <BookmarkIcon className="h-4 w-4 mr-2" />
+                                    {onSendPriceSheet ? 'Save Draft' : 'Save Price Sheet'}
+                                  </>
+                                )}
+                              </button>
+                            )}
+                            {onSendPriceSheet && (
+                              <button
+                                type="button"
+                                onClick={onSendPriceSheet}
+                                disabled={isSaving}
+                                className="inline-flex items-center px-6 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-lime-500 hover:bg-lime-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                              >
+                                {isSaving ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                    Saving...
+                                  </>
+                                ) : (
+                                  <>
+                                    <RocketLaunchIcon className="h-4 w-4 mr-2" />
+                                    Send Price Sheet
+                                  </>
+                                )}
+                              </button>
+                            )}
                       </>
                     )}
                   </div>

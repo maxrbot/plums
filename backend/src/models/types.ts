@@ -206,6 +206,11 @@ export interface PriceSheet extends BaseDocument {
   sentAt?: Date
   notes?: string
   priceType?: 'FOB' | 'DELIVERED' // Price type for the entire sheet
+  isTemplate?: boolean
+  templateName?: string
+  fromTemplateId?: ObjectId
+  usageCount?: number
+  lastUsedAt?: Date
 }
 
 // Price Sheet Products (individual entries)

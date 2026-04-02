@@ -146,9 +146,10 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
   // Create new price sheet with products
   fastify.post('/', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
-    const { priceSheet, products } = request.body as {
+    const { priceSheet, products, fromTemplateId } = request.body as {
       priceSheet: Omit<PriceSheet, '_id' | 'userId' | 'createdAt' | 'updatedAt'>
       products: Omit<PriceSheetProduct, '_id' | 'priceSheetId' | 'userId' | 'createdAt' | 'updatedAt'>[]
+      fromTemplateId?: string
     }
     
     try {
@@ -227,11 +228,15 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
         productsCount: products.length,
         totalValue: products.reduce((sum, p) => sum + (p.price || 0), 0),
         createdAt: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
+        // Persist template lineage so the send handler can credit the right template
+        ...(fromTemplateId && ObjectId.isValid(fromTemplateId) && {
+          fromTemplateId: new ObjectId(fromTemplateId)
+        }),
       }
-      
+
       const priceSheetResult = await db.collection<PriceSheet>('priceSheets').insertOne(newPriceSheet)
-      
+
       // Update products with priceSheetId
       if (productIds.length > 0) {
         await db.collection<PriceSheetProduct>('priceSheetProducts').updateMany(
@@ -239,7 +244,7 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
           { $set: { priceSheetId: priceSheetResult.insertedId } }
         )
       }
-      
+
       // Get created price sheet with products
       const createdPriceSheet = await db.collection<PriceSheet>('priceSheets').findOne({
         _id: priceSheetResult.insertedId
@@ -800,6 +805,27 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             ...(attachments && attachments.length > 0 && { attachments })
           })
           
+          // Snapshot effective prices per product for price trend tracking
+          const sentPrices: Record<string, number | null> = {}
+          for (const p of products) {
+            const productId = p._id.toString()
+            let effectivePrice = p.price
+            if (contactCustomPricing?.[productId] !== undefined) {
+              effectivePrice = contactCustomPricing[productId]
+            } else {
+              const ps = contact.pricesheetSettings || {}
+              const globalAdj = ps.globalAdjustment || 0
+              const cropAdjs = ps.cropAdjustments || []
+              const cropKey = `${p.cropId}-${p.variationId}`
+              const cropAdj = cropAdjs.find((a: any) => `${a.cropId}-${a.variationId}` === cropKey)
+              const adj = cropAdj?.adjustment ?? globalAdj
+              if (adj !== 0 && effectivePrice) {
+                effectivePrice = effectivePrice * (1 + adj / 100)
+              }
+            }
+            sentPrices[productId] = effectivePrice ?? null
+          }
+
           // Store the sent email record with all custom data
           sentEmailRecords.push({
             priceSheetId: priceSheet._id,
@@ -810,12 +836,14 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
             subject: emailSubject,
             sentAt: new Date(),
             success: true,
+            // Snapshot of effective prices each contact saw (for price trend tracking)
+            sentPrices,
             // Store custom pricing overrides (productId -> price)
             ...(contactCustomPricing && { customPricing: contactCustomPricing }),
             // Store custom price type (FOB or DELIVERED)
             ...(contactPriceType && { priceType: contactPriceType }),
             // Store custom email content (subject and message)
-            ...(customContent && { 
+            ...(customContent && {
               customEmailContent: {
                 subject: customContent.subject,
                 content: customContent.content
@@ -850,7 +878,15 @@ const priceSheetsRoutes: FastifyPluginAsync = async (fastify) => {
           }
         }
       )
-      
+
+      // Credit the source template now that this sheet has actually been sent
+      if (priceSheet.fromTemplateId) {
+        db.collection<PriceSheet>('priceSheets').updateOne(
+          { _id: priceSheet.fromTemplateId, isTemplate: true },
+          { $inc: { usageCount: 1 }, $set: { lastUsedAt: new Date() } }
+        ).catch(err => console.warn('Failed to update template usage:', err))
+      }
+
       // Log sent emails with custom pricing and email content if provided
       if (sentEmailRecords.length > 0) {
         await db.collection('sentEmails').insertMany(sentEmailRecords)

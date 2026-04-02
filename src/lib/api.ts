@@ -325,7 +325,7 @@ export const priceSheetsApi = {
     return apiRequest<{ priceSheet: any; products: any[] }>(`/price-sheets/${id}`)
   },
 
-  create: async (data: { priceSheet: any; products: any[] }) => {
+  create: async (data: { priceSheet: any; products: any[]; fromTemplateId?: string | null }) => {
     return apiRequest<{ priceSheet: any; products: any[] }>('/price-sheets', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -392,10 +392,28 @@ export const packagingApi = {
   },
 }
 
+// Contact Batches API
+export const contactBatchesApi = {
+  getAll: async () => {
+    return apiRequest<{ batches: any[] }>('/contact-batches')
+  },
+
+  create: async (data: { name: string; contactIds: string[] }) => {
+    return apiRequest<{ batch: any }>('/contact-batches', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  },
+
+  delete: async (id: string) => {
+    return apiRequest(`/contact-batches/${id}`, { method: 'DELETE' })
+  },
+}
+
 // Analytics API
 export const analyticsApi = {
   getOverview: async (params?: { startDate?: string; endDate?: string }) => {
-    const queryString = params 
+    const queryString = params
       ? `?${new URLSearchParams(params as Record<string, string>).toString()}`
       : ''
     return apiRequest<{
@@ -410,6 +428,40 @@ export const analyticsApi = {
       }
       priceSheets: any[]
     }>(`/analytics/overview${queryString}`)
+  },
+
+  getContactInsights: async () => {
+    return apiRequest<{
+      topEngaged: Array<{
+        contactId: string
+        firstName: string
+        lastName: string
+        company: string
+        email: string
+        totalSends: number
+        totalViews: number
+        openRate: number
+        lastViewedAt: string | null
+        lastSentAt: string
+        daysSinceLastSend: number
+      }>
+      needsReEngagement: Array<{
+        contactId: string
+        firstName: string
+        lastName: string
+        company: string
+        totalSends: number
+        lastSentAt: string
+        daysSinceLastSend: number
+      }>
+      pricingDistribution: {
+        totalContacted: number
+        standardCount: number
+        customPricingCount: number
+        cropFilterCount: number
+        avgGlobalAdjustment: number
+      }
+    }>('/analytics/contacts')
   },
 }
 

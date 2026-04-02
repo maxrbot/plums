@@ -3,17 +3,20 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import {
-  GlobeAltIcon,
+  MapPinIcon,
   SparklesIcon,
+  ArchiveBoxIcon,
+  GlobeAltIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   RocketLaunchIcon,
   ArrowUpTrayIcon,
   XMarkIcon,
   ArrowRightIcon,
+  ChevronRightIcon,
 } from '@heroicons/react/24/outline'
-import { Breadcrumbs } from '../../../components/ui'
-import { usersApi } from '@/lib/api'
+import { useUser } from '@/contexts/UserContext'
+import { regionsApi, cropsApi } from '@/lib/api'
 
 type ConfidenceLevel = 'high' | 'medium' | 'low' | 'none'
 
@@ -40,19 +43,46 @@ function ConfidenceIcon({ level }: { level: ConfidenceLevel }) {
   return <CheckCircleIcon className={`h-5 w-5 ${CONFIDENCE_COLORS[level]}`} />
 }
 
-export default function IntegrationSetup() {
+export default function CatalogPage() {
+  const { user } = useUser()
+
+  // Catalog counts
+  const [counts, setCounts] = useState({ regions: 0, crops: 0, packaging: 0 })
+  const [countsLoading, setCountsLoading] = useState(true)
+
+  // Website scan
   const [companyUrl, setCompanyUrl] = useState('')
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [analysisResults, setAnalysisResults] = useState<AnalysisResults | null>(null)
   const [urlPlaceholder, setUrlPlaceholder] = useState('https://yourcompany.com')
+
+  // Upload modal
   const [showUploadModal, setShowUploadModal] = useState(false)
 
   useEffect(() => {
-    usersApi.getProfile().then((profile: any) => {
-      const domain = profile?.email?.split('@')[1]
-      if (domain) setUrlPlaceholder(`https://${domain}`)
-    }).catch(() => {})
-  }, [])
+    const domain = user?.email?.split('@')[1]
+    if (domain) setUrlPlaceholder(`https://${domain}`)
+  }, [user])
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [regionsRes, cropsRes] = await Promise.all([regionsApi.getAll(), cropsApi.getAll()])
+        const packagingStructure = user?.packagingStructure || {}
+        const configuredPack = Object.keys(packagingStructure).filter(c =>
+          (packagingStructure[c]?.packageTypes?.length || 0) > 0 &&
+          (packagingStructure[c]?.sizeGrades?.length || 0) > 0
+        )
+        setCounts({
+          regions: (regionsRes.regions || []).length,
+          crops: (cropsRes.crops || []).length,
+          packaging: configuredPack.length,
+        })
+      } catch { /* keep defaults */ }
+      finally { setCountsLoading(false) }
+    }
+    if (user) load()
+  }, [user])
 
   const handleAnalyze = () => {
     if (!companyUrl) return
@@ -64,7 +94,7 @@ export default function IntegrationSetup() {
         farmingMethods: ['Sustainable', 'GAP Certified'],
         regions: ['Central Valley, CA'],
         commodities: ['Detected from your website — review before importing'],
-        contact: companyUrl.replace('https://', '').replace('http://', '').split('/')[0],
+        contact: companyUrl.replace('https://', '').replace('http://', '').split('/')[0] ?? '',
         confidence: {
           companyName: 'medium',
           farmingMethods: 'medium',
@@ -77,26 +107,98 @@ export default function IntegrationSetup() {
     }, 2200)
   }
 
+  const catalogSections = [
+    {
+      key: 'regions',
+      label: 'Shipping Points',
+      description: 'Warehouses, coolers, packing houses',
+      icon: MapPinIcon,
+      count: counts.regions,
+      unit: 'location',
+      href: '/dashboard/price-sheets/regions',
+    },
+    {
+      key: 'crops',
+      label: 'Commodities',
+      description: 'Varieties and growing specs',
+      icon: SparklesIcon,
+      count: counts.crops,
+      unit: 'commodity',
+      href: '/dashboard/price-sheets/crops',
+    },
+    {
+      key: 'packaging',
+      label: 'Pack Configurations',
+      description: 'Carton types, sizes, and grades',
+      icon: ArchiveBoxIcon,
+      count: counts.packaging,
+      unit: 'config',
+      href: '/dashboard/price-sheets/packaging-structure',
+    },
+  ]
+
   return (
     <div>
       {/* Header */}
       <div className="mb-8">
-        <Breadcrumbs
-          items={[{ label: 'Get Started', current: true }]}
-          className="mb-4"
-        />
-        <div className="flex items-center gap-4">
-          <div className="h-11 w-11 rounded-full bg-gradient-to-r from-lime-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-            <RocketLaunchIcon className="h-5 w-5 text-white" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Get set up fast</h1>
-            <p className="mt-1 text-gray-600">Scan your website or import existing data — skip the manual entry.</p>
-          </div>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Catalog</h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Your operation&apos;s foundation — the shipping points, commodities, and pack configs everything else is built on.
+        </p>
       </div>
 
-      {/* Two-panel layout */}
+      {/* Catalog status cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        {catalogSections.map(section => {
+          const Icon = section.icon
+          const isConfigured = section.count > 0
+          return (
+            <div key={section.key} className="bg-white border border-gray-200 rounded-xl p-5">
+              <div className="flex items-start justify-between mb-4">
+                <div className="h-9 w-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
+                  <Icon className="h-4 w-4 text-gray-500" />
+                </div>
+                {!countsLoading && (
+                  <span className={`flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                    isConfigured
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      : 'bg-amber-50 text-amber-600 border border-amber-100'
+                  }`}>
+                    {isConfigured ? '✓ Ready' : 'Not set up'}
+                  </span>
+                )}
+              </div>
+              <p className="text-sm font-semibold text-gray-900 mb-0.5">{section.label}</p>
+              <p className="text-xs text-gray-400 mb-4">{section.description}</p>
+              <div className="flex items-center justify-between">
+                {countsLoading ? (
+                  <div className="h-5 w-16 bg-gray-100 rounded animate-pulse" />
+                ) : (
+                  <span className="text-lg font-bold text-gray-900 tabular-nums">
+                    {section.count > 0
+                      ? `${section.count} ${section.unit}${section.count !== 1 ? 's' : ''}`
+                      : <span className="text-sm font-normal text-gray-400">None added</span>
+                    }
+                  </span>
+                )}
+                <Link
+                  href={section.href}
+                  className="flex items-center gap-0.5 text-xs font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                >
+                  Manage <ChevronRightIcon className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Import / populate section */}
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-gray-900">Import or populate your catalog</h2>
+        <p className="text-xs text-gray-400 mt-0.5">Skip manual entry — scan your website or upload an existing spreadsheet.</p>
+      </div>
+
       <div className="flex gap-0 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm">
 
         {/* LEFT — Website scan */}
@@ -146,7 +248,6 @@ export default function IntegrationSetup() {
                 )}
               </button>
 
-              {/* Benefits */}
               <div className="mt-8 grid grid-cols-3 gap-4">
                 {[
                   { icon: SparklesIcon, color: 'bg-lime-100 text-lime-600', label: 'AI-Powered', desc: 'Extracts your data automatically' },
@@ -180,7 +281,7 @@ export default function IntegrationSetup() {
                 ].map(({ key, label, value }) => (
                   <div key={key} className="flex items-center justify-between bg-white rounded-lg px-3 py-2.5 border border-gray-100">
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <ConfidenceIcon level={analysisResults.confidence[key]} />
+                      <ConfidenceIcon level={analysisResults.confidence[key] as ConfidenceLevel} />
                       <div className="min-w-0">
                         <p className="text-xs font-medium text-gray-700">{label}</p>
                         <p className="text-xs text-gray-500 truncate">{value}</p>
@@ -196,7 +297,7 @@ export default function IntegrationSetup() {
                 </button>
                 <button className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-lime-600 to-cyan-600 hover:from-lime-700 hover:to-cyan-700 text-white text-xs font-medium shadow transition-all">
                   <SparklesIcon className="h-3.5 w-3.5" />
-                  Preview & Import
+                  Preview &amp; Import
                 </button>
               </div>
             </div>
@@ -212,9 +313,8 @@ export default function IntegrationSetup() {
             <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 uppercase tracking-wide">Full Import</span>
           </div>
           <h2 className="text-base font-semibold text-gray-900 mb-1">Import your data</h2>
-          <p className="text-xs text-gray-500 mb-6">Have a CSV or system export? It's 10× faster than manual entry — your entire catalog in one shot.</p>
+          <p className="text-xs text-gray-500 mb-6">Have a CSV or system export? Your entire catalog in one shot.</p>
 
-          {/* CSV Upload */}
           <button
             onClick={() => setShowUploadModal(true)}
             className="w-full border-2 border-dashed border-blue-300 hover:border-blue-400 hover:bg-blue-50/50 rounded-xl py-6 flex flex-col items-center gap-2 text-center transition-colors group mb-4"
@@ -222,12 +322,11 @@ export default function IntegrationSetup() {
             <ArrowUpTrayIcon className="h-7 w-7 text-blue-400 group-hover:text-blue-500 transition-colors" />
             <div>
               <p className="text-sm font-medium text-gray-900">Upload a spreadsheet or CSV</p>
-              <p className="text-xs text-gray-400 mt-0.5">Excel, Google Sheets, or any export — we'll map the columns</p>
+              <p className="text-xs text-gray-400 mt-0.5">Excel, Google Sheets, or any export — we&apos;ll map the columns</p>
             </div>
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-100 text-blue-600 mt-1">Ready</span>
           </button>
 
-          {/* ERP / System integrations — coming soon, no action */}
           <div className="space-y-2 mb-6">
             {[
               { logo: '🏭', name: 'Famous Software', desc: 'Item master, pack configs, invoice history' },

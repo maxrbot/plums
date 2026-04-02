@@ -4,18 +4,22 @@ import database from '../config/database'
 import { authenticate, AuthenticatedRequest } from '../middleware/auth'
 import { ShippingPoint, GrowingRegion } from '../models/types'
 
+function shippingPointFilter(user: { id: string; orgId?: string }, userObjectId: ObjectId) {
+  return user.orgId ? { orgId: user.orgId } : { userId: userObjectId }
+}
+
 const shippingPointsRoutes: FastifyPluginAsync = async (fastify) => {
-  
+
   // Add auth middleware to all routes
   fastify.addHook('preHandler', authenticate)
-  
+
   // Get all user's shipping points
   fastify.get('/', async (request, reply) => {
     const { user } = request as AuthenticatedRequest
-    
+
     try {
       const db = database.getDb()
-      
+
       const userDoc = await db.collection('users').findOne({ id: user.id })
       if (!userDoc) {
         return reply.status(404).send({
@@ -23,10 +27,12 @@ const shippingPointsRoutes: FastifyPluginAsync = async (fastify) => {
           message: 'User not found'
         })
       }
-      
+
+      const filter = shippingPointFilter(user, userDoc._id)
+
       // Query shipping points collection first
       let shippingPoints = await db.collection<ShippingPoint>('shippingPoints')
-        .find({ userId: userDoc._id })
+        .find(filter)
         .sort({ createdAt: -1 })
         .toArray()
       
@@ -160,6 +166,7 @@ const shippingPointsRoutes: FastifyPluginAsync = async (fastify) => {
       const newShippingPoint: Omit<ShippingPoint, '_id'> = {
         ...pointData,
         userId: userDoc._id!,
+        ...(user.orgId ? { orgId: user.orgId } : {}),
         facilityType: pointData.facilityType || 'warehouse',
         operationTypes: pointData.operationTypes || [],
         source: 'manual',

@@ -12,7 +12,8 @@ import {
   EyeIcon,
   DocumentDuplicateIcon,
   ArchiveBoxIcon,
-  UserGroupIcon
+  UserGroupIcon,
+  BookmarkIcon,
 } from '@heroicons/react/24/outline'
 import PriceSheetPreviewModal from '@/components/modals/PriceSheetPreviewModal'
 import PriceSheetDuplicateModal from '@/components/modals/PriceSheetDuplicateModal'
@@ -23,8 +24,12 @@ import { formatProductsForPreview } from '@/lib/priceSheetUtils'
 interface PriceSheet {
   _id: string
   title: string
-  status: 'draft' | 'active' | 'archived'
+  status: 'draft' | 'active' | 'sent' | 'archived'
   searchable?: boolean
+  isTemplate?: boolean
+  templateName?: string
+  usageCount?: number
+  lastUsedAt?: string
   createdAt: string
   updatedAt: string
   lastSentAt?: string
@@ -378,6 +383,16 @@ export default function PriceSheets() {
     }
   }
 
+  const handleDeleteTemplate = async (sheetId: string) => {
+    if (!confirm('Delete this template? This cannot be undone.')) return
+    try {
+      await priceSheetsApi.delete(sheetId)
+      await loadPriceSheets()
+    } catch (error) {
+      console.error('Failed to delete template:', error)
+    }
+  }
+
   const handleArchivePriceSheet = async (sheetId: string, currentStatus: string) => {
     const shouldArchive = currentStatus !== 'archived'
     const actionText = shouldArchive ? 'archive' : 'restore'
@@ -402,11 +417,18 @@ export default function PriceSheets() {
   return (
     <>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Price Sheets</h1>
-          <p className="mt-2 text-gray-600">View and manage all your saved price sheets.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Price Sheets</h1>
+          <p className="mt-1 text-sm text-gray-500">View and manage all your saved price sheets.</p>
         </div>
+        <Link
+          href="/dashboard/price-sheets/new"
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-gray-900 hover:bg-black text-white text-sm font-medium rounded-md transition-colors"
+        >
+          <PlusIcon className="h-4 w-4" />
+          New price sheet
+        </Link>
       </div>
 
       {/* ProduceHunt Panel */}
@@ -580,111 +602,194 @@ export default function PriceSheets() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredSheets.map((sheet) => (
-              <div
-                key={sheet._id}
-                className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-lime-500 transition-all duration-200"
-              >
-                <div className="p-6">
-                  {/* Header */}
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {sheet.title}
-                      </h3>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(sheet.status)}`}>
-                          {sheet.status.charAt(0).toUpperCase() + sheet.status.slice(1)}
-                        </span>
-                        <span className="text-sm text-gray-600">
-                          • {sheet.productsCount || sheet.productCount || 0} products
-                        </span>
+          <>
+            {/* Templates section */}
+            {filteredSheets.some(s => s.isTemplate) && (
+              <div className="mb-8">
+                <div className="flex items-center gap-2 mb-3">
+                  <BookmarkIcon className="h-4 w-4 text-amber-500" />
+                  <h2 className="text-sm font-semibold text-gray-900">My Templates</h2>
+                  <span className="text-xs text-gray-400">— reusable starting points for your weekly sheets</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredSheets.filter(s => s.isTemplate).map((sheet) => (
+                    <div
+                      key={sheet._id}
+                      className="bg-amber-50 rounded-lg border border-amber-200 hover:border-amber-400 transition-all duration-200"
+                    >
+                      <div className="p-5">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <BookmarkIcon className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                            <h3 className="text-sm font-semibold text-gray-900 truncate">{sheet.templateName || sheet.title}</h3>
+                          </div>
+                          <span className="text-xs text-gray-500 flex-shrink-0 ml-2">
+                            {sheet.productsCount || sheet.productCount || 0} products
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 mb-3">
+                          {(sheet.usageCount ?? 0) > 0 ? (
+                            <>
+                              <span className="text-xs text-amber-700 font-medium">
+                                Used {sheet.usageCount} {sheet.usageCount === 1 ? 'time' : 'times'}
+                              </span>
+                              {sheet.lastUsedAt && (
+                                <span className="text-xs text-gray-400">
+                                  · last {formatDate(sheet.lastUsedAt)}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">Never used</span>
+                          )}
+                        </div>
+                        <div className="flex gap-2 mt-3">
+                          <Link
+                            href={`/dashboard/price-sheets/new?templateId=${sheet._id}`}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-gray-900 hover:bg-black text-white text-xs font-medium rounded-md transition-colors"
+                          >
+                            <DocumentDuplicateIcon className="h-3.5 w-3.5" />
+                            Use Template
+                          </Link>
+                          <button
+                            onClick={() => handlePreviewPriceSheet(sheet._id)}
+                            disabled={isLoadingPreview}
+                            className="inline-flex items-center justify-center px-2.5 py-2 border border-amber-200 text-xs font-medium rounded-md text-amber-700 bg-white hover:bg-amber-50 disabled:opacity-50"
+                            title="Preview"
+                          >
+                            <EyeIcon className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteTemplate(sheet._id)}
+                            className="inline-flex items-center justify-center px-2.5 py-2 border border-red-200 text-xs font-medium rounded-md text-red-400 bg-white hover:bg-red-50"
+                            title="Delete template"
+                          >
+                            <ArchiveBoxIcon className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Metadata */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center text-sm text-gray-600">
-                      <CalendarIcon className="h-4 w-4 mr-2" />
-                      Created {formatDate(sheet.createdAt)}
-                    </div>
-                    {sheet.lastSentAt && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <PaperAirplaneIcon className="h-4 w-4 mr-2" />
-                        Last sent {formatDate(sheet.lastSentAt)}
-                      </div>
-                    )}
-                    {(sheet.recipientCount ?? 0) > 0 && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <UserGroupIcon className="h-4 w-4 mr-2" />
-                        Sent to {sheet.recipientCount} {sheet.recipientCount === 1 ? 'contact' : 'contacts'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ProduceHunt searchability toggle */}
-                  {(user as any)?.integrations?.producehunt && (
-                    <div className="flex items-center justify-between py-2 mb-3 border-t border-gray-100">
-                      <div className="flex items-center space-x-1.5">
-                        <MagnifyingGlassIcon className="h-3.5 w-3.5 text-gray-400" />
-                        <span className="text-xs text-gray-500">ProduceHunt searchable</span>
-                      </div>
-                      <button
-                        onClick={() => handleToggleSearchable(sheet._id, !!sheet.searchable)}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${sheet.searchable ? 'bg-green-500' : 'bg-gray-200'}`}
-                      >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${sheet.searchable ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Actions */}
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-3 gap-2">
-                    <button
-                      onClick={() => handlePreviewPriceSheet(sheet._id)}
-                      disabled={isLoadingPreview}
-                      className="inline-flex items-center justify-center px-2 py-2 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
-                      title="Preview"
-                    >
-                      <EyeIcon className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDuplicatePriceSheet(sheet._id)}
-                      disabled={isLoadingDuplicate}
-                      className="inline-flex items-center justify-center px-2 py-2 border border-blue-300 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50"
-                      title="Duplicate"
-                    >
-                      <DocumentDuplicateIcon className="h-4 w-4" />
-                    </button>
-                    <Link
-                      href={`/dashboard/price-sheets/send?sheetId=${sheet._id}`}
-                      className="inline-flex items-center justify-center px-2 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700"
-                      title="Send"
-                    >
-                      <PaperAirplaneIcon className="h-4 w-4" />
-                    </Link>
-                  </div>
-                    {/* Archive Button */}
-                    <button
-                      onClick={() => handleArchivePriceSheet(sheet._id, sheet.status)}
-                      className={`w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md ${
-                        sheet.status === 'archived'
-                          ? 'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300'
-                          : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-300'
-                      }`}
-                      title={sheet.status === 'archived' ? 'Restore' : 'Archive'}
-                    >
-                      <ArchiveBoxIcon className="h-4 w-4 mr-1" />
-                      {sheet.status === 'archived' ? 'Restore' : 'Archive'}
-                    </button>
-                  </div>
+                  ))}
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+
+            {/* Sent Price Sheets section */}
+            {filteredSheets.some(s => !s.isTemplate && s.status !== 'archived') && (
+              <div>
+                {filteredSheets.some(s => s.isTemplate) && (
+                  <div className="flex items-center gap-2 mb-3">
+                    <PaperAirplaneIcon className="h-4 w-4 text-gray-400" />
+                    <h2 className="text-sm font-semibold text-gray-900">Sent Price Sheets</h2>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredSheets.filter(s => !s.isTemplate && s.status !== 'archived').map((sheet) => (
+                    <div
+                      key={sheet._id}
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 hover:border-lime-500 transition-all duration-200"
+                    >
+                      <div className="p-6">
+                        {/* Header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                              {sheet.title}
+                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(sheet.status)}`}>
+                                {sheet.status.charAt(0).toUpperCase() + sheet.status.slice(1)}
+                              </span>
+                              <span className="text-sm text-gray-600">
+                                • {sheet.productsCount || sheet.productCount || 0} products
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Metadata */}
+                        <div className="space-y-2 mb-4">
+                          <div className="flex items-center text-sm text-gray-600">
+                            <CalendarIcon className="h-4 w-4 mr-2" />
+                            Created {formatDate(sheet.createdAt)}
+                          </div>
+                          {sheet.lastSentAt && (
+                            <div className="flex items-center text-sm text-gray-600">
+                              <PaperAirplaneIcon className="h-4 w-4 mr-2" />
+                              Last sent {formatDate(sheet.lastSentAt)}
+                            </div>
+                          )}
+                          {(sheet.recipientCount ?? 0) > 0 && (
+                            <div className="flex items-center text-sm text-gray-600">
+                              <UserGroupIcon className="h-4 w-4 mr-2" />
+                              Sent to {sheet.recipientCount} {sheet.recipientCount === 1 ? 'contact' : 'contacts'}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ProduceHunt searchability toggle */}
+                        {(user as any)?.integrations?.producehunt && (
+                          <div className="flex items-center justify-between py-2 mb-3 border-t border-gray-100">
+                            <div className="flex items-center space-x-1.5">
+                              <MagnifyingGlassIcon className="h-3.5 w-3.5 text-gray-400" />
+                              <span className="text-xs text-gray-500">ProduceHunt searchable</span>
+                            </div>
+                            <button
+                              onClick={() => handleToggleSearchable(sheet._id, !!sheet.searchable)}
+                              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${sheet.searchable ? 'bg-green-500' : 'bg-gray-200'}`}
+                            >
+                              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${sheet.searchable ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="space-y-2">
+                          <div className="grid grid-cols-3 gap-2">
+                            <button
+                              onClick={() => handlePreviewPriceSheet(sheet._id)}
+                              disabled={isLoadingPreview}
+                              className="inline-flex items-center justify-center px-2 py-2 border border-gray-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+                              title="Preview"
+                            >
+                              <EyeIcon className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDuplicatePriceSheet(sheet._id)}
+                              disabled={isLoadingDuplicate}
+                              className="inline-flex items-center justify-center px-2 py-2 border border-blue-300 text-xs font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 disabled:opacity-50"
+                              title="Duplicate"
+                            >
+                              <DocumentDuplicateIcon className="h-4 w-4" />
+                            </button>
+                            <Link
+                              href={`/dashboard/price-sheets/send?sheetId=${sheet._id}`}
+                              className="inline-flex items-center justify-center px-2 py-2 border border-transparent text-xs font-medium rounded-md text-white bg-lime-600 hover:bg-lime-700"
+                              title="Send"
+                            >
+                              <PaperAirplaneIcon className="h-4 w-4" />
+                            </Link>
+                          </div>
+                          <button
+                            onClick={() => handleArchivePriceSheet(sheet._id, sheet.status)}
+                            className={`w-full inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md ${
+                              sheet.status === 'archived'
+                                ? 'text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-300'
+                                : 'text-gray-700 bg-gray-50 hover:bg-gray-100 border border-gray-300'
+                            }`}
+                            title={sheet.status === 'archived' ? 'Restore' : 'Archive'}
+                          >
+                            <ArchiveBoxIcon className="h-4 w-4 mr-1" />
+                            {sheet.status === 'archived' ? 'Restore' : 'Archive'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

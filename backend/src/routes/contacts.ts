@@ -403,7 +403,10 @@ const contactsRoutes: FastifyPluginAsync = async (fastify) => {
           viewCount: viewData.count,
           lastViewedAt: viewData.lastViewedAt,
           opened: viewData.count > 0,
-          personalizedUrl // Include the URL with pricing
+          personalizedUrl,
+          productsCount: priceSheet?.productsCount || 0,
+          customPricingCount: Object.keys(email.customPricing || {}).length,
+          priceType: email.priceType || 'FOB',
         }
       })
       

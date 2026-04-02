@@ -7,9 +7,7 @@ import {
   UserIcon, 
   EnvelopeIcon, 
   PhoneIcon,
-  BuildingOfficeIcon,
-  GlobeAltIcon,
-  MapPinIcon,
+
   DocumentTextIcon,
   PencilIcon,
   ChatBubbleLeftRightIcon,
@@ -273,6 +271,13 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
     setHasUnsavedChanges(true)
   }
 
+  const formatPhoneNumber = (value: string) => {
+    const phoneNumber = value.replace(/\D/g, '')
+    if (phoneNumber.length <= 3) return phoneNumber
+    if (phoneNumber.length <= 6) return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3)}`
+    return `(${phoneNumber.slice(0, 3)}) ${phoneNumber.slice(3, 6)}-${phoneNumber.slice(6, 10)}`
+  }
+
   const updateContactField = (field: keyof Contact, value: any) => {
     if (!editedContact) return
     setEditedContact({
@@ -280,6 +285,15 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
       [field]: value
     })
     setHasUnsavedChanges(true)
+  }
+
+  const togglePrimaryCrop = (crop: string) => {
+    if (!editedContact) return
+    const current = editedContact.primaryCrops || []
+    updateContactField('primaryCrops', current.includes(crop)
+      ? current.filter(c => c !== crop)
+      : [...current, crop]
+    )
   }
 
   const handleSaveOverview = async () => {
@@ -462,7 +476,7 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                             <input
                               type="tel"
                               value={editedContact.phone || ''}
-                              onChange={(e) => updateContactField('phone', e.target.value)}
+                              onChange={(e) => updateContactField('phone', formatPhoneNumber(e.target.value))}
                               placeholder="(555) 123-4567"
                               className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                             />
@@ -600,18 +614,39 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                       </div>
                       
                       {/* Primary Crops */}
-                      {contact.primaryCrops.length > 0 && (
-                        <div>
-                          <h4 className="text-sm font-medium text-gray-900 mb-3">Primary Crop Interests</h4>
-                          <div className="flex flex-wrap gap-2">
-                            {contact.primaryCrops.map((crop) => (
-                              <span key={crop} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                {crop}
-                              </span>
+                      <div>
+                        <div className="mb-3">
+                          <h4 className="text-sm font-medium text-gray-900">Primary Crop Interests</h4>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            When set, price sheets sent to this contact will only show the crops selected here — everything else is automatically removed from their view.
+                          </p>
+                        </div>
+                        {isLoadingCrops ? (
+                          <div className="flex items-center py-3 text-sm text-gray-400">
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2" />
+                            Loading crops...
+                          </div>
+                        ) : Object.keys(availableCrops).length === 0 ? (
+                          <div className="text-center py-4 bg-yellow-50 border border-yellow-200 rounded-md">
+                            <p className="text-sm text-yellow-700 mb-1">No crops in your catalog yet.</p>
+                            <p className="text-xs text-yellow-600">Add commodities in <a href="/dashboard/price-sheets/crops" className="underline">Catalog → Commodities</a> first.</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                            {Object.keys(availableCrops).map((crop) => (
+                              <label key={crop} className="flex items-center space-x-2 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={(editedContact?.primaryCrops || []).includes(crop)}
+                                  onChange={() => togglePrimaryCrop(crop)}
+                                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                />
+                                <span className="text-sm text-gray-700">{crop}</span>
+                              </label>
                             ))}
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                       
                       {/* Notes */}
                       <div>
@@ -1051,88 +1086,146 @@ export default function ContactDetailsModal({ isOpen, onClose, contact, onEdit }
                   )}
                   
                   {activeTab === 'history' && (
-                    <div className="space-y-4">
+                    <div>
                       {isLoadingHistory ? (
                         <div className="text-center py-8">
                           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                           <p className="text-sm text-gray-500 mt-4">Loading history...</p>
                         </div>
                       ) : priceSheetHistory.length === 0 ? (
-                        <div className="text-center py-8">
-                          <ChatBubbleLeftRightIcon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                          <h3 className="text-sm font-medium text-gray-900 mb-2">No Price Sheets Sent Yet</h3>
-                          <p className="text-sm text-gray-500">
-                            Price sheets sent to this contact will appear here.
-                          </p>
+                        <div className="text-center py-12">
+                          <ChatBubbleLeftRightIcon className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                          <h3 className="text-sm font-medium text-gray-900 mb-1">No price sheets sent yet</h3>
+                          <p className="text-xs text-gray-500">Sends to this contact will appear here.</p>
                         </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <h4 className="text-sm font-medium text-gray-700">Price Sheets Sent</h4>
-                          <div className="space-y-3">
-                            {priceSheetHistory.map((item) => (
-                              <div 
-                                key={item.id} 
-                                className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
-                              >
-                                <div className="flex items-start justify-between">
-                                  <div className="flex-1">
-                                    <h5 className="text-sm font-medium text-gray-900">
-                                      {item.priceSheetTitle}
-                                    </h5>
-                                    <div className="mt-2 flex items-center space-x-4 text-xs text-gray-500">
-                                      <div className="flex items-center">
-                                        <EnvelopeIcon className="h-4 w-4 mr-1" />
-                                        Sent via Email
-                                      </div>
-                                      <div>
-                                        {new Date(item.sentAt).toLocaleDateString('en-US', {
-                                          month: 'short',
-                                          day: 'numeric',
-                                          year: 'numeric',
-                                          hour: 'numeric',
-                                          minute: '2-digit'
-                                        })}
-                                      </div>
-                                    </div>
-                                    {item.opened && (
-                                      <div className="mt-2 flex items-center text-xs">
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                                          ✓ Opened {item.viewCount} {item.viewCount === 1 ? 'time' : 'times'}
-                                        </span>
-                                        {item.lastViewedAt && (
-                                          <span className="ml-2 text-gray-500">
-                                            Last viewed {new Date(item.lastViewedAt).toLocaleDateString('en-US', {
-                                              month: 'short',
-                                              day: 'numeric'
-                                            })}
+                      ) : (() => {
+                        const totalSends = priceSheetHistory.length
+                        const openedCount = priceSheetHistory.filter((i: any) => i.opened).length
+                        const openRate = Math.round((openedCount / totalSends) * 100)
+                        const totalViews = priceSheetHistory.reduce((sum: number, i: any) => sum + (i.viewCount || 0), 0)
+                        const lastSent = priceSheetHistory[0]?.sentAt
+                        const globalAdj = (contact as any)?.pricesheetSettings?.globalAdjustment || 0
+
+                        const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                        const relativeDate = (d: string) => {
+                          const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
+                          if (days === 0) return 'Today'
+                          if (days === 1) return 'Yesterday'
+                          if (days < 30) return `${days}d ago`
+                          if (days < 365) return `${Math.floor(days / 30)}mo ago`
+                          return `${Math.floor(days / 365)}y ago`
+                        }
+
+                        return (
+                          <div>
+                            {/* Stat bar */}
+                            <div className="grid grid-cols-4 gap-3 mb-5">
+                              {[
+                                { label: 'Sheets sent', value: totalSends },
+                                { label: 'Open rate', value: `${openRate}%` },
+                                { label: 'Total views', value: totalViews },
+                                { label: 'Last sent', value: lastSent ? relativeDate(lastSent) : '—' },
+                              ].map(stat => (
+                                <div key={stat.label} className="bg-gray-50 rounded-lg px-3 py-2.5 text-center">
+                                  <p className="text-base font-semibold text-gray-900">{stat.value}</p>
+                                  <p className="text-xs text-gray-500 mt-0.5">{stat.label}</p>
+                                </div>
+                              ))}
+                            </div>
+
+                            {/* Current pricing context */}
+                            {(globalAdj !== 0 || ((contact as any)?.pricesheetSettings?.cropAdjustments || []).length > 0 || ((contact as any)?.primaryCrops || []).length > 0) && (
+                              <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 flex items-start gap-2">
+                                <span className="font-medium flex-shrink-0">Current settings:</span>
+                                <span className="text-amber-700">
+                                  {globalAdj !== 0 && <span>{globalAdj > 0 ? '+' : ''}{globalAdj}% global · </span>}
+                                  {((contact as any)?.pricesheetSettings?.cropAdjustments || []).length > 0 && (
+                                    <span>{(contact as any).pricesheetSettings.cropAdjustments.length} crop overrides · </span>
+                                  )}
+                                  {((contact as any)?.primaryCrops || []).length > 0 && (
+                                    <span>Filtered to {(contact as any).primaryCrops.join(', ')}</span>
+                                  )}
+                                </span>
+                              </div>
+                            )}
+
+                            {/* Table */}
+                            <div className="border border-gray-200 rounded-lg overflow-hidden">
+                              <table className="min-w-full divide-y divide-gray-200 text-xs">
+                                <thead className="bg-gray-50">
+                                  <tr>
+                                    <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Sent</th>
+                                    <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Price Sheet</th>
+                                    <th className="px-3 py-2 text-center font-medium text-gray-500 uppercase tracking-wider">Items</th>
+                                    <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Pricing</th>
+                                    <th className="px-3 py-2 text-left font-medium text-gray-500 uppercase tracking-wider">Engagement</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-100">
+                                  {priceSheetHistory.map((item: any) => (
+                                    <tr key={item.id} className="hover:bg-gray-50">
+                                      {/* Sent date */}
+                                      <td className="px-3 py-3 whitespace-nowrap">
+                                        <p className="font-medium text-gray-900">{relativeDate(item.sentAt)}</p>
+                                        <p className="text-gray-400 mt-0.5">{formatDate(item.sentAt)}</p>
+                                      </td>
+
+                                      {/* Sheet name */}
+                                      <td className="px-3 py-3">
+                                        <p className="font-medium text-gray-900 leading-snug">{item.priceSheetTitle}</p>
+                                        {item.priceType && item.priceType !== 'FOB' && (
+                                          <p className="text-gray-400 mt-0.5">{item.priceType}</p>
+                                        )}
+                                      </td>
+
+                                      {/* Items count */}
+                                      <td className="px-3 py-3 text-center">
+                                        <span className="text-gray-700">{item.productsCount || '—'}</span>
+                                      </td>
+
+                                      {/* Pricing applied */}
+                                      <td className="px-3 py-3 whitespace-nowrap">
+                                        {item.customPricingCount > 0 ? (
+                                          <span className="inline-flex items-center gap-1 text-amber-700 font-medium">
+                                            <span className="w-1.5 h-1.5 bg-amber-500 rounded-full inline-block"></span>
+                                            {item.customPricingCount} override{item.customPricingCount !== 1 ? 's' : ''}
+                                          </span>
+                                        ) : globalAdj !== 0 ? (
+                                          <span className={`inline-flex items-center gap-1 font-medium ${globalAdj < 0 ? 'text-green-700' : 'text-red-700'}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full inline-block ${globalAdj < 0 ? 'bg-green-500' : 'bg-red-400'}`}></span>
+                                            {globalAdj > 0 ? '+' : ''}{globalAdj}% global
+                                          </span>
+                                        ) : (
+                                          <span className="inline-flex items-center gap-1 text-gray-500">
+                                            <span className="w-1.5 h-1.5 bg-green-500 rounded-full inline-block"></span>
+                                            Standard
                                           </span>
                                         )}
-                                      </div>
-                                    )}
-                                    {!item.opened && (
-                                      <div className="mt-2">
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">
-                                          Not opened yet
-                                        </span>
-                                      </div>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      // Open personalized price sheet with contact-specific pricing
-                                      window.open(item.personalizedUrl, '_blank')
-                                    }}
-                                    className="ml-4 inline-flex items-center px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md border border-blue-300"
-                                  >
-                                    <DocumentTextIcon className="h-4 w-4 mr-1" />
-                                    View
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                                      </td>
+
+                                      {/* Engagement */}
+                                      <td className="px-3 py-3">
+                                        {item.opened ? (
+                                          <div>
+                                            <span className="text-green-700 font-medium">
+                                              {item.viewCount} view{item.viewCount !== 1 ? 's' : ''}
+                                            </span>
+                                            {item.lastViewedAt && (
+                                              <p className="text-gray-400 mt-0.5">Last {relativeDate(item.lastViewedAt)}</p>
+                                            )}
+                                          </div>
+                                        ) : (
+                                          <span className="text-gray-400">Not opened</span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )
+                      })()}
                     </div>
                   )}
                 </div>

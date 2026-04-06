@@ -1,102 +1,173 @@
-# ProduceHunt Search Result Tiers
+# ProduceHunt Search Tiers
 
-Results are ranked into 4 tiers. **Tier 1 = highest quality, appears first.** Within each tier, results sort by verification score descending.
-
----
-
-## Tier 1 — AcreList Supplier with Live Pricing
-
-**Criteria:**
-- Supplier has claimed their ProduceHunt listing (`supplierDirectory.acrelistUserId` is set)
-- They have at least one price sheet marked `searchable: true`
-- That price sheet contains a `priceSheetProduct` matching the search commodity
-
-**What the buyer sees:**
-- Company name, location, verification score
-- Actual pricing rows: package type · size · shipping point · price/unit
-- "Live Pricing" badge
-
-**Location logic:**
-- Prefer `supplierDirectory.location.full`
-- Fall back to AcreList user `profile.address` (city, state)
-
-**Shipping point:** Each pricing row includes `regionName` from `priceSheetProducts`, which maps to a `ShippingPoint` record — this tells the buyer where the product ships from (e.g., "FOB Central Valley").
+ProduceHunt ranks supplier results in 4 tiers. Within each tier, results are sorted by verification score (descending). Organic-certified suppliers bubble up within their tier when the search includes "organic".
 
 ---
 
-## Tier 2 — AcreList Supplier, No Live Pricing
+## Tier 1 — Live Pricing (AcreList Member)
 
-**Criteria:**
-- Supplier has claimed their ProduceHunt listing (`acrelistUserId` is set)
-- Their `supplierDirectory.products[]` matches the search (synced from their crop management)
-- They do NOT have a searchable price sheet with matching products
+**Who qualifies:** Suppliers who have claimed their listing AND have at least one price sheet marked as searchable with a matching product.
 
-**What the buyer sees:**
-- Company name, location, verification score
-- Product name (commodity + organic flag)
-- "Member" badge
-- "Contact for availability" CTA
+**What buyers see:**
+- Company name + location
+- Verification score bar
+- Product name with pricing rows (packageType · size | $price/unit)
+- Organic badge if applicable
+- Shipping point / region name
+- "Verified Member" badge
 
-**Location logic:** Same fallback as Tier 1 — directory location → AcreList profile address.
+**How to achieve:** Claim your listing on ProduceHunt, then add live pricing by connecting your AcreList price sheets and marking them searchable.
 
-**Notes:** These suppliers are active on AcreList and have declared what they grow, but haven't published pricing to ProduceHunt. They're contactable but less transparent than Tier 1.
+**Badge:** `Verified Member` (green)
 
 ---
 
-## Tier 3 — Directory Supplier with Product Match
+## Tier 2 — Verified Member (No Live Pricing)
 
-**Criteria:**
-- Supplier does NOT have `acrelistUserId` (unclaimed listing)
-- Their `supplierDirectory.products[]` matches the search commodity or variety
+**Who qualifies:** Suppliers who have claimed their listing and have matching products in their directory profile, but no searchable price sheet with that product.
 
-**What the buyer sees:**
-- Company name, location (from directory only), verification score
+**What buyers see:**
+- Company name + location
+- Verification score bar
 - Product name
-- No tier badge
+- "Verified Member" badge
+- `💰 Pricing available on request` if the supplier has any searchable price sheet (even if no product match)
 
-**Ranking within Tier 3:** Verification score descending (PACA, GFSI, organic cert, etc.).
+**How to achieve:** Claim your free ProduceHunt listing. Your crops sync automatically from your profile.
 
-**Notes:** These are growers and shippers in the ProduceHunt directory who haven't joined AcreList. Data richness varies — some are fully verified, some are basic imports.
-
----
-
-## Tier 4 — Company Name Match Only
-
-**Criteria:**
-- Supplier matched on company name search, but their `products[]` do not contain a matching commodity
-- Could be claimed or unclaimed
-
-**What the buyer sees:**
-- Same card as Tier 3, no badge
-- Results here are lower confidence — the supplier name matched but we can't confirm they carry the searched item
-
-**Ranking within Tier 4:** Verification score descending.
-
-**Notes:** Useful when a buyer searches for a specific grower by name rather than a commodity. Also catches cases where the directory product list is incomplete.
+**Badge:** `Verified Member` (green)
 
 ---
 
-## Organic Cross-Tier Signal
+## Tier 3 — Directory Listing (Unclaimed)
 
-When a search includes "organic" (e.g., "organic lemons"), within each tier, organic-certified suppliers rank above conventional ones before the verification score sort is applied.
+**Who qualifies:** Unclaimed directory entries where the `products[]` array contains a match for the search query.
+
+**What buyers see:**
+- Company name + location
+- Verification score bar
+- Product name
+- No pricing, no member badge
+- "Is this your business? Claim it free →" prompt
+
+**How to achieve:** N/A — these are public records. Claim the listing to move to Tier 2.
+
+**Badge:** None
 
 ---
 
-## Implementation
+## Tier 4 — Name Match Only
 
-**Backend:** `backend/src/routes/public.ts` — `GET /api/public/search-products`
+**Who qualifies:** Any directory entry (claimed or unclaimed) where the company name matches the query, but no product match was found.
 
-Each result includes a `tier: 1 | 2 | 3 | 4` field. The backend handles all sorting before returning — frontend receives results in final display order.
+**What buyers see:**
+- Company name + location
+- Verification score bar
+- No product detail, no pricing
 
-**Frontend:** `producehunt/app/page.tsx` — result cards read `result.tier` to show the appropriate badge.
+**How to achieve:** N/A — fallback results for exploratory searches.
 
-**Key data sources:**
-| Data | Collection | Field |
-|------|-----------|-------|
-| Product match | `supplierDirectory` | `products[]` |
-| Claimed status | `supplierDirectory` | `acrelistUserId` |
-| Live pricing | `priceSheetProducts` | `commodity`, `userId`, `priceSheetId` |
-| Searchable flag | `priceSheets` | `searchable: true` |
-| Shipping point | `priceSheetProducts` | `regionName` (denormalized from `shippingPoints`) |
-| Location fallback | `users` | `profile.address.city`, `profile.address.state` |
-| Verification score | `supplierDirectory` | `verificationScore.score` |
+**Badge:** None
+
+---
+
+## Search Mechanics
+
+### Query Parsing
+- Input is lowercased and trimmed
+- Organic modifier: if query contains "organic", set `isOrganic = true` and strip "organic" from the commodity term
+- Remaining term is used for product matching
+
+### Stemming
+Simple suffix rules applied when no direct match is found:
+- `-ies` → `-y` (e.g. "berries" → "berry")
+- `-s` → strip trailing s (e.g. "lemons" → "lemon")
+
+### Category Expansion
+Broad category terms expand to a list of specific commodities:
+
+| Query | Expands to |
+|-------|-----------|
+| `citrus` | lemon, lime, orange, grapefruit, tangerine, clementine, mandarin |
+| `berries` | strawberry, blueberry, raspberry, blackberry, cranberry |
+| `stone fruit` | peach, nectarine, plum, cherry, apricot |
+| `tropical` | mango, papaya, pineapple, guava, passion fruit, dragon fruit |
+| `melons` | watermelon, cantaloupe, honeydew |
+
+### Product Matching
+For Tier 1 and 2 (claimed suppliers), matching checks:
+1. `priceSheetProducts.commodity` (case-insensitive, partial match)
+2. `supplierDirectory.products[].commodity` (case-insensitive, partial match)
+
+For Tier 3 and 4 (unclaimed):
+1. `supplierDirectory.products[].commodity`
+2. `supplierDirectory.companyName` (Tier 4 fallback)
+
+---
+
+## Listing Visibility
+
+Two independent fields control how a supplier appears:
+
+| Field | Meaning |
+|-------|---------|
+| `claimed: true` | Supplier has verified ownership of the listing |
+| `listed: true` | Listing is visible in search results |
+
+A supplier can claim their listing (`claimed: true`) but choose to hide it from search (`listed: false`). Delisting does not remove the claim — they can relist at any time from the dashboard.
+
+---
+
+## Verification Score
+
+Maximum score: **27 points**
+
+| Signal | Points |
+|--------|--------|
+| PACA licensed | 5 |
+| GFSI certification (SQF, BRC, etc.) | 5 |
+| Years in business (10+) | 5 |
+| USDA Organic certification | 5 |
+| DRC member | 3 |
+| Website present | 2 |
+| ProduceHunt Member (claimed) | 2 |
+
+Scores are pre-computed from public data sources and locked. Suppliers cannot manually edit their verification score — it reflects externally verifiable signals.
+
+---
+
+## Supplier Journey
+
+```
+Public records / manual entry
+        ↓
+  Directory entry (Tier 3/4)
+  [listed, unclaimed, no member badge]
+        ↓
+  Claim listing (free)
+  [Tier 2 — Verified Member]
+  crops auto-sync from profile
+        ↓
+  Add live pricing (price sheets)
+  mark price sheet as searchable
+  [Tier 1 — Live Pricing + Verified Member]
+```
+
+---
+
+## Domain Verification (Claim Flow)
+
+When a supplier submits a claim:
+
+1. Extract root domain from the directory entry's `contact.website`
+2. Extract domain from the user's login email
+3. If they match → claim is **instantly approved** (`claimed: true`, `listed: true`)
+4. If they don't match → claim goes to **pending review** (`claimRequests` collection, admin notified)
+
+---
+
+## Future Tiers (Planned)
+
+- **Tier 0** — Featured/sponsored results (manually curated or paid placement)
+- **Buyer-side tiers** — Match quality signals (buyer location vs. supplier shipping regions, minimum order compatibility)
+- **Review signals** — Buyer-verified transactions boosting trust score

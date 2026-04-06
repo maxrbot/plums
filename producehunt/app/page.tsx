@@ -278,7 +278,13 @@ export default function ProduceHunt() {
 
           {/* Auth Button at Bottom */}
           <div className="sidebar-footer">
-            <button className="signin-btn">Sign In</button>
+            <a href="/login" className="signin-btn">Supplier login</a>
+            <a
+              href="/claim"
+              className="supplier-link"
+            >
+              Claim your listing
+            </a>
           </div>
         </aside>
 
@@ -301,7 +307,7 @@ export default function ProduceHunt() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    placeholder="What are you looking to buy?"
+                    placeholder="Find produce suppliers — lemons, organic tomatoes, stone fruit..."
                     autoFocus
                     disabled={isLoading}
                   />
@@ -325,6 +331,25 @@ export default function ProduceHunt() {
                       {prompt}
                     </button>
                   ))}
+                </div>
+
+                {/* About / Footer */}
+                <div className="welcome-about">
+                  <div className="welcome-about-cols">
+                    <div className="welcome-about-col">
+                      <p className="welcome-about-heading">What is ProduceHunt?</p>
+                      <p className="welcome-about-text">A searchable directory of agricultural suppliers across the U.S. — growers, shippers, and distributors. Search by commodity, region, or certification to find who's growing what and where.</p>
+                    </div>
+                    <div className="welcome-about-col">
+                      <p className="welcome-about-heading">How is data sourced?</p>
+                      <p className="welcome-about-text">Listings are built from public records and verified sources (PACA, USDA Organic, GFSI). Suppliers who claim their listing can enrich it with live pricing and direct contact details.</p>
+                    </div>
+                    <div className="welcome-about-col">
+                      <p className="welcome-about-heading">Is your company listed?</p>
+                      <p className="welcome-about-text">Hundreds of suppliers are already in the directory. Claim your listing to control what buyers see — update your products, connect live pricing, and get found faster.</p>
+                      <a href="/claim" className="welcome-about-cta">Claim your listing →</a>
+                    </div>
+                  </div>
                 </div>
               </div>
             ) : (
@@ -452,7 +477,7 @@ export default function ProduceHunt() {
                               </td>
                               <td className="action-cell">
                                 <a
-                                  href={`/directory/${supplier.slug}`}
+                                  href={`/supplier/${supplier.slug}`}
                                   className="view-profile-btn-small"
                                 >
                                   View →
@@ -605,13 +630,16 @@ export default function ProduceHunt() {
                             onClick={() => setSelectedSupplier(result)}
                           >
                             {result.supplier.companyName}
+                            {(result.tier === 1 || result.tier === 2) && (
+                              <span className="verified-check" title="Verified ProduceHunt member">✓</span>
+                            )}
                           </h4>
                           <p className="location">📍 {result.supplier.location}</p>
                         </div>
                         {(result.tier === 1 || result.tier === 2) && (
                           <div className="card-header-right">
                             {result.tier === 1 && <span className="tier-badge tier-1">Live Pricing</span>}
-                            {result.tier === 2 && <span className="tier-badge tier-2">Member</span>}
+                            {result.tier === 2 && <span className="tier-badge tier-2">Verified Member</span>}
                           </div>
                         )}
                       </div>
@@ -689,7 +717,7 @@ export default function ProduceHunt() {
               {/* Tier / status badges */}
               <div className="modal-badges">
                 {selectedSupplier.tier === 1 && <span className="tier-badge tier-1">Live Pricing</span>}
-                {selectedSupplier.tier === 2 && <span className="tier-badge tier-2">AcreList Member</span>}
+                {selectedSupplier.tier === 2 && <span className="tier-badge tier-2">Verified Member</span>}
                 {selectedSupplier.isOrganic && <span className="badge organic">🌿 Organic</span>}
               </div>
 
@@ -756,7 +784,7 @@ export default function ProduceHunt() {
                 </a>
               )}
               <a
-                href={`/directory/${selectedSupplier.supplier.slug}`}
+                href={`/supplier/${selectedSupplier.supplier.slug}`}
                 className="modal-profile-link"
               >
                 View Full Profile →

@@ -8,6 +8,20 @@ function normalizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim()
 }
 
+// Extract root domain from a URL or email domain string
+function extractDomain(input: string | undefined | null): string | null {
+  if (!input) return null
+  try {
+    const s = input.trim().toLowerCase()
+    // If it looks like a URL, parse it
+    const withProto = s.startsWith('http') ? s : `https://${s}`
+    const hostname = new URL(withProto).hostname
+    return hostname.replace(/^www\./, '')
+  } catch {
+    return null
+  }
+}
+
 const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('preHandler', authenticate)
 
@@ -181,8 +195,38 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.status(409).send({ error: 'You have already claimed a directory entry' })
       }
 
-      // Sync user's crops into directory products format
+      // ── Domain verification ──────────────────────────────────────────────
       const userDoc = await db.collection('users').findOne({ id: userId })
+      if (!userDoc) return reply.status(404).send({ error: 'User not found' })
+
+      const emailDomain = userDoc.email?.split('@')[1]?.toLowerCase() || null
+      const websiteRaw = entry.website || entry.contact?.website || ''
+      const websiteDomain = extractDomain(websiteRaw)
+
+      const domainVerified = !!(emailDomain && websiteDomain && emailDomain === websiteDomain)
+
+      if (!domainVerified) {
+        // Create a pending claim request for admin review
+        await db.collection('claimRequests').insertOne({
+          directoryEntryId: entry._id.toString(),
+          userId,
+          userEmail: userDoc.email,
+          emailDomain,
+          websiteDomain,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        })
+        return {
+          success: true,
+          pending: true,
+          message: "Your claim is under review. We'll notify you within 24 hours.",
+          emailDomain,
+          websiteDomain,
+        }
+      }
+
+      // Sync user's crops into directory products format
       const userCrops = userDoc
         ? await db.collection('cropManagement').find({ userId: userDoc._id }).toArray()
         : []
@@ -218,6 +262,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
           $set: {
             acrelistUserId: userId,
             claimed: true,
+            claimedAt: new Date(),
             companyName,
             location,
             contact,
@@ -240,6 +285,12 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
         }
       )
 
+      // Sync pipeline entry status to 'claimed' (fire-and-forget)
+      db.collection('directoryPipeline').updateOne(
+        { supplierDirectoryId: entry._id.toString() },
+        { $set: { status: 'claimed', updatedAt: new Date() } }
+      ).catch(() => {})
+
       return {
         success: true,
         slug: entry.slug,
@@ -252,7 +303,66 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
 
-  // Opt-out — removes the claim link
+  // GET /listing/me — full listing data for the PEO dashboard
+  fastify.get('/listing/me', async (request, reply) => {
+    const req = request as AuthenticatedRequest
+    const userId = req.user.id
+
+    try {
+      const db = database.getDb()
+
+      const [entry, userDoc] = await Promise.all([
+        db.collection('supplierDirectory').findOne({ acrelistUserId: userId }),
+        db.collection('users').findOne({ id: userId }, { projection: { email: 1 } })
+      ])
+      if (!entry) return { listing: null, pendingClaim: null }
+
+      // Check for searchable price sheets (determines tier 1 vs 2)
+      const userObjId = (() => { try { return new (require('mongodb').ObjectId)(userId) } catch { return null } })()
+      const searchableSheets = userObjId
+        ? await db.collection('priceSheets').countDocuments({ userId: userObjId, searchable: true })
+        : 0
+
+      // Pending claim requests for this user
+      const pendingClaim = await db.collection('claimRequests').findOne(
+        { userId, status: 'pending' },
+        { sort: { createdAt: -1 } }
+      )
+
+      const tier = searchableSheets > 0 ? 1 : 2
+
+      return {
+        listing: {
+          id: entry._id.toString(),
+          slug: entry.slug,
+          companyName: entry.companyName,
+          location: entry.location,
+          products: (entry.products || []).map((p: any) => p.commodity),
+          claimed: !!entry.claimed,
+          listed: entry.listed !== false,
+          verificationScore: entry.verificationScore || null,
+          certifications: entry.certifications || [],
+          contact: entry.contact || {},
+          dataSources: entry.dataSources || {},
+          tier,
+          searchableSheets,
+          claimedAt: entry.claimedAt || null,
+          managedBy: userDoc?.email || null,
+        },
+        pendingClaim: pendingClaim ? {
+          id: pendingClaim._id.toString(),
+          status: pendingClaim.status,
+          createdAt: pendingClaim.createdAt,
+          emailDomain: pendingClaim.emailDomain,
+          websiteDomain: pendingClaim.websiteDomain,
+        } : null,
+      }
+    } catch (error: any) {
+      return reply.status(500).send({ error: 'Failed to load listing', details: error.message })
+    }
+  })
+
+  // Delist — hides from search but keeps the claim (listed: false, claimed stays true)
   fastify.delete('/listing', async (request, reply) => {
     const req = request as AuthenticatedRequest
     const userId = req.user.id
@@ -262,14 +372,7 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
 
       await db.collection('supplierDirectory').updateOne(
         { acrelistUserId: userId },
-        {
-          $set: {
-            acrelistUserId: null,
-            claimed: false,
-            'dataSources.acrelist': { verified: false, score: 0 },
-            updatedAt: new Date()
-          }
-        }
+        { $set: { listed: false, updatedAt: new Date() } }
       )
 
       await db.collection('users').updateOne(
@@ -277,11 +380,40 @@ const produceHuntRoutes: FastifyPluginAsync = async (fastify) => {
         { $set: { 'integrations.producehunt': false, updatedAt: new Date() } }
       )
 
-      return { success: true, message: 'Removed from ProduceHunt directory' }
+      return { success: true, message: 'Delisted from ProduceHunt search' }
 
     } catch (error: any) {
-      console.error('❌ ProduceHunt opt-out error:', error)
-      return reply.status(500).send({ error: 'Failed to opt out', details: error.message })
+      console.error('❌ ProduceHunt delist error:', error)
+      return reply.status(500).send({ error: 'Failed to delist', details: error.message })
+    }
+  })
+
+  // Relist — re-enables search visibility for a delisted (but still claimed) entry
+  fastify.post('/listing/relist', async (request, reply) => {
+    const req = request as AuthenticatedRequest
+    const userId = req.user.id
+
+    try {
+      const db = database.getDb()
+
+      const entry = await db.collection('supplierDirectory').findOne({ acrelistUserId: userId })
+      if (!entry) return reply.status(404).send({ error: 'No claimed listing found' })
+
+      await db.collection('supplierDirectory').updateOne(
+        { acrelistUserId: userId },
+        { $set: { listed: true, updatedAt: new Date() } }
+      )
+
+      await db.collection('users').updateOne(
+        { id: userId },
+        { $set: { 'integrations.producehunt': true, updatedAt: new Date() } }
+      )
+
+      return { success: true, message: 'Relisted on ProduceHunt' }
+
+    } catch (error: any) {
+      console.error('❌ ProduceHunt relist error:', error)
+      return reply.status(500).send({ error: 'Failed to relist', details: error.message })
     }
   })
 }

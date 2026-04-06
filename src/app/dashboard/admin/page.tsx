@@ -3,329 +3,247 @@
 import { useState, useEffect } from 'react'
 import { useUser } from '@/contexts/UserContext'
 import { useRouter } from 'next/navigation'
-import { 
-  UsersIcon, 
-  ChartBarIcon, 
-  ClockIcon,
+import Link from 'next/link'
+import {
+  UsersIcon,
+  BuildingStorefrontIcon,
+  QueueListIcon,
   ArrowRightIcon,
-  EyeIcon,
-  MapPinIcon,
-  CubeIcon,
-  UserGroupIcon,
-  DocumentTextIcon,
-  PaperAirplaneIcon,
-  ShieldCheckIcon
+  CheckCircleIcon,
 } from '@heroicons/react/24/outline'
 
-interface UserStats {
-  _id: string
-  id: string
-  email: string
-  subscriptionTier: string
-  profile: {
-    companyName: string
-    contactName: string
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+function authHeaders() {
+  const t = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null
+  return { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' }
+}
+
+interface Summary {
+  acrelist: {
+    totalUsers: number
+    activeToday: number
+    activeThisWeek: number
+    newUsersThisWeek: number
+    totalOrgs: number
+    totalPriceSheets: number
+    totalEmailsSent: number
+    totalContacts: number
   }
-  createdAt: string
-  cropCount: number
-  contactCount: number
-  shippingPointCount: number
-  priceSheetCount: number
-  emailsSentCount: number
-  lastActivity: string
-  lastSeenAt?: string
+  producehunt: {
+    directoryTotal: number
+    directoryClaimed: number
+    directoryUnclaimed: number
+    pipelinePending: number
+    pipelinePushed: number
+    pipelineClaimed: number
+  }
+  recentSignups: Array<{
+    _id: string
+    email: string
+    role?: string
+    profile: { companyName: string; contactName: string }
+    createdAt: string
+  }>
 }
 
-// Utility function to format time ago
-function formatTimeAgo(dateString: string | undefined): string {
-  if (!dateString) return 'Never'
-  
-  const date = new Date(dateString)
-  const now = new Date()
-  const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
-  
-  if (seconds < 60) return 'Just now'
-  if (seconds < 300) return `${Math.floor(seconds / 60)} min ago` // < 5 min
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} mins ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
-  if (seconds < 604800) return `${Math.floor(seconds / 86400)} days ago`
-  
-  return date.toLocaleDateString()
+function formatTimeAgo(d: string): string {
+  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
+  if (s < 60) return 'Just now'
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
+  if (s < 604800) return `${Math.floor(s / 86400)}d ago`
+  return new Date(d).toLocaleDateString()
 }
 
-// Check if user is online (active in last 5 minutes)
-function isUserOnline(lastSeenAt: string | undefined): boolean {
-  if (!lastSeenAt) return false
-  const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
-  return new Date(lastSeenAt) > fiveMinutesAgo
-}
-
-export default function AdminDashboard() {
+export default function AdminOverviewPage() {
   const { user } = useUser()
   const router = useRouter()
-  const [users, setUsers] = useState<UserStats[]>([])
+  const [summary, setSummary] = useState<Summary | null>(null)
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
 
-  // Redirect if not admin
   useEffect(() => {
-    if (user && user.subscriptionTier !== 'admin') {
-      router.push('/dashboard')
-    }
+    if (user && user.subscriptionTier !== 'admin') router.push('/dashboard')
   }, [user, router])
 
-  // Fetch users
   useEffect(() => {
-    const fetchUsers = async () => {
-      console.log('🔧 Admin: Fetching users...', { isAdmin: user?.subscriptionTier === 'admin' })
-      try {
-        const token = localStorage.getItem('accessToken')
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/users`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        })
-
-        console.log('🔧 Admin: Response status:', response.status)
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error('🔧 Admin: Error response:', errorData)
-          throw new Error('Failed to fetch users')
-        }
-
-        const data = await response.json()
-        console.log('🔧 Admin: Users fetched:', data.users?.length, 'users')
-        console.log('🔧 Admin: First user lastSeenAt:', data.users?.[0]?.lastSeenAt)
-        setUsers(data.users)
-      } catch (err) {
-        console.error('🔧 Admin: Fetch error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load users')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    if (user?.subscriptionTier === 'admin') {
-      fetchUsers()
-    } else {
-      console.log('🔧 Admin: Not fetching - user tier:', user?.subscriptionTier)
-      setLoading(false)
-    }
+    if (user?.subscriptionTier !== 'admin') return
+    fetch(`${API}/admin/summary`, { headers: authHeaders() })
+      .then(r => r.json())
+      .then(setSummary)
+      .catch(console.error)
+      .finally(() => setLoading(false))
   }, [user])
 
-  // Impersonate user
-  const handleImpersonate = async (userId: string) => {
-    try {
-      const token = localStorage.getItem('accessToken')
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'}/admin/impersonate/${userId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
+  if (user?.subscriptionTier !== 'admin') return null
 
-      if (!response.ok) {
-        throw new Error('Failed to impersonate user')
-      }
-
-      const data = await response.json()
-      
-      // Store the impersonation tokens
-      localStorage.setItem('accessToken', data.accessToken)
-      localStorage.setItem('refreshToken', data.refreshToken)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      localStorage.setItem('isImpersonating', 'true')
-      localStorage.setItem('adminToken', token) // Save original admin token
-      
-      // Redirect to dashboard
-      window.location.href = '/dashboard'
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to impersonate user')
-    }
-  }
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      </div>
-    )
-  }
-
-  if (user?.subscriptionTier !== 'admin') {
-    return null
-  }
+  const al = summary?.acrelist
+  const ph = summary?.producehunt
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="mt-2 text-gray-600">Manage users and monitor platform activity</p>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <ChartBarIcon className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Price Sheets</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.reduce((sum, u) => sum + u.priceSheetCount, 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <UsersIcon className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Total Contacts</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.reduce((sum, u) => sum + u.contactCount, 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <ArrowRightIcon className="h-8 w-8 text-orange-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Emails Sent</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {users.reduce((sum, u) => sum + u.emailsSentCount, 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Users Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">All Users</h2>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    User
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Company
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Tier
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Data
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Activity
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Last Seen
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {user.profile.contactName || 'N/A'}
-                          </div>
-                          <div className="text-sm text-gray-500">{user.email}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{user.profile.companyName || 'N/A'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        user.subscriptionTier === 'enterprise' 
-                          ? 'bg-purple-100 text-purple-800'
-                          : user.subscriptionTier === 'premium'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}>
-                        {user.subscriptionTier}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex flex-col space-y-1">
-                        <span>{user.shippingPointCount} shipping points</span>
-                        <span>{user.cropCount} crops</span>
-                        <span>{user.contactCount} contacts</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <div className="flex flex-col space-y-1">
-                        <span>{user.priceSheetCount} sheets</span>
-                        <span>{user.emailsSentCount} emails</span>
-                        <span className="text-xs text-gray-400">
-                          {user.lastActivity && new Date(user.lastActivity).getTime() > 0
-                            ? new Date(user.lastActivity).toLocaleDateString()
-                            : 'No activity'}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {isUserOnline(user.lastSeenAt) ? (
-                        <span className="flex items-center text-green-600 font-medium">
-                          <span className="inline-block w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
-                          Active now
-                        </span>
-                      ) : (
-                        <span className="text-gray-500">
-                          {formatTimeAgo(user.lastSeenAt)}
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {user.subscriptionTier === 'admin' ? (
-                        <span className="text-xs text-gray-400 italic">Admin account</span>
-                      ) : (
-                        <button
-                          onClick={() => handleImpersonate(user._id)}
-                          className="inline-flex items-center px-3 py-1.5 border border-blue-600 text-sm font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 transition-colors"
-                        >
-                          <EyeIcon className="h-4 w-4 mr-1" />
-                          View as User
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+    <div>
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Admin Overview</h1>
+        <p className="mt-1 text-sm text-gray-500">Platform-wide health across AcreList and ProduceHunt.</p>
       </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-16">
+          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-900" />
+        </div>
+      ) : (
+        <div className="space-y-8">
+
+          {/* ── AcreList ────────────────────────────────────────────────── */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <UsersIcon className="h-4 w-4 text-gray-400" />
+                AcreList
+              </h2>
+              <Link href="/dashboard/admin/acrelist-users"
+                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                View all users <ArrowRightIcon className="h-3 w-3" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              <StatCard label="Total Users" value={al?.totalUsers ?? '—'} sub={`${al?.newUsersThisWeek ?? 0} new this week`} accent="gray" />
+              <StatCard label="Active Today" value={al?.activeToday ?? '—'} sub={`${al?.activeThisWeek ?? 0} this week`} accent="emerald" />
+              <StatCard label="Organizations" value={al?.totalOrgs ?? '—'} sub="active accounts" accent="gray" />
+              <StatCard label="Emails Sent" value={al?.totalEmailsSent ?? '—'} sub={`across ${al?.totalPriceSheets ?? 0} price sheets`} accent="gray" />
+            </div>
+          </div>
+
+          {/* ── ProduceHunt ─────────────────────────────────────────────── */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <BuildingStorefrontIcon className="h-4 w-4 text-gray-400" />
+                ProduceHunt
+              </h2>
+              <div className="flex items-center gap-3">
+                <Link href="/dashboard/admin/pipeline"
+                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                  Pipeline <ArrowRightIcon className="h-3 w-3" />
+                </Link>
+                <Link href="/dashboard/admin/directory"
+                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                  Directory <ArrowRightIcon className="h-3 w-3" />
+                </Link>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {/* Directory card */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Directory</p>
+                <div className="flex items-end gap-6">
+                  <div>
+                    <p className="text-3xl font-bold text-gray-900">{ph?.directoryTotal ?? '—'}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">total listings</p>
+                  </div>
+                  <div className="flex-1 space-y-1.5 pb-0.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-500">Claimed</span>
+                      <span className="font-medium text-emerald-600">{ph?.directoryClaimed ?? 0}</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-400 rounded-full transition-all"
+                        style={{ width: ph?.directoryTotal ? `${(ph.directoryClaimed / ph.directoryTotal) * 100}%` : '0%' }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400">Unclaimed</span>
+                      <span className="text-gray-400">{ph?.directoryUnclaimed ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pipeline card */}
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <p className="text-xs text-gray-400 uppercase tracking-wider mb-3">Pipeline</p>
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Pending', value: ph?.pipelinePending ?? 0, color: 'text-amber-600', bg: 'bg-amber-50' },
+                    { label: 'Pushed', value: ph?.pipelinePushed ?? 0, color: 'text-blue-600', bg: 'bg-blue-50' },
+                    { label: 'Claimed', value: ph?.pipelineClaimed ?? 0, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                  ].map(({ label, value, color, bg }) => (
+                    <div key={label} className={`${bg} rounded-lg p-3 text-center`}>
+                      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Recent Signups ──────────────────────────────────────────── */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-semibold text-gray-900">Recent Signups</h2>
+              <Link href="/dashboard/admin/acrelist-users"
+                className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+                All users <ArrowRightIcon className="h-3 w-3" />
+              </Link>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
+              {(summary?.recentSignups || []).map(u => (
+                <div key={u._id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-500 flex-shrink-0">
+                    {(u.profile.contactName || u.email).charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {u.profile.contactName || u.email}
+                      {u.profile.companyName && <span className="text-gray-400 font-normal"> · {u.profile.companyName}</span>}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {u.role === 'owner' ? (
+                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-50 text-amber-700">Owner</span>
+                    ) : u.role === 'member' ? (
+                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-gray-100 text-gray-600">Member</span>
+                    ) : null}
+                    <span className="text-xs text-gray-400">{formatTimeAgo(u.createdAt)}</span>
+                  </div>
+                </div>
+              ))}
+              {!summary?.recentSignups?.length && (
+                <p className="px-4 py-6 text-sm text-gray-400 text-center">No signups yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Quick Links ─────────────────────────────────────────────── */}
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { label: 'AcreList Users', href: '/dashboard/admin/acrelist-users', icon: UsersIcon, desc: 'Manage accounts, impersonate' },
+              { label: 'Directory Pipeline', href: '/dashboard/admin/pipeline', icon: QueueListIcon, desc: 'Curate & push to ProduceHunt' },
+              { label: 'ProduceHunt Directory', href: '/dashboard/admin/directory', icon: BuildingStorefrontIcon, desc: 'Monitor live listings' },
+            ].map(({ label, href, icon: Icon, desc }) => (
+              <Link key={href} href={href}
+                className="bg-white border border-gray-200 rounded-lg p-4 hover:border-gray-400 transition-colors group">
+                <Icon className="h-5 w-5 text-gray-400 group-hover:text-gray-600 mb-2 transition-colors" />
+                <p className="text-sm font-medium text-gray-900">{label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+              </Link>
+            ))}
+          </div>
+
+        </div>
+      )}
     </div>
   )
 }
 
+function StatCard({ label, value, sub, accent }: { label: string; value: number | string; sub: string; accent: 'gray' | 'emerald' }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-lg p-4">
+      <p className="text-xs text-gray-400 mb-1">{label}</p>
+      <p className={`text-3xl font-bold ${accent === 'emerald' ? 'text-emerald-600' : 'text-gray-900'}`}>{value}</p>
+      <p className="text-xs text-gray-400 mt-1">{sub}</p>
+    </div>
+  )
+}

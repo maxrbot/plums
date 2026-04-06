@@ -68,7 +68,7 @@ const initialUserData = {
 export default function Settings() {
   const { user, loading, updateUser } = useUser()
   const [userData, setUserData] = useState(initialUserData)
-  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'notifications' | 'pricesheet' | 'subscription'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'company' | 'notifications' | 'pricesheet' | 'producehunt' | 'subscription'>('profile')
   const [hasChanges, setHasChanges] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -80,7 +80,8 @@ export default function Settings() {
   const [usdaMarkets, setUsdaMarkets] = useState<string[]>([])
   const [savingMarkets, setSavingMarkets] = useState(false)
   const [marketsSaved, setMarketsSaved] = useState(false)
-  const [phOptedIn, setPhOptedIn] = useState(false)
+  const [phOptedIn, setPhOptedIn] = useState(false)    // listed in search
+  const [phClaimed, setPhClaimed] = useState(false)    // has claimed a directory entry
   const [phClaimStep, setPhClaimStep] = useState<'idle' | 'detecting' | 'pick' | 'compare' | 'confirming' | 'done'>('idle')
   const [phMatches, setPhMatches] = useState<any[]>([])
   const [phSelectedMatch, setPhSelectedMatch] = useState<any>(null)
@@ -92,6 +93,12 @@ export default function Settings() {
   const [phMergedSources, setPhMergedSources] = useState<Record<string, 'directory' | 'acrelist'>>({
     companyName: 'directory', location: 'directory', contact: 'directory', certifications: 'directory'
   })
+
+  // ProduceHunt PEO dashboard data
+  const [phListingData, setPhListingData] = useState<any>(null)
+  const [phPendingClaimData, setPhPendingClaimData] = useState<any>(null)
+  const [phLoadingListing, setPhLoadingListing] = useState(false)
+  const [phToggling, setPhToggling] = useState(false)
 
   // Update form data when user data loads
   useEffect(() => {
@@ -140,7 +147,22 @@ export default function Settings() {
         },
         
         // ProduceHunt opt-in state
-        ...((() => { setPhOptedIn(!!(user as any).integrations?.producehunt); return {} })()),
+        ...((() => {
+          const opted = !!(user as any).integrations?.producehunt
+          setPhOptedIn(opted)
+          // If not opted in, check if user has a claimed (but delisted) entry
+          if (!opted) {
+            fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/lookup`, {
+              headers: { Authorization: `Bearer ${getAuthToken()}` }
+            })
+              .then(r => r.json())
+              .then(d => { if (d.alreadyClaimed) setPhClaimed(true) })
+              .catch(() => {})
+          } else {
+            setPhClaimed(true)
+          }
+          return {}
+        })()),
         // USDA market preferences
         ...((() => { setUsdaMarkets((user as any).preferences?.usdaMarkets || []); return {} })()),
 
@@ -411,6 +433,7 @@ export default function Settings() {
       const data = await res.json()
       if (!res.ok) { setPhError(data.error); setPhClaimStep('compare'); return }
       setPhOptedIn(true)
+      setPhClaimed(true)
       setPhClaimStep('done')
     } catch {
       setPhError('Failed to confirm. Please try again.')
@@ -425,17 +448,49 @@ export default function Settings() {
         headers: { Authorization: `Bearer ${getAuthToken()}` }
       })
       setPhOptedIn(false)
-      setPhClaimStep('idle')
+      // phClaimed stays true — still owns the listing, just hidden from search
     } catch {
-      setPhError('Failed to opt out. Please try again.')
+      setPhError('Failed to delist. Please try again.')
     }
   }
+
+  const handlePhRelist = async () => {
+    try {
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/relist`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getAuthToken()}` }
+      })
+      setPhOptedIn(true)
+    } catch {
+      setPhError('Failed to relist. Please try again.')
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab !== 'producehunt') return
+    setPhLoadingListing(true)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/me`, {
+      headers: { Authorization: `Bearer ${getAuthToken()}` }
+    })
+      .then(r => r.json())
+      .then(d => {
+        setPhListingData(d.listing || null)
+        setPhPendingClaimData(d.pendingClaim || null)
+        if (d.listing) {
+          setPhOptedIn(d.listing.listed)
+          setPhClaimed(!!d.listing.claimed)
+        }
+      })
+      .catch(() => {})
+      .finally(() => setPhLoadingListing(false))
+  }, [activeTab])
 
   const tabs = [
     { id: 'profile', name: 'Profile', icon: UserIcon },
     { id: 'company', name: 'Company', icon: BuildingOfficeIcon },
     { id: 'notifications', name: 'Market Data', icon: BellIcon },
     { id: 'pricesheet', name: 'Price Sheets', icon: DocumentTextIcon },
+    { id: 'producehunt', name: 'ProduceHunt', icon: MagnifyingGlassIcon },
     { id: 'subscription', name: 'Subscription', icon: ShieldCheckIcon }
   ]
 
@@ -493,7 +548,7 @@ export default function Settings() {
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as 'profile' | 'company' | 'notifications' | 'pricesheet' | 'subscription')}
+                    onClick={() => setActiveTab(tab.id as 'profile' | 'company' | 'notifications' | 'pricesheet' | 'producehunt' | 'subscription')}
                     className={`flex items-center space-x-2 py-3 px-3 border-b-2 font-medium text-sm whitespace-nowrap ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600'
@@ -516,7 +571,7 @@ export default function Settings() {
             return (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'profile' | 'company' | 'notifications' | 'pricesheet' | 'subscription')}
+                onClick={() => setActiveTab(tab.id as 'profile' | 'company' | 'notifications' | 'pricesheet' | 'producehunt' | 'subscription')}
                 className={`flex items-center space-x-2 py-3 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600'
@@ -536,7 +591,30 @@ export default function Settings() {
         {activeTab === 'profile' && (
           <div className="p-6">
             <h3 className="text-lg font-medium text-gray-900 mb-6">Personal Information</h3>
-            
+
+            {/* Account role — read-only */}
+            {user && (
+              <div className="flex items-center justify-between mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Account Role</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {user.role === 'owner' ? (
+                      <>You manage this organisation and can invite team members. <Link href="/dashboard/team" className="text-gray-700 underline underline-offset-2 hover:text-gray-900">Manage team</Link></>
+                    ) : (
+                      'You share the catalog with your organisation owner.'
+                    )}
+                  </p>
+                </div>
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold ${
+                  user.role === 'owner'
+                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                    : 'bg-gray-100 text-gray-600 border border-gray-200'
+                }`}>
+                  {user.role === 'owner' ? 'Owner' : 'Member'}
+                </span>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -572,9 +650,10 @@ export default function Settings() {
                   type="email"
                   id="email"
                   value={userData.email}
-                  onChange={(e) => handleInputChange('email', e.target.value)}
-                  className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  readOnly
+                  className="block w-full rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-gray-500 sm:text-sm cursor-not-allowed select-none"
                 />
+                <p className="mt-1 text-xs text-gray-400">Email address cannot be changed.</p>
               </div>
               
               <div>
@@ -660,96 +739,46 @@ export default function Settings() {
                 </div>
               </div>
 
-              {/* Address */}
+              {/* Address — compact row */}
               <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Business Address</h4>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div className="sm:col-span-2">
-                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                      Street Address
-                    </label>
-                    <input
-                      type="text"
-                      id="address"
-                      value={userData.address}
-                      onChange={(e) => handleInputChange('address', e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      id="city"
-                      value={userData.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      id="state"
-                      value={userData.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="zipCode" className="block text-sm font-medium text-gray-700 mb-1">
-                      ZIP Code
-                    </label>
-                    <input
-                      type="text"
-                      id="zipCode"
-                      value={userData.zipCode}
-                      onChange={(e) => handleInputChange('zipCode', e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Business Location</label>
+                <div className="grid grid-cols-3 gap-3">
+                  <input
+                    type="text"
+                    id="city"
+                    value={userData.city}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                    placeholder="City"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <input
+                    type="text"
+                    id="state"
+                    value={userData.state}
+                    onChange={(e) => handleInputChange('state', e.target.value)}
+                    placeholder="State"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  />
+                  <input
+                    type="text"
+                    id="zipCode"
+                    value={userData.zipCode}
+                    onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                    placeholder="ZIP"
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  />
                 </div>
               </div>
 
-              {/* Contact Information for Price Sheets */}
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">Price Sheet Contact Information</h4>
-                <p className="text-sm text-gray-600 mb-4">This information appears on your price sheets for buyers to contact you.</p>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">
-                      Sales Email
-                    </label>
-                    <input
-                      type="email"
-                      id="contactEmail"
-                      value={userData.contactEmail}
-                      onChange={(e) => handleInputChange('contactEmail', e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-1">
-                      Sales Phone
-                    </label>
-                    <input
-                      type="tel"
-                      id="contactPhone"
-                      value={userData.contactPhone}
-                      onChange={(e) => updateUserData('contactPhone', e.target.value)}
-                      className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
-                    />
-                  </div>
-                </div>
+            </div>
+
+            {/* Company Branding */}
+            <div className="border-t border-gray-200 mt-6 pt-6">
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="text-md font-medium text-gray-900">Company Branding</h4>
+                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">Coming soon</span>
               </div>
+              <p className="text-sm text-gray-400">Upload your logo to appear on price sheets and your ProduceHunt listing.</p>
             </div>
           </div>
         )}
@@ -1116,6 +1145,34 @@ export default function Settings() {
               </div>
             </div>
 
+            {/* Contact Information for Price Sheets */}
+            <div className="border-t border-gray-200 pt-6 mt-6">
+              <h4 className="text-base font-medium text-gray-900 mb-1">Contact Information</h4>
+              <p className="text-sm text-gray-500 mb-4">Shown on your price sheets so buyers know how to reach you.</p>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="contactEmail" className="block text-sm font-medium text-gray-700 mb-1">Sales Email</label>
+                  <input
+                    type="email"
+                    id="contactEmail"
+                    value={userData.contactEmail}
+                    onChange={(e) => handleInputChange('contactEmail', e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contactPhone" className="block text-sm font-medium text-gray-700 mb-1">Sales Phone</label>
+                  <input
+                    type="tel"
+                    id="contactPhone"
+                    value={userData.contactPhone}
+                    onChange={(e) => updateUserData('contactPhone', e.target.value)}
+                    className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 sm:text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Default Email Message */}
             <div className="border-t border-gray-200 pt-6 mt-6">
               <h4 className="text-base font-medium text-gray-900 mb-4">Default Email Message</h4>
@@ -1138,67 +1195,264 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* ProduceHunt Directory + Company Branding — side by side */}
-            <div className="border-t border-gray-200 pt-6 mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+          </div>
+        )}
 
-              {/* ProduceHunt Directory */}
-              <div className="border border-gray-200 rounded-lg p-5">
-                <div className="flex items-center space-x-3 mb-3">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-r from-green-500 to-lime-500 flex items-center justify-center flex-shrink-0">
-                    <MagnifyingGlassIcon className="h-4 w-4 text-white" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-900">ProduceHunt Directory</h4>
-                    <p className="text-xs text-gray-500 mt-0.5">
-                      {phOptedIn ? 'Your listing is live and searchable.' : 'Get found by buyers searching ProduceHunt.'}
-                    </p>
-                  </div>
-                </div>
-                {phOptedIn ? (
-                  <div className="flex items-center justify-between">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                      Listed
-                    </span>
-                    <button onClick={handlePhOptOut} className="text-xs text-red-600 hover:text-red-700 font-medium">
-                      Remove listing
-                    </button>
-                  </div>
-                ) : (
+        {activeTab === 'producehunt' && (() => {
+          const PH_DATA_SOURCE_LABELS: Record<string, { label: string; maxScore: number }> = {
+            paca:        { label: 'PACA License',       maxScore: 5 },
+            gfsi:        { label: 'GFSI Certification', maxScore: 5 },
+            established: { label: 'Years in Business',  maxScore: 5 },
+            usdaOrganic: { label: 'USDA Organic',       maxScore: 5 },
+            drc:         { label: 'DRC Membership',     maxScore: 3 },
+            website:     { label: 'Website',            maxScore: 2 },
+            acrelist:    { label: 'AcreList Member',    maxScore: 2 },
+          }
+
+          const listing = phListingData
+          const pendingClaim = phPendingClaimData
+
+          if (phLoadingListing) {
+            return (
+              <div className="p-6 flex items-center gap-3 text-sm text-gray-500">
+                <div className="animate-spin h-4 w-4 border-2 border-gray-400 border-t-transparent rounded-full" />
+                Loading your ProduceHunt status…
+              </div>
+            )
+          }
+
+          // Not joined
+          if (!listing && !pendingClaim) {
+            return (
+              <div className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-1">ProduceHunt Directory</h3>
+                <p className="text-sm text-gray-500 mb-6">Appear in buyer searches. Claim your existing listing to get started.</p>
+                <div className="bg-gray-50 border border-gray-200 rounded-lg p-5 max-w-lg">
+                  <p className="text-sm text-gray-700 mb-3">Claiming your listing lets you:</p>
+                  <ul className="space-y-2 text-sm text-gray-600 mb-5">
+                    <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Control what buyers see about your company</li>
+                    <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Sync live pricing from your price sheets</li>
+                    <li className="flex items-center gap-2"><span className="text-emerald-500">✓</span> Appear higher in search results</li>
+                  </ul>
+                  {phError && <p className="mb-3 text-sm text-red-600">{phError}</p>}
                   <button
                     onClick={handlePhOptIn}
                     disabled={phClaimStep === 'detecting'}
-                    className="w-full inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    className="px-4 py-2 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-gray-700 disabled:opacity-50 transition-colors"
                   >
-                    {phClaimStep === 'detecting' ? 'Looking up...' : 'Join Directory'}
+                    {phClaimStep === 'detecting' ? 'Searching…' : 'Claim my listing'}
                   </button>
-                )}
-                {phError && <p className="mt-2 text-xs text-red-600">{phError}</p>}
+                </div>
+              </div>
+            )
+          }
+
+          // Pending claim
+          if (pendingClaim && !listing) {
+            return (
+              <div className="p-6">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">ProduceHunt Directory</h3>
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3 max-w-lg">
+                  <span className="text-amber-500 mt-0.5">⏱</span>
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">Claim under review</p>
+                    <p className="text-sm text-amber-700 mt-1">
+                      We couldn&apos;t automatically verify ownership via email domain
+                      {pendingClaim.emailDomain && pendingClaim.websiteDomain
+                        ? ` (your email is @${pendingClaim.emailDomain}, listing website is ${pendingClaim.websiteDomain})`
+                        : ''}.
+                      Our team will review and approve within 24 hours.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
+          if (!listing) return <div className="p-6" />
+
+          const scorePercent = listing.verificationScore
+            ? Math.round((listing.verificationScore.score / listing.verificationScore.maxScore) * 100)
+            : 0
+
+          const searchTerms = (listing.products || []).map((p: string) => p.toLowerCase())
+          if ((listing.certifications || []).some((c: string) => c.toLowerCase().includes('organic'))) {
+            searchTerms.push('organic')
+          }
+
+          const upgrades: string[] = []
+          if (listing.tier === 2) upgrades.push('Add a searchable price sheet to appear as Tier 1 with live pricing')
+          if (!listing.dataSources?.paca?.verified) upgrades.push('Add your PACA license number for +5 verification points')
+          if (!listing.dataSources?.gfsi?.verified) upgrades.push('Add GFSI food safety certification for +5 points')
+          if (!listing.contact?.website) upgrades.push('Add your website URL for +2 points')
+
+          const handleToggleListed = async () => {
+            setPhToggling(true)
+            try {
+              if (listing.listed) {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing`, { method: 'DELETE', headers: { Authorization: `Bearer ${getAuthToken()}` } })
+                setPhListingData((l: any) => l ? { ...l, listed: false } : l)
+                setPhOptedIn(false)
+              } else {
+                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/directory/listing/relist`, { method: 'POST', headers: { Authorization: `Bearer ${getAuthToken()}` } })
+                setPhListingData((l: any) => l ? { ...l, listed: true } : l)
+                setPhOptedIn(true)
+              }
+            } finally { setPhToggling(false) }
+          }
+
+          return (
+            <div className="p-6 space-y-6">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">ProduceHunt Presence</h3>
+                <p className="text-sm text-gray-500 mt-0.5">How buyers find you — and how to rank higher.</p>
               </div>
 
-              {/* Company Branding */}
-              <div className="border border-gray-200 rounded-lg p-5">
-                <div className="flex items-center space-x-2 mb-3">
-                  <h4 className="text-sm font-semibold text-gray-900">Company Branding</h4>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Coming Soon
-                  </span>
-                </div>
-                <div className="opacity-50 pointer-events-none">
-                  <div className="border-2 border-dashed rounded-lg p-4 border-gray-300 bg-gray-50 flex items-center justify-center h-24">
-                    <div className="text-center">
-                      <svg className="mx-auto h-8 w-8 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      <p className="text-xs text-gray-400 mt-1">Upload logo</p>
+              <div className="grid grid-cols-3 gap-6">
+                {/* Left: details */}
+                <div className="col-span-2 space-y-5">
+
+                  {/* Tier */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Your search tier</p>
+                    <div className="flex items-center gap-3 mb-3">
+                      {listing.tier === 1 ? (
+                        <span className="px-2.5 py-1 text-sm font-semibold rounded-full bg-emerald-100 text-emerald-800">Tier 1 — Live Pricing</span>
+                      ) : (
+                        <span className="px-2.5 py-1 text-sm font-semibold rounded-full bg-blue-100 text-blue-800">Tier 2 — Verified Member</span>
+                      )}
+                      <span className={`w-2 h-2 rounded-full ${listing.listed ? 'bg-emerald-400' : 'bg-gray-300'}`} />
+                      <span className="text-xs text-gray-500">{listing.listed ? 'Listed in search' : 'Hidden from buyers'}</span>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                      {listing.tier === 1
+                        ? `You appear first in results for buyers searching ${searchTerms.slice(0, 3).join(', ')}. Live pricing from your price sheets is shown on your card.`
+                        : `You appear above unclaimed suppliers for ${searchTerms.slice(0, 3).join(', ')} searches. Add a searchable price sheet to move to Tier 1.`
+                      }
+                    </p>
+                  </div>
+
+                  {/* Listing preview */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Your listing — as buyers see it</p>
+                    <div className="border border-gray-100 rounded-lg p-4 bg-gray-50">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm font-semibold text-gray-900">{listing.companyName}</span>
+                            <span className="text-xs font-bold text-emerald-500">✓</span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            📍 {listing.location?.full || `${listing.location?.city}, ${listing.location?.state}`}
+                          </p>
+                        </div>
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${listing.tier === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>
+                          {listing.tier === 1 ? 'Live Pricing' : 'Verified Member'}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 mt-3">
+                        {(listing.products || []).slice(0, 5).map((p: string) => (
+                          <span key={p} className="px-1.5 py-0.5 bg-white border border-gray-200 text-gray-600 text-xs rounded">{p}</span>
+                        ))}
+                      </div>
+                      {listing.verificationScore && (
+                        <div className="flex items-center gap-2 mt-3">
+                          <div className="flex-1 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${scorePercent}%` }} />
+                          </div>
+                          <span className="text-xs text-gray-400">{listing.verificationScore.score}/{listing.verificationScore.maxScore}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-400 mt-2">Logo branding coming in a future update</p>
+
+                  {/* Search terms */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Search terms you appear for</p>
+                    <div className="flex flex-wrap gap-2">
+                      {searchTerms.map((t: string) => (
+                        <span key={t} className="px-2.5 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">{t}</span>
+                      ))}
+                    </div>
+                    <p className="mt-2 text-xs text-gray-400">Based on your synced crops. Add more in your <a href="/dashboard/catalog" className="underline hover:text-gray-600">Catalog</a>.</p>
+                  </div>
+
+                  {/* Upgrades */}
+                  {upgrades.length > 0 && (
+                    <div className="border border-gray-200 rounded-lg p-4">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Improve your ranking</p>
+                      <ul className="space-y-2">
+                        {upgrades.map((u, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-gray-600">
+                            <span className="mt-0.5 text-amber-400 flex-shrink-0">○</span>
+                            {u}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right: score + toggle */}
+                <div className="space-y-4">
+                  {/* Verification score */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Verification score</p>
+                    {listing.verificationScore ? (
+                      <>
+                        <div className="flex items-end gap-1 mb-2">
+                          <span className="text-3xl font-bold text-gray-900">{listing.verificationScore.score}</span>
+                          <span className="text-sm text-gray-400 mb-1">/ {listing.verificationScore.maxScore}</span>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+                          <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${scorePercent}%` }} />
+                        </div>
+                        <div className="space-y-1.5">
+                          {Object.entries(PH_DATA_SOURCE_LABELS).map(([key, { label, maxScore }]) => {
+                            const src = listing.dataSources?.[key]
+                            const verified = src?.verified
+                            return (
+                              <div key={key} className="flex items-center justify-between">
+                                <span className={`text-xs ${verified ? 'text-gray-700' : 'text-gray-300'}`}>{label}</span>
+                                <span className={`text-xs font-medium ${verified ? 'text-emerald-600' : 'text-gray-200'}`}>
+                                  {verified ? `+${src?.score ?? maxScore}` : `+${maxScore}`}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </>
+                    ) : (
+                      <p className="text-xs text-gray-400">Score not yet calculated</p>
+                    )}
+                  </div>
+
+                  {/* Listed toggle */}
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <p className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-3">Search visibility</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className={`text-sm font-medium ${listing.listed ? 'text-emerald-700' : 'text-gray-400'}`}>
+                        {listing.listed ? 'Listed' : 'Delisted'}
+                      </span>
+                      <button
+                        onClick={handleToggleListed}
+                        disabled={phToggling}
+                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${listing.listed ? 'bg-emerald-500' : 'bg-gray-200'} disabled:opacity-50`}
+                      >
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${listing.listed ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-400">
+                      {listing.listed
+                        ? 'Visible to buyers. Toggle off to hide without losing your claim.'
+                        : 'Hidden from search. Toggle on to re-appear in results.'}
+                    </p>
+                  </div>
                 </div>
               </div>
-
             </div>
-          </div>
-        )}
+          )
+        })()}
       </div>
 
       {/* ProduceHunt Claim Modal */}

@@ -91,6 +91,16 @@ async function registerRoutes() {
   await fastify.register(contactBatchesRoutes, { prefix: '/api/contact-batches' })
 }
 
+// Public invite code validation (no auth — used during signup)
+fastify.get('/api/team/verify-invite', async (request, reply) => {
+  const { code } = request.query as { code?: string }
+  if (!code) return reply.status(400).send({ error: 'code required' })
+  const db = database.getDb()
+  const org = await db.collection('organizations').findOne({ inviteCode: code.trim().toUpperCase() })
+  if (!org) return reply.status(404).send({ error: 'Invalid invite code' })
+  return { valid: true, orgName: org.name }
+})
+
 // Health check
 fastify.get('/health', async () => {
   return { 

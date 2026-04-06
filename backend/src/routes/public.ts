@@ -563,7 +563,7 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       }
 
       const suppliers = await db.collection('supplierDirectory')
-        .find(productMatchQuery)
+        .find({ ...productMatchQuery, listed: { $ne: false } })
         .limit(Math.min(Number(limit) * 3, 60)) // fetch more so tiers have room
         .toArray()
 
@@ -1005,6 +1005,41 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
         message: 'Failed to fetch supplier profile',
         details: error.message
       })
+    }
+  })
+  // Public route - Company name lookup (for /claim page)
+  // Searches supplierDirectory by company name, returns matches with claimed status
+  fastify.get('/company-lookup', async (request, reply) => {
+    const { q } = request.query as { q?: string }
+
+    if (!q || q.trim().length < 2) {
+      return { results: [] }
+    }
+
+    try {
+      const db = database.getDb()
+      const entries = await db.collection('supplierDirectory')
+        .find({
+          companyName: { $regex: q.trim(), $options: 'i' },
+          listed: { $ne: false }
+        })
+        .sort({ claimed: -1, 'verificationScore.score': -1 })
+        .limit(8)
+        .toArray()
+
+      return {
+        results: entries.map(e => ({
+          id: e._id.toString(),
+          slug: e.slug,
+          companyName: e.companyName,
+          location: e.location?.full || [e.location?.city, e.location?.state].filter(Boolean).join(', ') || '',
+          products: (e.products || []).map((p: any) => p.commodity).slice(0, 5),
+          claimed: !!e.claimed,
+          verificationScore: e.verificationScore || null,
+        }))
+      }
+    } catch (error: any) {
+      return reply.status(500).send({ error: 'Lookup failed' })
     }
   })
 }

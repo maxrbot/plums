@@ -19,6 +19,8 @@ import {
   XMarkIcon,
   PresentationChartLineIcon,
   ArchiveBoxIcon,
+  BuildingStorefrontIcon,
+  QueueListIcon,
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
 import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
@@ -50,11 +52,14 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useUser()
   
   // Add admin link if user is admin
-  const navigationWithAdmin = user?.subscriptionTier === 'admin' 
+  const navigationWithAdmin = user?.subscriptionTier === 'admin'
     ? [
         ...navigation,
-        { name: 'divider' }, // Another separator before admin
-        { name: 'Admin Panel', href: '/dashboard/admin', icon: ShieldCheckIcon }
+        { name: 'divider' },
+        { name: 'Admin Overview', href: '/dashboard/admin', icon: ShieldCheckIcon },
+        { name: 'AcreList Users', href: '/dashboard/admin/acrelist-users', icon: UserGroupIcon },
+        { name: 'Directory Pipeline', href: '/dashboard/admin/pipeline', icon: QueueListIcon },
+        { name: 'ProduceHunt Directory', href: '/dashboard/admin/directory', icon: BuildingStorefrontIcon },
       ]
     : navigation
   

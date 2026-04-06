@@ -1,7 +1,14 @@
 import * as jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
+import crypto from 'crypto'
 import database from '../config/database'
 import { User, Organization } from '../models/types'
+
+function generateInviteCode(): string {
+  // e.g. "XK92-MF4A" — 8 hex chars split by a dash
+  const raw = crypto.randomBytes(4).toString('hex').toUpperCase()
+  return `${raw.slice(0, 4)}-${raw.slice(4)}`
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-key-for-development-only'
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d'
@@ -106,6 +113,7 @@ export class AuthService {
       const orgResult = await db.collection<Organization>('organizations').insertOne({
         name: data.companyName,
         slug,
+        inviteCode: generateInviteCode(),
         ownerId: '', // set after user is created
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -113,8 +121,8 @@ export class AuthService {
       orgId = orgResult.insertedId.toString()
       role = 'owner'
     } else {
-      // Join an existing org by slug
-      const org = await db.collection<Organization>('organizations').findOne({ slug: code })
+      // Join an existing org by invite code
+      const org = await db.collection<Organization>('organizations').findOne({ inviteCode: code.toUpperCase() })
       if (!org) throw new Error('Invite code not recognised. Check with your account owner.')
       orgId = org._id!.toString()
       role = 'member'

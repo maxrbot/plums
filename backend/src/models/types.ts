@@ -10,8 +10,9 @@ export interface BaseDocument {
 // Organization (top-level tenant)
 export interface Organization extends BaseDocument {
   name: string
-  slug: string      // lowercase alphanumeric — doubles as the team invite code
-  ownerId: string   // user.id of the owner
+  slug: string        // lowercase alphanumeric — used internally
+  inviteCode: string  // short random code shared with team members (e.g. "XK9-2MF4")
+  ownerId: string     // user.id of the owner
 }
 
 // User and Settings
@@ -477,6 +478,7 @@ export interface SupplierDirectory extends BaseDocument {
   companyName: string
   description?: string
   claimed: boolean
+  listed: boolean  // appears in ProduceHunt search; claimed users can delist without losing ownership
   tier?: 1 | 2 | 3
   scale?: 'small' | 'medium' | 'large'
   location: {
@@ -514,6 +516,42 @@ export interface SupplierDirectory extends BaseDocument {
   logistics?: any
   importSource?: string
   importDate?: Date
+}
+
+// Directory Pipeline — pre-directory leads curated by AcreList admin
+export interface DirectoryPipeline extends BaseDocument {
+  companyName: string
+  location: {
+    city?: string
+    state?: string
+    full: string
+  }
+  commodities: string[]         // e.g. ['lemons', 'limes', 'avocados']
+  organic: boolean | null       // null = unknown
+  website?: string
+  contactEmail?: string
+  contactName?: string
+  notes?: string
+  status: 'pending' | 'pushed' | 'claimed'
+  pushedAt?: Date
+  supplierDirectoryId?: string  // ObjectId.toString() once pushed
+  size?: 'small' | 'medium' | 'large' | 'huge'
+  type?: 'grower' | 'shipper' | 'grower-shipper' | 'distributor'
+  outreachSent?: boolean
+  outreachSentAt?: Date
+}
+
+// Claim Requests — pending domain-unverified claims awaiting admin approval
+export interface ClaimRequest extends BaseDocument {
+  directoryEntryId: string   // supplierDirectory _id as string
+  userId: string             // AcreList user id
+  userEmail: string
+  emailDomain: string | null
+  websiteDomain: string | null
+  status: 'pending' | 'approved' | 'denied'
+  reviewedAt?: Date
+  reviewedBy?: string        // admin user id
+  reviewNote?: string
 }
 
 // Scraped Data (for future website scraping)

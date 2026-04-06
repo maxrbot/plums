@@ -25,6 +25,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
   const [contactName, setContactName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [isInviteVerified, setIsInviteVerified] = useState(false)
+  const [joiningOrgName, setJoiningOrgName] = useState<string | null>(null)
   const [inviteError, setInviteError] = useState('')
   const [showCelebration, setShowCelebration] = useState(false)
   const [showWaitlist, setShowWaitlist] = useState(false)
@@ -51,7 +52,7 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
       setIsInviteVerified(false)
       setInviteError('')
       setShowCelebration(false)
-      setShowWaitlist(true) // Always show waitlist by default (Early Access modal)
+      setShowWaitlist(initialMode !== 'login') // Skip waitlist when opening in login mode
       setShowInviteForm(false)
       setWaitlistEmail('')
       setWaitlistSubmitted(false)
@@ -75,7 +76,8 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
             email,
             password,
             companyName,
-            contactName
+            contactName,
+            inviteCode: inviteCode.trim() || undefined,
           }),
         })
 
@@ -126,17 +128,37 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
     }
   }
 
-  const handleInviteSubmit = (e: React.FormEvent) => {
+  const handleInviteSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setInviteError('')
-    
-    if (inviteCode.toLowerCase() === 'early2025') {
-      // Directly go to signup form with celebration message
-      setShowInviteForm(false)
-      setIsInviteVerified(true)
-      setIsRegisterMode(true)
-    } else {
-      setInviteError('Invalid invite code. Please check your code and try again.')
+    setIsLoading(true)
+
+    const code = inviteCode.trim()
+
+    try {
+      if (code.toLowerCase() === 'early2025') {
+        // Early access — create new org
+        setShowInviteForm(false)
+        setIsInviteVerified(true)
+        setIsRegisterMode(true)
+      } else {
+        // Team invite — verify against backend
+        const res = await fetch(`${API_BASE_URL}/team/verify-invite?code=${encodeURIComponent(code)}`)
+        if (!res.ok) {
+          setInviteError('Invalid invite code. Please check your code and try again.')
+          return
+        }
+        const data = await res.json()
+        setJoiningOrgName(data.orgName)
+        setCompanyName(data.orgName) // pre-fill so it matches exactly
+        setShowInviteForm(false)
+        setIsInviteVerified(true)
+        setIsRegisterMode(true)
+      }
+    } catch {
+      setInviteError('Could not verify invite code. Please try again.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -409,26 +431,32 @@ export default function LoginModal({ isOpen, onClose, onLogin, initialMode = 'lo
                               </div>
                               <div>
                                 <h4 className="text-lg font-bold text-gray-900">You're In!</h4>
-                                <p className="text-sm text-lime-700">Welcome to AcreList Early Access</p>
+                                <p className="text-sm text-lime-700">
+                                  {joiningOrgName
+                                    ? <>Joining <span className="font-semibold">{joiningOrgName}</span> on AcreList</>
+                                    : 'Welcome to AcreList Early Access'}
+                                </p>
                               </div>
                             </div>
                           </div>
                         )}
                         {isRegisterMode && (
                           <>
-                            <div>
-                              <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
-                                Company Name
-                              </label>
-                              <input
-                                type="text"
-                                id="companyName"
-                                value={companyName}
-                                onChange={(e) => setCompanyName(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
-                                placeholder="Your Company"
-                              />
-                            </div>
+                            {!joiningOrgName && (
+                              <div>
+                                <label htmlFor="companyName" className="block text-sm font-medium text-gray-700 mb-1">
+                                  Company Name
+                                </label>
+                                <input
+                                  type="text"
+                                  id="companyName"
+                                  value={companyName}
+                                  onChange={(e) => setCompanyName(e.target.value)}
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-lime-500 focus:border-lime-500"
+                                  placeholder="Your Company"
+                                />
+                              </div>
+                            )}
 
                             <div>
                               <label htmlFor="contactName" className="block text-sm font-medium text-gray-700 mb-1">

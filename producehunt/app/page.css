@@ -194,12 +194,27 @@ body {
   background: #fffbf0;
 }
 
+.supplier-link {
+  display: block;
+  margin-top: 10px;
+  text-align: center;
+  font-size: 0.72rem;
+  color: #aaa;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.supplier-link:hover {
+  color: #FF9900;
+}
+
 /* ========== CENTER PANEL ========== */
 .center-panel {
   display: flex;
   flex-direction: column;
   background: white;
   overflow: hidden;
+  position: relative;
 }
 
 /* Welcome/Landing State */
@@ -208,10 +223,11 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
-  padding: 60px 40px;
+  min-height: 100%;
+  padding: 60px 40px 48px;
   text-align: center;
   background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+  overflow-y: auto;
 }
 
 .welcome-state h1 {
@@ -298,6 +314,57 @@ body {
   background: #f8f9fa;
   border-color: #FF9900;
   transform: translateY(-1px);
+}
+
+/* Welcome About / Footer Section */
+.welcome-about {
+  margin-top: 52px;
+  padding-top: 32px;
+  border-top: 1px solid #e8e8e8;
+  width: 100%;
+  max-width: 760px;
+}
+
+.welcome-about-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 32px;
+  text-align: left;
+}
+
+.welcome-about-heading {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  margin: 0 0 8px;
+}
+
+.welcome-about-text {
+  font-size: 0.8rem;
+  color: #888;
+  line-height: 1.6;
+  margin: 0 0 10px;
+}
+
+.welcome-about-cta {
+  font-size: 0.8rem;
+  color: #FF9900;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.welcome-about-cta:hover {
+  text-decoration: underline;
+}
+
+/* Verified checkmark on supplier name */
+.verified-check {
+  margin-left: 5px;
+  font-size: 0.75rem;
+  color: #22c55e;
+  font-weight: 700;
 }
 
 /* Tab Content Main (Tools/Trends/History full view) */

@@ -273,7 +273,7 @@ export default function SupplierDirectory() {
                   </td>
                   <td className="action-cell">
                     <Link
-                      href={`/directory/${supplier.slug}`}
+                      href={`/supplier/${supplier.slug}`}
                       className="view-profile-btn"
                     >
                       View Profile →

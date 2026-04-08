@@ -519,10 +519,65 @@ const SLIDES = [
   },
 ]
 
+function PasscodeGate({ onUnlock }: { onUnlock: () => void }) {
+  const [code, setCode] = useState('')
+  const [error, setError] = useState(false)
+
+  const submit = () => {
+    if (code === '102030') {
+      localStorage.setItem('slides_unlocked', '1')
+      onUnlock()
+    } else {
+      setError(true)
+      setCode('')
+      setTimeout(() => setError(false), 1500)
+    }
+  }
+
+  return (
+    <div className="h-screen w-screen bg-gray-50 flex items-center justify-center">
+      <div className="bg-white border border-gray-200 rounded-2xl shadow-sm px-10 py-10 flex flex-col items-center gap-5 w-80">
+        <div className="w-10 h-10 rounded-full bg-lime-100 flex items-center justify-center">
+          <svg className="w-5 h-5 text-lime-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-semibold text-gray-900">AcreList</p>
+          <p className="text-xs text-gray-400 mt-0.5">Enter passcode to view</p>
+        </div>
+        <input
+          type="password"
+          value={code}
+          onChange={e => setCode(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && submit()}
+          placeholder="Passcode"
+          autoFocus
+          className={`w-full px-4 py-2.5 border rounded-lg text-sm text-center tracking-widest focus:outline-none focus:ring-2 transition-colors ${
+            error ? 'border-red-300 focus:ring-red-200 bg-red-50' : 'border-gray-200 focus:ring-lime-200'
+          }`}
+        />
+        {error && <p className="text-xs text-red-500 -mt-2">Incorrect passcode</p>}
+        <button
+          onClick={submit}
+          className="w-full py-2.5 bg-gray-900 text-white text-sm font-medium rounded-lg hover:bg-black transition-colors"
+        >
+          Continue
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function SlidesPage() {
+  const [unlocked, setUnlocked] = useState(false)
   const [current, setCurrent] = useState(0)
   const [animating, setAnimating] = useState(false)
   const [direction, setDirection] = useState<'next' | 'prev'>('next')
+
+  useEffect(() => {
+    if (localStorage.getItem('slides_unlocked') === '1') setUnlocked(true)
+  }, [])
 
   const goTo = useCallback((index: number) => {
     if (animating || index < 0 || index >= SLIDES.length) return
@@ -545,6 +600,8 @@ export default function SlidesPage() {
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
   }, [next, prev])
+
+  if (!unlocked) return <PasscodeGate onUnlock={() => setUnlocked(true)} />
 
   const slide = SLIDES[current]
   const progress = ((current + 1) / SLIDES.length) * 100

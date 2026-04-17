@@ -144,9 +144,9 @@ function PriceSheetTab() {
       <div className="bg-white border-b border-gray-200 px-5 py-4">
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            {/* Logo placeholder */}
-            <div className="h-12 w-12 rounded-lg bg-lime-100 border border-lime-200 flex items-center justify-center flex-shrink-0">
-              <span className="text-lime-700 font-bold text-sm">GR</span>
+            {/* Logo */}
+            <div className="h-12 w-12 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100">
+              <Image src="/grp-logo.png" alt="Granite Ridge Produce" width={48} height={48} className="h-full w-full object-contain" />
             </div>
             <div>
               <h2 className="text-base font-semibold text-gray-900">Granite Ridge Produce</h2>
@@ -508,17 +508,17 @@ const tabs = [
   {
     id: 'pricesheet',
     label: 'Digital Price Sheet',
-    sublabel: 'Each buyer gets a personalized view — pricing is dynamic, not one-size-fits-all.',
+    sublabel: 'Not every buyer gets the same price — and now your sheet reflects that. Dynamic, personalized, and live the moment you hit send.',
   },
   {
     id: 'dashboard',
     label: 'Engagement Analytics',
-    sublabel: 'See who opened, what they clicked, and how many times they came back.',
+    sublabel: 'Know exactly who opened it, what they clicked, and how many times they came back — before you ever pick up the phone.',
   },
   {
     id: 'orders',
     label: 'Order Flow',
-    sublabel: 'Order requests submitted directly from your price sheet — structured, no re-keying.',
+    sublabel: 'Buyers submit structured order requests right from your price sheet. No emails to decode, no re-keying into your system.',
   },
 ]
 
@@ -571,7 +571,7 @@ export default function PreviewPage() {
                 <p className={`text-sm font-semibold mb-1.5 ${activeTab === tab.id ? 'text-gray-900' : 'text-gray-700'}`}>
                   {tab.label}
                 </p>
-                <p className="text-xs text-gray-400 leading-relaxed">{tab.sublabel}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{tab.sublabel}</p>
               </button>
             ))}
           </div>

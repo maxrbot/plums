@@ -74,6 +74,7 @@ export default function Settings() {
   const [showSuccess, setShowSuccess] = useState(false)
   const [isUploadingLogo, setIsUploadingLogo] = useState(false)
   const [isDraggingLogo, setIsDraggingLogo] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   // ProduceHunt claim flow
@@ -271,16 +272,14 @@ export default function Settings() {
         }
       }
       
-      console.log('💾 Saving pricesheet settings:', userData.pricesheetSettings)
-      console.log('📤 Full user data being saved:', updatedUserData)
-      
+      setSaveError(null)
       await updateUser(updatedUserData)
       setHasChanges(false)
       setShowSuccess(true)
       setTimeout(() => setShowSuccess(false), 3000)
     } catch (error) {
       console.error('Failed to save settings:', error)
-      // You could add error handling here
+      setSaveError(error instanceof Error ? error.message : 'Save failed — please try again')
     } finally {
       setIsSaving(false)
     }
@@ -292,27 +291,42 @@ export default function Settings() {
       return
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('File size must be less than 2MB')
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB')
       return
     }
 
     setIsUploadingLogo(true)
     try {
-      // Convert to base64
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        const base64String = reader.result as string
-        setUserData(prev => ({
-          ...prev,
-          pricesheetSettings: {
-            ...prev.pricesheetSettings,
-            companyLogo: base64String
+      // Compress image to max 400x400 and convert to base64 jpeg (~50-100KB)
+      const compressImage = (file: File): Promise<string> =>
+        new Promise((resolve, reject) => {
+          const img = new Image()
+          const objectUrl = URL.createObjectURL(file)
+          img.onload = () => {
+            URL.revokeObjectURL(objectUrl)
+            const MAX = 400
+            const scale = Math.min(MAX / img.width, MAX / img.height, 1)
+            const canvas = document.createElement('canvas')
+            canvas.width = Math.round(img.width * scale)
+            canvas.height = Math.round(img.height * scale)
+            const ctx = canvas.getContext('2d')!
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+            resolve(canvas.toDataURL('image/jpeg', 0.85))
           }
-        }))
-        setHasChanges(true)
-      }
-      reader.readAsDataURL(file)
+          img.onerror = reject
+          img.src = objectUrl
+        })
+
+      const base64String = await compressImage(file)
+      setUserData(prev => ({
+        ...prev,
+        pricesheetSettings: {
+          ...prev.pricesheetSettings,
+          companyLogo: base64String
+        }
+      }))
+      setHasChanges(true)
     } catch (error) {
       console.error('Failed to upload logo:', error)
       alert('Failed to upload logo. Please try again.')
@@ -522,6 +536,9 @@ export default function Settings() {
                   <CheckIcon className="h-5 w-5 mr-2" />
                   <span className="text-sm font-medium">Saved!</span>
                 </div>
+              )}
+              {saveError && (
+                <span className="text-sm text-red-600">{saveError}</span>
               )}
               <button
                 onClick={handleSave}

@@ -21,6 +21,8 @@ import {
   ArchiveBoxIcon,
   BuildingStorefrontIcon,
   QueueListIcon,
+  InboxStackIcon,
+  ChevronDownIcon,
 } from '@heroicons/react/24/outline'
 import { UserProvider, useUser } from '@/contexts/UserContext'
 import { regionsApi, cropsApi, contactsApi } from '@/lib/api'
@@ -39,11 +41,8 @@ const navigation = [
   { name: 'Catalog', href: '/dashboard/catalog', icon: ArchiveBoxIcon },
   { name: 'Analytics', href: '/dashboard/analytics', icon: ChartBarIcon },
   { name: 'USDA Market Data', href: '/dashboard/market-data', icon: PresentationChartLineIcon },
-  { name: 'divider' },
-  { name: 'Market Intelligence', href: '/dashboard/price-sheets/insights', icon: LightBulbIcon, locked: true },
-  { name: 'Commodity Structure', href: '/dashboard/price-sheets/packaging', icon: CubeIcon, locked: true },
-  { name: 'Certifications', href: '/dashboard/price-sheets/certifications', icon: ShieldCheckIcon, locked: true },
   // { name: 'AI Chatbot', href: '/dashboard/chatbot', icon: ChatBubbleLeftRightIcon }, // Hidden for v1
+  // Roadmap (not yet built): Market Intelligence, Commodity Structure, Certifications
 ]
 
 function DashboardContent({ children }: { children: React.ReactNode }) {
@@ -59,6 +58,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         { name: 'Admin Overview', href: '/dashboard/admin', icon: ShieldCheckIcon },
         { name: 'AcreList Users', href: '/dashboard/admin/acrelist-users', icon: UserGroupIcon },
         { name: 'Directory Pipeline', href: '/dashboard/admin/pipeline', icon: QueueListIcon },
+        { name: 'Claim Requests', href: '/dashboard/admin/claims', icon: InboxStackIcon },
         { name: 'ProduceHunt Directory', href: '/dashboard/admin/directory', icon: BuildingStorefrontIcon },
       ]
     : navigation
@@ -69,6 +69,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [hasRedirected, setHasRedirected] = useState(false)
   const [waitingForAuth, setWaitingForAuth] = useState(false)
   
+  // Catalog sub-nav fold state — open by default if already in that section
+  const [catalogOpen, setCatalogOpen] = useState(() =>
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/catalog') ||
+    typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard/price-sheets')
+  )
+
   // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false)
   
@@ -350,7 +356,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                           ? 'text-gray-500 cursor-not-allowed opacity-60'
                           : 'text-gray-300 hover:bg-slate-700 hover:text-white'
                       }`}
-                      onClick={(isDisabled || isLocked) ? (e) => e.preventDefault() : undefined}
+                      onClick={
+                        (isDisabled || isLocked) ? (e) => e.preventDefault() :
+                        item.name === 'Catalog' ? (e) => { e.preventDefault(); setCatalogOpen(v => !v) } :
+                        undefined
+                      }
                     >
                       <item.icon
                         className={`mr-3 h-5 w-5 flex-shrink-0 ${
@@ -359,6 +369,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         aria-hidden="true"
                       />
                       {item.name}
+                      {item.name === 'Catalog' && !isDisabled && (
+                        <ChevronDownIcon className={`ml-auto h-3.5 w-3.5 text-gray-500 transition-transform ${catalogOpen ? 'rotate-180' : ''}`} />
+                      )}
                       {isLocked && (
                         <LockClosedIcon className="ml-auto h-4 w-4 text-gray-500" />
                       )}
@@ -368,9 +381,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
                         </span>
                       )}
                     </Link>
-                    
+
                     {/* Catalog Sub-navigation */}
-                    {item.name === 'Catalog' && !isDisabled && (
+                    {item.name === 'Catalog' && !isDisabled && catalogOpen && (
                       <div className="ml-6 mt-1 space-y-1">
                         <Link
                           href="/dashboard/price-sheets/regions"
@@ -434,6 +447,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
               })}
             </div>
 
+            {/* Roadmap reminder */}
+            <div className="mt-4 px-3 py-2 border-t border-slate-700/50">
+              <p className="text-xs text-slate-600 font-medium mb-1">Roadmap</p>
+              <p className="text-xs text-slate-600 leading-relaxed">Market Intelligence · Commodity Structure · Certifications</p>
+            </div>
 
           </nav>
 

@@ -542,18 +542,13 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
       })
 
       // Build directory query (products + company name)
+      // Matches commodity names, variety names (both string and object format), and company name
+      const terms = commoditySearchTerms.length > 0 ? commoditySearchTerms : [searchTerm]
       const productMatchQuery: any = {
         $or: [
-          ...(commoditySearchTerms.length > 0
-            ? commoditySearchTerms.map(term => ({
-                products: { $elemMatch: { commodity: { $regex: term, $options: 'i' } } }
-              }))
-            : [{ products: { $elemMatch: { commodity: { $regex: searchTerm, $options: 'i' } } } }]),
-          ...(commoditySearchTerms.length > 0
-            ? commoditySearchTerms.map(term => ({
-                products: { $elemMatch: { varieties: { $regex: term, $options: 'i' } } }
-              }))
-            : [{ products: { $elemMatch: { varieties: { $regex: searchTerm, $options: 'i' } } } }]),
+          ...terms.map(term => ({ products: { $elemMatch: { commodity: { $regex: term, $options: 'i' } } } })),
+          ...terms.map(term => ({ products: { $elemMatch: { 'varieties.name': { $regex: term, $options: 'i' } } } })),
+          ...terms.map(term => ({ products: { $elemMatch: { varieties: { $regex: term, $options: 'i' } } } })),
           { companyName: { $regex: searchTerm, $options: 'i' } }
         ]
       }
@@ -573,10 +568,10 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           const commodityMatch = commoditySearchTerms.some(t =>
             p.commodity?.toLowerCase().includes(t)
           ) || p.commodity?.toLowerCase().includes(searchTerm)
-          const varietyMatch = (p.varieties || []).some((v: string) =>
-            commoditySearchTerms.some(t => v.toLowerCase().includes(t)) ||
-            v.toLowerCase().includes(searchTerm)
-          )
+          const varietyMatch = (p.varieties || []).some((v: string | { name: string }) => {
+            const vStr = (typeof v === 'string' ? v : v.name).toLowerCase()
+            return commoditySearchTerms.some(t => vStr.includes(t)) || vStr.includes(searchTerm)
+          })
           const organicMatch = modifiers.organic ? p.isOrganic : true
           return (commodityMatch || varietyMatch) && organicMatch
         })
@@ -665,17 +660,18 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           const commodityMatch = commoditySearchTerms.some(term =>
             p.commodity?.toLowerCase().includes(term)
           ) || p.commodity?.toLowerCase().includes(searchTerm)
-          const varietyMatch = (p.varieties || []).some((v: string) =>
-            commoditySearchTerms.some(term => v.toLowerCase().includes(term)) ||
-            v.toLowerCase().includes(searchTerm)
-          )
+          const varietyMatch = (p.varieties || []).some((v: string | { name: string }) => {
+            const vStr = (typeof v === 'string' ? v : v.name).toLowerCase()
+            return commoditySearchTerms.some(term => vStr.includes(term)) || vStr.includes(searchTerm)
+          })
           const organicMatch = modifiers.organic ? p.isOrganic : true
           return (commodityMatch || varietyMatch) && organicMatch
         }) || embeddedProducts[0]
 
         const commodity = matchingProduct?.commodity || 'Unknown'
         const isOrganic = matchingProduct?.isOrganic || false
-        const varieties: string[] = matchingProduct?.varieties || []
+        const rawVarieties: (string | { name: string })[] = matchingProduct?.varieties || []
+        const varieties = rawVarieties.map(v => typeof v === 'string' ? v : v.name)
 
         const isClaimed = Boolean(supplier.acrelistUserId)
         const hasPricing = isClaimed && pricingSet.has(supplier.acrelistUserId)
@@ -993,6 +989,8 @@ const publicRoutes: FastifyPluginAsync = async (fastify) => {
           products,
           certifications,
           description: supplier.description,
+          brandStory: supplier.brandStory,
+          yearEstablished: supplier.yearEstablished,
           dataSources: supplier.dataSources || {},
           verificationScore: supplier.verificationScore || { score: 0, maxScore: 34, percentage: 0 }
         }

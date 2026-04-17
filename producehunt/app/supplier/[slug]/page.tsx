@@ -8,6 +8,13 @@ import './supplier.css'
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
 const ACRELIST = process.env.NEXT_PUBLIC_ACRELIST_URL || 'http://localhost:3000'
 
+interface ProductVariety {
+  name: string
+  availability?: string
+  organic?: boolean
+  growingPractices?: string[]
+}
+
 interface SupplierProfile {
   id: string
   slug: string
@@ -18,12 +25,14 @@ interface SupplierProfile {
   contact: { email?: string; salesEmail?: string; phone?: string; website?: string }
   products: Array<{
     commodity: string
-    varieties: string[]
+    varieties: (string | ProductVariety)[]
     isOrganic: boolean
     seasonality: { type: string; description: string } | string
   }>
   certifications: string[]
   description?: string
+  brandStory?: string
+  yearEstablished?: number
   dataSources?: {
     paca?: { verified: boolean; licenseNumber?: string; score?: number }
     gfsi?: { verified: boolean; certificationType?: string; score?: number }
@@ -168,30 +177,49 @@ export default function SupplierPage() {
           )}
         </div>
 
+        {/* About / Brand Story */}
+        {(profile.brandStory || profile.yearEstablished) && (
+          <section className="sp-section">
+            <h2 className="sp-section-title">About</h2>
+            <div className="sp-about">
+              {profile.yearEstablished && (
+                <p className="sp-established">Est. {profile.yearEstablished}</p>
+              )}
+              {profile.brandStory && (
+                <p className="sp-brand-story">{profile.brandStory}</p>
+              )}
+            </div>
+          </section>
+        )}
+
         {/* Products */}
         {profile.products.length > 0 && (
           <section className="sp-section">
-            <h2 className="sp-section-title">Products</h2>
-            <div className="sp-products">
+            <h2 className="sp-section-title">What They Grow</h2>
+            <div className="sp-products-grid">
               {profile.products.map((p, i) => {
-                const seasonality = typeof p.seasonality === 'string'
-                  ? p.seasonality
-                  : p.seasonality?.description || ''
+                const varieties = p.varieties || []
                 return (
-                  <div key={i} className="sp-product-row">
-                    <div className="sp-product-left">
+                  <div key={i} className="sp-product-card">
+                    <div className="sp-product-card-header">
                       <span className="sp-product-name">{p.commodity}</span>
                       {p.isOrganic && <span className="sp-product-organic">Organic</span>}
-                      {p.varieties.length > 0 && (
-                        <div className="sp-varieties">
-                          {p.varieties.map((v, j) => (
-                            <span key={j} className="sp-variety">{v}</span>
-                          ))}
-                        </div>
-                      )}
                     </div>
-                    {seasonality && (
-                      <span className="sp-product-season">{seasonality}</span>
+                    {varieties.length > 0 && (
+                      <div className="sp-varieties">
+                        {varieties.map((v, j) => {
+                          const name = typeof v === 'string' ? v : v.name
+                          const avail = typeof v === 'object' ? v.availability : undefined
+                          const isOrg = typeof v === 'object' ? v.organic : undefined
+                          return (
+                            <div key={j} className="sp-variety-row">
+                              <span className="sp-variety-name">{name}</span>
+                              {isOrg && <span className="sp-variety-organic">Org</span>}
+                              {avail && <span className="sp-variety-avail">{avail}</span>}
+                            </div>
+                          )
+                        })}
+                      </div>
                     )}
                   </div>
                 )

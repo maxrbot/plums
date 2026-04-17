@@ -30,7 +30,8 @@ import contactBatchesRoutes from './routes/contactBatches'
 const fastify = Fastify({
   logger: {
     level: process.env.NODE_ENV === 'production' ? 'warn' : 'info'
-  }
+  },
+  bodyLimit: 20 * 1024 * 1024, // 20MB — enough for large XLSX uploads
 })
 
 // Register plugins

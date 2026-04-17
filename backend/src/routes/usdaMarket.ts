@@ -225,8 +225,8 @@ async function fetchMarketPrices(commodity: string): Promise<MarketResult[]> {
 }
 
 const usdaMarketRoutes: FastifyPluginAsync = async (fastify) => {
-  fastify.addHook('preHandler', authenticate)
-
+  // GET is public — market data is not user-specific
+  // POST /refresh still requires auth to prevent abuse
   fastify.get('/usda-market', async (request, reply) => {
     const { commodity } = request.query as { commodity?: string }
     if (!commodity) return reply.status(400).send({ error: 'commodity query param required' })
@@ -252,7 +252,7 @@ const usdaMarketRoutes: FastifyPluginAsync = async (fastify) => {
     }
   })
 
-  fastify.post('/usda-market/refresh', async (request, reply) => {
+  fastify.post('/usda-market/refresh', { preHandler: authenticate }, async (request, reply) => {
     const { commodity } = request.body as { commodity?: string }
     if (!commodity) return reply.status(400).send({ error: 'commodity required' })
     await database.getDb().collection('usdaMarket').deleteOne({ key: commodity.toLowerCase().trim() })

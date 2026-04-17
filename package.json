@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:all": "concurrently --names \"BACKEND,ACRELIST,PRODUCEHUNT,MARKETING\" --prefix-colors \"cyan,green,yellow,magenta\" \"cd backend && npm run dev\" \"next dev --turbopack\" \"cd producehunt && npm run dev\" \"cd marketing && npm run dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -27,6 +28,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "concurrently": "^9.2.1",
     "eslint": "^9",
     "eslint-config-next": "^16.1.6",
     "tailwindcss": "^4",

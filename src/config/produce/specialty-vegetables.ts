@@ -1,7 +1,7 @@
 // =============================================================================
 // SPECIALTY VEGETABLES COMMODITIES
 // =============================================================================
-// Complete category: Asparagus, Artichoke, Fennel, Okra, Corn, Mushroom, Rhubarb
+// Complete category: Asparagus, Artichoke, Fennel, Okra, Corn, Mushroom, Rhubarb, Microgreens
 
 import type { CommodityConfig } from '../types'
 
@@ -657,6 +657,123 @@ export const specialtyVegetablesCommodities: CommodityConfig[] = [
     },
     
     defaultVariety: 'button-mushroom'
+  },
+
+  {
+    id: 'microgreens',
+    name: 'Microgreens',
+    category: 'Specialty Vegetables',
+
+    usdaCoverage: {
+      hasPricing: false,
+      hasProduction: false,
+      notes: 'No USDA coverage; pricing estimated from specialty/farmers market data'
+    },
+
+    processing: {
+      hasProcessing: true,
+      types: [
+        {
+          id: 'clamshell',
+          name: 'Clamshell',
+          description: 'Fresh-cut microgreens in clamshell tray',
+          packageTypes: [
+            {
+              id: 'clamshell-2oz',
+              name: 'Clamshell 2 oz',
+              type: 'clamshell',
+              sizes: [
+                { id: '2oz', name: '2 oz', weight: '2oz', isDefault: true },
+                { id: '4oz', name: '4 oz', weight: '4oz' }
+              ],
+              isDefault: true
+            }
+          ],
+          isDefault: true
+        },
+        {
+          id: 'bulk',
+          name: 'Bulk',
+          description: 'Bulk loose microgreens',
+          packageTypes: [
+            {
+              id: 'bag',
+              name: 'Bag',
+              type: 'bag',
+              sizes: [
+                { id: '1lb', name: '1 lb', weight: '1lb', isDefault: true },
+                { id: '5lb', name: '5 lb', weight: '5lb' }
+              ],
+              isDefault: true
+            }
+          ]
+        }
+      ]
+    },
+
+    varieties: {
+      'broccoli-microgreen': {
+        id: 'broccoli-microgreen',
+        name: 'Broccoli',
+        itemWeight: { base: 0.04, sizeVariations: {} },
+        pricing: { basePricePerLb: 24.00, priceVolatility: 'medium' }
+      },
+      'pea-shoots': {
+        id: 'pea-shoots',
+        name: 'Pea Shoots',
+        itemWeight: { base: 0.06, sizeVariations: {} },
+        pricing: { basePricePerLb: 18.00, priceVolatility: 'medium' }
+      },
+      'radish-microgreen': {
+        id: 'radish-microgreen',
+        name: 'Radish',
+        itemWeight: { base: 0.03, sizeVariations: {} },
+        pricing: { basePricePerLb: 22.00, priceVolatility: 'medium' }
+      },
+      'sunflower-microgreen': {
+        id: 'sunflower-microgreen',
+        name: 'Sunflower',
+        itemWeight: { base: 0.07, sizeVariations: {} },
+        pricing: { basePricePerLb: 20.00, priceVolatility: 'medium' }
+      },
+      'arugula-microgreen': {
+        id: 'arugula-microgreen',
+        name: 'Arugula',
+        itemWeight: { base: 0.02, sizeVariations: {} },
+        pricing: { basePricePerLb: 28.00, priceVolatility: 'high' }
+      },
+      'kale-microgreen': {
+        id: 'kale-microgreen',
+        name: 'Kale',
+        itemWeight: { base: 0.03, sizeVariations: {} },
+        pricing: { basePricePerLb: 26.00, priceVolatility: 'medium' }
+      },
+      'amaranth-microgreen': {
+        id: 'amaranth-microgreen',
+        name: 'Amaranth',
+        itemWeight: { base: 0.02, sizeVariations: {} },
+        pricing: { basePricePerLb: 30.00, priceVolatility: 'high' }
+      },
+      'mixed-microgreens': {
+        id: 'mixed-microgreens',
+        name: 'Mixed',
+        itemWeight: { base: 0.04, sizeVariations: {} },
+        pricing: { basePricePerLb: 22.00, priceVolatility: 'medium' }
+      }
+    },
+
+    packaging: {
+      types: [],
+      defaultPackage: 'clamshell-2oz',
+      defaultSize: '2oz'
+    },
+
+    quality: {
+      grades: ['No. 1'],
+      defaultGrade: 'No. 1'
+    },
+
+    defaultVariety: 'mixed-microgreens'
   },
 
   {

@@ -53,9 +53,9 @@ export default function Index2() {
       {/* ── Hero ── */}
       <section className="max-w-6xl mx-auto px-6 pt-20 pb-16 text-center">
         <p className="text-sm font-semibold text-lime-600 tracking-wide uppercase mb-4">For growers &amp; shippers</p>
-        <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 leading-tight tracking-tight max-w-3xl mx-auto">
-          Stop sending PDFs.<br />
-          <span className="text-lime-500">Supercharge your price sheets.</span>
+        <h1 className="font-bold text-gray-900 leading-tight tracking-tight max-w-3xl mx-auto">
+          <span className="block text-4xl sm:text-5xl mb-1">Stop sending PDFs.</span>
+          <span className="block text-5xl sm:text-6xl text-lime-500">Supercharge your <span className="whitespace-nowrap">price sheets.</span></span>
         </h1>
         <p className="mt-6 text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
           AI-powered pricing. Personalized price sheets. Open-rate analytics. On autopilot, or done with a single click.

@@ -9,6 +9,7 @@ export * from './citrus-fruits'
 export * from './root-vegetables'
 export * from './vine-crops'
 export * from './specialty-vegetables'
+export * from './specialty-fruits'
 export * from './berries'
 export * from './stone-fruits'
 export * from './herbs'
@@ -23,6 +24,7 @@ import { citrusCommodities } from './citrus-fruits'
 import { rootVegetablesCommodities } from './root-vegetables'
 import { vineCropsCommodities } from './vine-crops'
 import { specialtyVegetablesCommodities } from './specialty-vegetables'
+import { specialtyFruitsCommodities } from './specialty-fruits'
 import { berriesCommodities } from './berries'
 import { stoneFruitsCommodities } from './stone-fruits'
 import { herbsCommodities } from './herbs'
@@ -40,6 +42,7 @@ export const produceCommodities: CommodityConfig[] = [
   ...rootVegetablesCommodities,
   ...vineCropsCommodities,
   ...specialtyVegetablesCommodities,
+  ...specialtyFruitsCommodities,
   ...berriesCommodities,
   ...stoneFruitsCommodities,
   ...herbsCommodities,
@@ -47,10 +50,6 @@ export const produceCommodities: CommodityConfig[] = [
   ...tropicalFruitsCommodities,
   ...grapesCommodities,
   ...pomeFruitsCommodities,
-  // All original categories now complete!
-  // Future expansion categories could be added here:
-  // ...grainsCerealsCommodities,
-  // ...legumesPulsesCommodities,
 ]
 
 // Helper functions for produce domain

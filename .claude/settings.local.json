@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(npm run dev:*)",
+      "Bash(mongosh:*)",
+      "Bash(lsof:*)",
+      "Bash(sleep 4:*)",
+      "Bash(grep:*)",
+      "Bash(node:*)",
+      "Bash(echo cleared:*)",
+      "WebFetch(domain:www.wholefoodsmarket.com)",
+      "Read(//private/tmp/**)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(type\\(d\\)\\); print\\(len\\(d\\) if isinstance\\(d,list\\) else list\\(d.keys\\(\\)\\)[:10]\\)\")",
+      "WebSearch",
+      "WebFetch(domain:cafreshfruit.com)",
+      "Bash(npx ts-node:*)",
+      "Bash(python3 -m json.tool)",
+      "Bash(npx tsc:*)",
+      "WebFetch(domain:agdatacommons.nal.usda.gov)",
+      "Bash(npx tsx:*)",
+      "WebFetch(domain:massaorganics.com)",
+      "WebFetch(domain:bfarm.com)",
+      "WebFetch(domain:bluebirdfarm.net)",
+      "WebFetch(domain:www.burnsblossomfarm.com)",
+      "Bash(head -30 curl -s http://localhost:3001/api/public/search-products?q=strawberry)",
+      "Bash(head -30 curl -s http://localhost:3001/api/public/search-products?q=heirloom)",
+      "WebFetch(domain:www.bluebookservices.com)"
+    ]
+  }
+}

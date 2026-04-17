@@ -7,7 +7,7 @@ import { MongoClient } from 'mongodb'
 import bcrypt from 'bcryptjs'
 
 const ADMIN_EMAIL = 'admin@acrelist.ag'
-const ADMIN_PASSWORD = 'AcreAdmin2025!'
+const ADMIN_PASSWORD = 'fruit!'
 
 async function main() {
   const uri = process.env.MONGODB_URI || 'mongodb://localhost:27017/markethunt'

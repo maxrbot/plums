@@ -58,13 +58,43 @@ interface HistoryItem {
   resultCount: number
 }
 
-const trendItems = [
-  { emoji: '🔴', title: 'Supply Alert', subtitle: 'Lettuce prices up 15% this week', type: 'alert' },
-  { emoji: '🌤️', title: 'Weather Impact', subtitle: 'CA frost affecting stone fruit supply', type: 'news' },
-  { emoji: '📈', title: 'Price Surge', subtitle: 'Organic berries trending upward', type: 'trend' },
-  { emoji: '🍓', title: 'Now in Season', subtitle: 'Strawberries, asparagus peak availability', type: 'seasonal' },
-  { emoji: '📰', title: 'Market Update', subtitle: 'Mexico cucumber harvest ahead of schedule', type: 'news' },
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api'
+
+const QUICK_COMMODITIES = [
+  'Strawberries', 'Tomatoes', 'Lettuce', 'Avocados', 'Broccoli',
+  'Oranges', 'Lemons', 'Blueberries', 'Spinach', 'Cucumbers',
 ]
+
+// Approximate seasonal availability by month (1=Jan … 12=Dec)
+const SEASONAL: Record<string, number[]> = {
+  Strawberries:  [3, 4, 5, 6, 7, 8],
+  Asparagus:     [3, 4, 5, 6],
+  Cherries:      [5, 6, 7],
+  Peaches:       [6, 7, 8, 9],
+  Blueberries:   [5, 6, 7, 8, 9],
+  Corn:          [6, 7, 8, 9],
+  Tomatoes:      [6, 7, 8, 9, 10],
+  Watermelon:    [6, 7, 8, 9],
+  Apples:        [8, 9, 10, 11],
+  Pumpkins:      [9, 10, 11],
+  Citrus:        [11, 12, 1, 2, 3],
+  Broccoli:      [10, 11, 12, 1, 2, 3],
+  Spinach:       [3, 4, 5, 9, 10, 11],
+  Lettuce:       [3, 4, 5, 9, 10, 11],
+  Avocados:      [2, 3, 4, 5, 6, 7, 8, 9],
+}
+
+interface PriceEntry { low: number; high: number; mostlyLow: number | null; mostlyHigh: number | null; date: string | null; description?: string }
+interface MarketResult { city: string; reportType: 'terminal' | 'shipping_point'; entries: PriceEntry[] }
+
+function conditionFromDesc(desc: string): { label: string; style: React.CSSProperties } | null {
+  const m = desc.match(/MARKET\s+(HIGHER|LOWER|STEADY|FIRM|WEAK|ABOUT\s+STEADY|ACTIVE|SLOW)/i)
+  if (!m) return null
+  const word = m[1].toUpperCase().replace(/\s+/g, ' ')
+  if (['HIGHER', 'FIRM', 'ACTIVE'].includes(word)) return { label: '↑ ' + word.charAt(0) + word.slice(1).toLowerCase(), style: { background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' } }
+  if (['LOWER', 'WEAK', 'SLOW'].includes(word))   return { label: '↓ ' + word.charAt(0) + word.slice(1).toLowerCase(), style: { background: '#f0fdf4', color: '#166534', border: '1px solid #bbf7d0' } }
+  return { label: '→ Steady', style: { background: '#f9fafb', color: '#6b7280', border: '1px solid #e5e7eb' } }
+}
 
 export default function ProduceHunt() {
   const [input, setInput] = useState('')
@@ -80,6 +110,14 @@ export default function ProduceHunt() {
   const [selectedSupplier, setSelectedSupplier] = useState<SearchResult | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Market intelligence state
+  const [marketCommodity, setMarketCommodity] = useState<string>('Strawberries')
+  const [marketInput, setMarketInput] = useState('')
+  const [marketData, setMarketData] = useState<MarketResult[]>([])
+  const [marketLoading, setMarketLoading] = useState(false)
+  const [marketError, setMarketError] = useState<string | null>(null)
+  const [marketFetchedAt, setMarketFetchedAt] = useState<string | null>(null)
 
   // Load history from localStorage on mount
   useEffect(() => {
@@ -117,6 +155,22 @@ export default function ProduceHunt() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  useEffect(() => {
+    if (sidebarTab !== 'trends' || !marketCommodity) return
+    setMarketLoading(true)
+    setMarketError(null)
+    setMarketData([])
+    fetch(`${API_BASE}/usda-market?commodity=${encodeURIComponent(marketCommodity)}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) { setMarketError(data.error); return }
+        setMarketData(data.markets || [])
+        setMarketFetchedAt(data.fetchedAt || null)
+      })
+      .catch(() => setMarketError('Failed to load market data.'))
+      .finally(() => setMarketLoading(false))
+  }, [sidebarTab, marketCommodity])
 
   const handleSearch = async (text?: string) => {
     const searchText = text || input
@@ -357,59 +411,325 @@ export default function ProduceHunt() {
               <div className="tab-content-main">
                 {sidebarTab === 'powersearch' && (
                 <div className="powersearch-main">
-                  <h2>PowerSearch</h2>
-                  <p className="section-subtitle">Search multiple products at once - upload specs or paste your list</p>
 
-                  <div className="powersearch-grid">
-                    <div className="powersearch-card">
-                      <div className="powersearch-header">
-                        <span className="powersearch-icon">📄</span>
-                        <div>
-                          <h3>Upload Spec Sheet</h3>
-                          <p>Drop PDF or CSV to auto-match suppliers</p>
-                        </div>
+                  {/* Header */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px', marginBottom: '6px' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                        <h2 style={{ margin: 0 }}>PowerSearch</h2>
+                        <span style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '3px 8px', borderRadius: '999px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff' }}>Pro</span>
                       </div>
-                      <div className="upload-area">
-                        <p>Drag & drop your spec sheet here</p>
-                        <button className="upload-btn">Choose File</button>
+                      <p className="section-subtitle" style={{ margin: 0 }}>Source your entire procurement list in one shot</p>
+                    </div>
+                    <span style={{ fontSize: '11px', fontWeight: 600, color: '#6b7280', background: '#f3f4f6', border: '1px solid #e5e7eb', padding: '4px 10px', borderRadius: '999px', whiteSpace: 'nowrap', flexShrink: 0 }}>Coming Soon</span>
+                  </div>
+
+                  {/* Feature cards — side by side */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', margin: '18px 0' }}>
+
+                    {/* Card 1 — PowerSearch (combined upload + list) */}
+                    <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🔍</div>
+                          <p style={{ margin: 0, fontWeight: 600, fontSize: '12px', color: '#111827' }}>PowerSearch</p>
+                        </div>
+                        <span style={{ fontSize: '10px', fontWeight: 600, color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', padding: '2px 7px', borderRadius: '999px', whiteSpace: 'nowrap', flexShrink: 0 }}>Soon</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', lineHeight: 1.5 }}>Search your entire procurement list at once. Upload a spec sheet or paste a list — we match suppliers for every line item.</p>
+                      {/* Two input method previews */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
+                        <div style={{ border: '1.5px dashed #d1d5db', borderRadius: '8px', padding: '10px', textAlign: 'center', background: '#f9fafb', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '13px' }}>📄</span>
+                          <span style={{ fontSize: '11px', color: '#9ca3af' }}>Drag &amp; drop spec sheet</span>
+                          <span style={{ fontSize: '10px', fontWeight: 600, color: '#9ca3af', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '4px', padding: '2px 7px' }}>Browse</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ flex: 1, height: '1px', background: '#f3f4f6' }} />
+                          <span style={{ fontSize: '10px', color: '#d1d5db', fontWeight: 500 }}>or</span>
+                          <div style={{ flex: 1, height: '1px', background: '#f3f4f6' }} />
+                        </div>
+                        <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '8px 10px', fontFamily: 'monospace', fontSize: '10px', color: '#9ca3af', lineHeight: 1.7 }}>
+                          <div>— Organic cucumbers (500 lbs)</div>
+                          <div>— Cherry tomatoes (200 lbs)</div>
+                          <div style={{ color: '#d1d5db' }}>— Paste your list…</div>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="powersearch-card">
-                      <div className="powersearch-header">
-                        <span className="powersearch-icon">🛒</span>
-                        <div>
-                          <h3>Ingredient List Search</h3>
-                          <p>Paste list to bulk search all items</p>
+                    {/* Card 2 — Source & Route */}
+                    <div style={{ background: '#fff', border: '1.5px solid #e0e7ff', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+                      {/* Subtle background accent */}
+                      <div style={{ position: 'absolute', top: 0, right: 0, width: 80, height: 80, background: 'radial-gradient(circle at top right, #eef2ff, transparent 70%)', pointerEvents: 'none' }} />
+                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ width: 32, height: 32, borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🗺️</div>
+                          <p style={{ margin: 0, fontWeight: 700, fontSize: '12px', color: '#111827' }}>Source &amp; Route</p>
                         </div>
+                        <span style={{ fontSize: '10px', fontWeight: 600, color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', padding: '2px 7px', borderRadius: '999px', whiteSpace: 'nowrap', flexShrink: 0 }}>Soon</span>
                       </div>
-                      <textarea
-                        className="ingredient-textarea"
-                        placeholder="Paste your ingredient list here...&#10;Example:&#10;- Organic cucumbers (500 lbs)&#10;- Cherry tomatoes (200 lbs)&#10;- Fresh basil (50 lbs)"
-                      ></textarea>
-                      <button className="search-btn-large">Search All Items</button>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#6b7280', lineHeight: 1.5 }}>Tell us what you need and a destination. ProduceHunt will optimally source suppliers and build the most efficient pickup route to reduce stops, driving distance, and consolidate supply options.</p>
+                      {/* Route */}
+                      <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                        {/* Nodes + connectors */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', width: '100%' }}>
+
+                          {/* Stop 1 */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 52 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid #15803d', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '7px', fontWeight: 700, color: '#15803d' }}>1</span>
+                            </div>
+                            <p style={{ margin: '4px 0 0', fontSize: '8px', fontWeight: 600, color: '#111827', textAlign: 'center', lineHeight: 1.2 }}>Valley Fresh</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '7.5px', color: '#9ca3af', textAlign: 'center' }}>Salinas, CA</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '7.5px', color: '#6b7280', textAlign: 'center' }}>4 pallets</p>
+                          </div>
+
+                          {/* Connector 1 → 2 */}
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', paddingTop: 6 }}>
+                            <span style={{ fontSize: '7px', color: '#9ca3af' }}>82 mi</span>
+                            <div style={{ width: '100%', borderTop: '1.5px dashed #d1d5db' }} />
+                          </div>
+
+                          {/* Stop 2 */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 52 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid #15803d', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <span style={{ fontSize: '7px', fontWeight: 700, color: '#15803d' }}>2</span>
+                            </div>
+                            <p style={{ margin: '4px 0 0', fontSize: '8px', fontWeight: 600, color: '#111827', textAlign: 'center', lineHeight: 1.2 }}>Rio Verde</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '7.5px', color: '#9ca3af', textAlign: 'center' }}>Nogales, AZ</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '7.5px', color: '#6b7280', textAlign: 'center' }}>6 pallets</p>
+                          </div>
+
+                          {/* Connector 2 → dest */}
+                          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', paddingTop: 6 }}>
+                            <span style={{ fontSize: '7px', color: '#9ca3af' }}>131 mi</span>
+                            <div style={{ width: '100%', borderTop: '1.5px dashed #d1d5db' }} />
+                          </div>
+
+                          {/* Destination */}
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0, width: 52 }}>
+                            <div style={{ width: 18, height: 18, borderRadius: '50%', border: '1.5px solid #374151', background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <div style={{ width: 5, height: 5, borderRadius: '50%', background: '#374151' }} />
+                            </div>
+                            <p style={{ margin: '4px 0 0', fontSize: '8px', fontWeight: 600, color: '#111827', textAlign: 'center', lineHeight: 1.2 }}>Chicago DC</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '7.5px', color: '#9ca3af', textAlign: 'center' }}>Chicago, IL</p>
+                            <p style={{ margin: '2px 0 0', fontSize: '7.5px', color: '#6b7280', textAlign: 'center' }}>10 pallets</p>
+                          </div>
+
+                        </div>
+
+                        {/* Efficiency callout */}
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <div style={{ flex: 1, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '7px', padding: '5px 6px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#15803d' }}>−1 stop</p>
+                            <p style={{ margin: 0, fontSize: '7.5px', color: '#16a34a' }}>consolidated</p>
+                          </div>
+                          <div style={{ flex: 1, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '7px', padding: '5px 6px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#15803d' }}>~$340</p>
+                            <p style={{ margin: 0, fontSize: '7.5px', color: '#16a34a' }}>freight saved</p>
+                          </div>
+                          <div style={{ flex: 1, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '7px', padding: '5px 6px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, fontSize: '11px', fontWeight: 700, color: '#15803d' }}>34°F</p>
+                            <p style={{ margin: 0, fontSize: '7.5px', color: '#16a34a' }}>reefer temp</p>
+                          </div>
+                        </div>
+
+                      </div>
                     </div>
                   </div>
+
+                  {/* Waitlist CTA */}
+                  <div style={{ background: 'linear-gradient(135deg, #fefce8, #fff7ed)', border: '1px solid #fde68a', borderRadius: '12px', padding: '18px', textAlign: 'center' }}>
+                    <p style={{ margin: '0 0 4px', fontWeight: 700, fontSize: '14px', color: '#92400e' }}>Be first when it launches</p>
+                    <p style={{ margin: '0 0 14px', fontSize: '12px', color: '#b45309' }}>PowerSearch is in development. Join the waitlist and we&apos;ll notify you the day it goes live.</p>
+                    <a
+                      href="/waitlist"
+                      style={{ display: 'inline-block', padding: '9px 22px', borderRadius: '8px', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: '#fff', fontWeight: 700, fontSize: '13px', textDecoration: 'none', boxShadow: '0 1px 4px rgba(217,119,6,0.3)' }}
+                    >
+                      Join the waitlist →
+                    </a>
+                  </div>
+
                 </div>
               )}
 
               {sidebarTab === 'trends' && (
                 <div className="trends-main">
-                  <h2>Market Trends & Intelligence</h2>
-                  <p className="section-subtitle">Stay ahead with real-time supply chain updates</p>
+                  <div style={{ marginBottom: '6px' }}>
+                    <h2 style={{ marginBottom: '4px' }}>Market Intelligence</h2>
+                    <p className="section-subtitle" style={{ marginBottom: '0' }}>
+                      Wholesale price benchmarks from USDA AMS · what buyers are paying right now
+                    </p>
+                  </div>
 
-                  <div className="trends-grid">
-                    {trendItems.map((item, idx) => (
-                      <div key={idx} className={`trend-card ${item.type}`}>
-                        <span className="trend-emoji-large">{item.emoji}</span>
-                        <div className="trend-content">
-                          <span className="trend-badge">{item.type}</span>
-                          <h3>{item.title}</h3>
-                          <p>{item.subtitle}</p>
-                        </div>
-                      </div>
+                  {/* Commodity quick-select */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', margin: '16px 0 12px' }}>
+                    {QUICK_COMMODITIES.map(c => (
+                      <button
+                        key={c}
+                        onClick={() => setMarketCommodity(c)}
+                        style={{
+                          padding: '4px 12px',
+                          borderRadius: '999px',
+                          fontSize: '12px',
+                          fontWeight: 500,
+                          border: marketCommodity === c ? '1.5px solid #166534' : '1.5px solid #e5e7eb',
+                          background: marketCommodity === c ? '#166534' : '#fff',
+                          color: marketCommodity === c ? '#fff' : '#6b7280',
+                          cursor: 'pointer',
+                          transition: 'all 0.15s',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >{c}</button>
                     ))}
                   </div>
+
+                  {/* Custom search */}
+                  <form
+                    onSubmit={e => { e.preventDefault(); const v = marketInput.trim(); if (v) { setMarketCommodity(v.charAt(0).toUpperCase() + v.slice(1).toLowerCase()); setMarketInput('') } }}
+                    style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}
+                  >
+                    <input
+                      value={marketInput}
+                      onChange={e => setMarketInput(e.target.value)}
+                      placeholder="Search any commodity…"
+                      style={{ flex: 1, padding: '7px 12px', borderRadius: '8px', border: '1px solid #e5e7eb', fontSize: '13px', outline: 'none' }}
+                    />
+                    <button
+                      type="submit"
+                      style={{ padding: '7px 14px', borderRadius: '8px', background: '#166534', color: '#fff', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer' }}
+                    >Search</button>
+                  </form>
+
+                  {/* Results */}
+                  {marketLoading && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9ca3af', fontSize: '13px', padding: '32px 0' }}>
+                      <div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid #d1fae5', borderTopColor: '#166834', animation: 'spin 0.8s linear infinite' }} />
+                      Fetching USDA market data for {marketCommodity}…
+                    </div>
+                  )}
+                  {marketError && !marketLoading && (
+                    <p style={{ color: '#ef4444', fontSize: '13px', padding: '16px 0' }}>{marketError}</p>
+                  )}
+                  {!marketLoading && !marketError && marketData.length === 0 && (
+                    <p style={{ color: '#9ca3af', fontSize: '13px', padding: '24px 0' }}>No USDA data found for <strong>{marketCommodity}</strong>. Try a broader term like "tomato" or "orange".</p>
+                  )}
+                  {!marketLoading && !marketError && marketData.length > 0 && (() => {
+                    const terminals = marketData.filter(m => m.reportType === 'terminal').slice(0, 4)
+                    const fob = marketData.filter(m => m.reportType === 'shipping_point').slice(0, 3)
+                    return (
+                      <div>
+                        {/* Buyer context callout */}
+                        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '10px', padding: '10px 14px', fontSize: '12px', color: '#166534', marginBottom: '18px', lineHeight: 1.5 }}>
+                          <strong>How to read this:</strong> Terminal prices = what distributors &amp; retailers pay at major city hubs. FOB = what growers charge at the farm before freight. Both are per shipping unit (carton, flat, lug).
+                        </div>
+
+                        {/* Terminal markets */}
+                        {terminals.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6b7280', marginBottom: '8px' }}>
+                              Terminal Markets <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— what buyers pay at city hubs</span>
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                              {terminals.map((m, i) => {
+                                const top = m.entries[0]
+                                const cond = top?.description ? conditionFromDesc(top.description) : null
+                                const city = m.city.replace(' (Shipping Point)', '')
+                                return (
+                                  <div key={i} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: '10px', padding: '12px 14px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
+                                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: 0 }}>{city}</p>
+                                      {cond && (
+                                        <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '999px', whiteSpace: 'nowrap', flexShrink: 0, ...cond.style }}>
+                                          {cond.label}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {top ? (
+                                      <>
+                                        <p style={{ fontSize: '16px', fontWeight: 700, color: '#166534', margin: '0 0 2px' }}>
+                                          ${top.low.toFixed(2)}–${top.high.toFixed(2)}
+                                        </p>
+                                        {top.mostlyLow != null && (
+                                          <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>mostly ${top.mostlyLow.toFixed(2)}–${top.mostlyHigh!.toFixed(2)}</p>
+                                        )}
+                                      </>
+                                    ) : <p style={{ fontSize: '12px', color: '#d1d5db' }}>—</p>}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* FOB shipping point */}
+                        {fob.length > 0 && (
+                          <div style={{ marginBottom: '20px' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6b7280', marginBottom: '8px' }}>
+                              FOB / Shipping Point <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— grower prices before freight</span>
+                            </p>
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                              {fob.map((m, i) => {
+                                const top = m.entries[0]
+                                const cond = top?.description ? conditionFromDesc(top.description) : null
+                                const city = m.city.replace(' (Shipping Point)', '')
+                                return (
+                                  <div key={i} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '10px', padding: '12px 14px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '6px', marginBottom: '6px' }}>
+                                      <p style={{ fontSize: '12px', fontWeight: 600, color: '#111827', margin: 0 }}>{city}</p>
+                                      {cond && (
+                                        <span style={{ fontSize: '10px', fontWeight: 600, padding: '2px 7px', borderRadius: '999px', whiteSpace: 'nowrap', flexShrink: 0, ...cond.style }}>
+                                          {cond.label}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {top ? (
+                                      <>
+                                        <p style={{ fontSize: '16px', fontWeight: 700, color: '#1d4ed8', margin: '0 0 2px' }}>
+                                          ${top.low.toFixed(2)}–${top.high.toFixed(2)}
+                                        </p>
+                                        {top.mostlyLow != null && (
+                                          <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0 }}>mostly ${top.mostlyLow.toFixed(2)}–${top.mostlyHigh!.toFixed(2)}</p>
+                                        )}
+                                      </>
+                                    ) : <p style={{ fontSize: '12px', color: '#d1d5db' }}>—</p>}
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Seasonal now */}
+                        <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: '16px' }}>
+                          <p style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#6b7280', marginBottom: '8px' }}>
+                            In Season Now
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {(() => {
+                              const month = new Date().getMonth() + 1
+                              return Object.entries(SEASONAL)
+                                .filter(([, months]) => months.includes(month))
+                                .map(([name]) => (
+                                  <button
+                                    key={name}
+                                    onClick={() => setMarketCommodity(name)}
+                                    style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '12px', border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#166534', cursor: 'pointer', fontWeight: 500 }}
+                                  >{name}</button>
+                                ))
+                            })()}
+                          </div>
+                        </div>
+
+                        {marketFetchedAt && (
+                          <p style={{ fontSize: '11px', color: '#d1d5db', marginTop: '16px' }}>
+                            USDA AMS · updated {new Date(marketFetchedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </p>
+                        )}
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
 

@@ -1748,3 +1748,7 @@ body {
 .modal-profile-link:hover {
   color: #111;
 }
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}

@@ -776,9 +776,80 @@ export default function Settings() {
             <div className="border-t border-gray-200 mt-6 pt-6">
               <div className="flex items-center gap-2 mb-1">
                 <h4 className="text-md font-medium text-gray-900">Company Branding</h4>
-                <span className="px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-500 rounded-full">Coming soon</span>
               </div>
-              <p className="text-sm text-gray-400">Upload your logo to appear on price sheets and your ProduceHunt listing.</p>
+              <p className="text-sm text-gray-500 mb-4">Upload your logo to appear on price sheets and your ProduceHunt listing.</p>
+
+              {userData.pricesheetSettings?.companyLogo ? (
+                /* Logo preview */
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-24 rounded-lg border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
+                    <img
+                      src={userData.pricesheetSettings.companyLogo}
+                      alt="Company logo"
+                      className="max-w-full max-h-full object-contain"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handleLogoFileSelect}
+                      />
+                      Replace logo
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleRemoveLogo}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-red-200 bg-white px-3 py-1.5 text-sm font-medium text-red-600 shadow-sm hover:bg-red-50"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* Drag-and-drop upload zone */
+                <div
+                  onDrop={handleLogoDrop}
+                  onDragOver={handleLogoDragOver}
+                  onDragLeave={handleLogoDragLeave}
+                  className={`relative flex flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-8 transition-colors ${
+                    isDraggingLogo
+                      ? 'border-blue-400 bg-blue-50'
+                      : 'border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100'
+                  }`}
+                >
+                  {isUploadingLogo ? (
+                    <div className="flex flex-col items-center gap-2">
+                      <svg className="h-6 w-6 animate-spin text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      <p className="text-sm text-gray-500">Uploading…</p>
+                    </div>
+                  ) : (
+                    <>
+                      <svg className="mx-auto h-10 w-10 text-gray-300" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <p className="mt-2 text-sm text-gray-600">
+                        <label className="cursor-pointer font-medium text-blue-600 hover:text-blue-500">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleLogoFileSelect}
+                          />
+                          Upload a file
+                        </label>
+                        {' '}or drag and drop
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">PNG, JPG, SVG up to 2MB</p>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

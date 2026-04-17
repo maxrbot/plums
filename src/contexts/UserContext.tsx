@@ -32,6 +32,16 @@ interface User {
       priceAlerts: boolean
       marketUpdates: boolean
     }
+    pricesheet?: {
+      companyLogo?: string | null
+      deliveryMethod?: 'link' | 'inline'
+      defaultEmailMessage?: string
+    }
+  }
+  pricesheetSettings?: {
+    companyLogo?: string | null
+    deliveryMethod?: 'link' | 'inline'
+    defaultEmailMessage?: string
   }
   packagingStructure?: {
     [commodityId: string]: {

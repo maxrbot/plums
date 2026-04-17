@@ -2746,6 +2746,8 @@ export default function CleanPriceSheetPage() {
           products={generatePreviewData()}
           userEmail={user?.profile?.email || user?.email}
           userPhone={user?.profile?.phone}
+          companyName={user?.profile?.companyName}
+          companyLogo={user?.pricesheetSettings?.companyLogo ?? user?.preferences?.pricesheet?.companyLogo}
           onSaveAsTemplate={templateId ? undefined : () => handleSaveAsTemplate()}
           onSendPriceSheet={templateId ? handleSendPriceSheet : undefined}
           isSaving={isSaving}

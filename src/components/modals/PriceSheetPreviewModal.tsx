@@ -41,6 +41,8 @@ interface PriceSheetPreviewModalProps {
   }
   userEmail?: string
   userPhone?: string
+  companyName?: string
+  companyLogo?: string | null
   onSave?: () => void
   onSaveAsTemplate?: () => void
   onSendPriceSheet?: () => void
@@ -63,6 +65,8 @@ export default function PriceSheetPreviewModal({
   contactInfo,
   userEmail,
   userPhone,
+  companyName,
+  companyLogo,
   onSave,
   onSaveAsTemplate,
   onSendPriceSheet,
@@ -265,13 +269,26 @@ export default function PriceSheetPreviewModal({
                 {/* Clean Header */}
                 <div className="bg-white px-6 py-4 border-b border-gray-200">
                   <div className="flex items-center justify-between">
-                    <h1 className="text-xl font-semibold text-gray-900">
-                      {onSaveAsTemplate ? 'Template Preview' : 'Price Sheet Preview'}
-                    </h1>
+                    <div className="min-w-0">
+                      {companyName ? (
+                        <>
+                          <p className="text-xs font-medium text-gray-400 uppercase tracking-wide leading-none mb-0.5">
+                            {onSaveAsTemplate ? 'Template Preview' : 'Price Sheet Preview'}
+                          </p>
+                          <h1 className="text-lg font-semibold text-gray-900 truncate leading-tight">
+                            {companyName}
+                          </h1>
+                        </>
+                      ) : (
+                        <h1 className="text-xl font-semibold text-gray-900">
+                          {onSaveAsTemplate ? 'Template Preview' : 'Price Sheet Preview'}
+                        </h1>
+                      )}
+                    </div>
                     <button
                       type="button"
                       onClick={onClose}
-                      className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                      className="ml-4 flex-shrink-0 rounded-md bg-white text-gray-400 hover:text-gray-500"
                     >
                       <XMarkIcon className="h-6 w-6" />
                     </button>
@@ -395,11 +412,22 @@ export default function PriceSheetPreviewModal({
                 <div className="bg-gray-50 px-6 py-6">
                   <div className="bg-white border-2 border-gray-300 rounded-lg shadow-sm">
                     {/* Document Header */}
-                    <div className="px-8 py-6 border-b border-gray-200">
-                      <h2 className="text-2xl font-bold text-gray-900 text-center mb-2">{title}</h2>
-                      <p className="text-sm text-gray-600 text-center">
-                        Pricing and Availability Subject to Change
-                      </p>
+                    <div className="px-8 py-1 border-b border-gray-200">
+                      <div className="flex items-center gap-5">
+                        {companyLogo && (
+                          <img
+                            src={companyLogo}
+                            alt={companyName ? `${companyName} logo` : 'Company logo'}
+                            className="h-20 w-20 object-contain flex-shrink-0"
+                          />
+                        )}
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900 mb-1">{title}</h2>
+                          <p className="text-sm text-gray-600">
+                            Pricing and Availability Subject to Change
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {/* Document Content */}

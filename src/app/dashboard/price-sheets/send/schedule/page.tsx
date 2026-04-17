@@ -202,7 +202,10 @@ export default function ScheduleSendPage() {
   
   // Custom price type (per contact) - FOB or DELIVERED
   const [customPriceType, setCustomPriceType] = useState<Record<string, 'FOB' | 'DELIVERED'>>({})
-  
+
+  // Delivery format override per contact (overrides global setting for this send only)
+  const [customDeliveryMethod, setCustomDeliveryMethod] = useState<Record<string, 'link' | 'inline'>>({})
+
   // Preview modal state
   const [emailPreviewModal, setEmailPreviewModal] = useState<{ isOpen: boolean; contact: Contact | null }>({
     isOpen: false,
@@ -1310,9 +1313,11 @@ export default function ScheduleSendPage() {
       {emailPreviewModal.contact && priceSheet && (() => {
         const contactId = emailPreviewModal.contact.id || (emailPreviewModal.contact as any)._id
         const savedCustomContent = customEmailContent[contactId]
-        const deliveryMethod = user?.pricesheetSettings?.deliveryMethod || user?.preferences?.pricesheet?.deliveryMethod || 'link'
+        const globalDeliveryMethod = user?.pricesheetSettings?.deliveryMethod || user?.preferences?.pricesheet?.deliveryMethod || 'link'
+        // Use per-contact override if set, otherwise fall back to global setting
+        const effectiveDeliveryMethod = customDeliveryMethod[contactId] ?? globalDeliveryMethod as 'link' | 'inline'
         const defaultEmailMessage = user?.pricesheetSettings?.defaultEmailMessage || user?.preferences?.pricesheet?.defaultEmailMessage || "Here's our latest pricing and availability:"
-        
+
         return (
           <EmailPreviewModal
             isOpen={emailPreviewModal.isOpen}
@@ -1327,7 +1332,10 @@ export default function ScheduleSendPage() {
             onSave={handleSaveEmailContent}
             savedCustomContent={savedCustomContent}
             isPreview={true}
-            deliveryMethod={deliveryMethod}
+            deliveryMethod={effectiveDeliveryMethod}
+            onDeliveryMethodChange={(cId, method) =>
+              setCustomDeliveryMethod(prev => ({ ...prev, [cId]: method }))
+            }
           />
         )
       })()}
@@ -1353,6 +1361,8 @@ export default function ScheduleSendPage() {
           }}
           userEmail={user?.profile?.email || user?.email}
           userPhone={user?.profile?.phone}
+          companyName={user?.profile?.companyName}
+          companyLogo={user?.pricesheetSettings?.companyLogo ?? user?.preferences?.pricesheet?.companyLogo}
           mode="send"
           allowPriceEditing={true}
           priceType={(() => {

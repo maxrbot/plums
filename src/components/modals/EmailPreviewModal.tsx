@@ -19,6 +19,7 @@ interface EmailPreviewModalProps {
   savedCustomContent?: { subject?: string; content?: string } // Pre-saved custom content
   isPreview?: boolean // If true, show note about personalized URLs
   deliveryMethod?: 'link' | 'inline' // User's preferred delivery method
+  onDeliveryMethodChange?: (contactId: string, method: 'link' | 'inline') => void // Per-send override
 }
 
 // Generate HTML email preview matching the real email template
@@ -101,7 +102,8 @@ export default function EmailPreviewModal({
   onSave,
   savedCustomContent,
   isPreview = false,
-  deliveryMethod = 'link'
+  deliveryMethod = 'link',
+  onDeliveryMethodChange
 }: EmailPreviewModalProps) {
   // Editable state - initialize with saved content if it exists
   const [isEditing, setIsEditing] = useState(false)
@@ -113,6 +115,8 @@ export default function EmailPreviewModal({
   )
   const [hasChanges, setHasChanges] = useState(false)
   const [showSavedMessage, setShowSavedMessage] = useState(false)
+  // Local format override — lets user flip link/inline for this send without changing global settings
+  const [localFormat, setLocalFormat] = useState<'link' | 'inline'>(deliveryMethod)
 
   const originalSubject = savedCustomContent?.subject || priceSheetTitle || 'Price Sheet'
   const originalMessage = savedCustomContent?.content || customMessage || "Here's our latest pricing and availability:"
@@ -125,8 +129,15 @@ export default function EmailPreviewModal({
       setHasChanges(false)
       setIsEditing(false)
       setShowSavedMessage(false)
+      setLocalFormat(deliveryMethod) // reset to current setting each open
     }
-  }, [isOpen, contact.id, originalSubject, originalMessage])
+  }, [isOpen, contact.id, originalSubject, originalMessage, deliveryMethod])
+
+  const handleFormatToggle = () => {
+    const next = localFormat === 'link' ? 'inline' : 'link'
+    setLocalFormat(next)
+    onDeliveryMethodChange?.(contact.id || (contact as any)._id, next)
+  }
 
   const handleSubjectChange = (value: string) => {
     setEditedSubject(value)
@@ -167,7 +178,7 @@ export default function EmailPreviewModal({
     productsCount,
     userName,
     userEmail,
-    deliveryMethod
+    localFormat
   )
 
   return (
@@ -215,9 +226,21 @@ export default function EmailPreviewModal({
                             Custom Version
                           </span>
                         )}
-                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-700">
-                          {deliveryMethod === 'inline' ? '📋 Inline Format' : '🔗 Link Format'}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={handleFormatToggle}
+                          title="Click to toggle format for this send only"
+                          className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors ${
+                            localFormat === 'inline'
+                              ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100'
+                              : 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100'
+                          }`}
+                        >
+                          {localFormat === 'inline' ? '📋 Inline' : '🔗 Link'}
+                          {localFormat !== deliveryMethod && (
+                            <span className="text-[10px] opacity-70">(override)</span>
+                          )}
+                        </button>
                       </p>
                     </div>
                   </div>
